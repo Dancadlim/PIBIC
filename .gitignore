@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+.env
+.next/
+*.pyc
+serviceAccountKey.json
+*.json
+!package.json
+!tsconfig.json
+!package-lock.json
