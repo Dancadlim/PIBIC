@@ -560,7 +560,7 @@ export default function ProfessorDashboard() {
                                       type="file" 
                                       accept=".pdf"
                                       className="hidden"
-                                      ref={el => fileInputRefs.current[idx] = el}
+                                      ref={el => { fileInputRefs.current[idx] = el; }}
                                       onChange={(e) => {
                                         if (e.target.files && e.target.files[0]) handleFileUpload(idx, e.target.files[0]);
                                       }}
