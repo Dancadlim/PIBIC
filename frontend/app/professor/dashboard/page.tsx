@@ -176,7 +176,7 @@ export default function ProfessorDashboard() {
         // 3. Buscar Disciplinas disponíveis no Banco
         try {
           const discSnapshot = await getDocs(collection(db, "disciplinas"));
-          const discList = discSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          const discList = discSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
           setDisciplinas(discList);
           if (discList.length > 0) setSelectedDisciplina(discList[0].id_disciplina);
         } catch (error) {
