@@ -3,3 +3,5 @@ uvicorn
 firebase-admin
 google-genai
 pydantic
+python-dotenv
+pypdf
