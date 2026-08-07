@@ -20,7 +20,8 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch("http://localhost:8000/api/gerar_simulador", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/gerar_simulador`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tema_aula: temaAula, nome_simulador: nomeSimulador })
@@ -109,7 +110,8 @@ function BlockEditor({
   const salvar = async () => {
     setSaving(true);
     try {
-      await fetch("http://localhost:8000/api/editar_aula_bloco", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      await fetch(`${apiUrl}/api/editar_aula_bloco`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -212,7 +214,8 @@ export default function ProfessorSemesterViewer() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await fetch("http://localhost:8000/api/upload_pdf", { method: "POST", body: formData });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/upload_pdf`, { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok) {
         setNovaAulaPdf(data.texto_extraido);
@@ -230,7 +233,8 @@ export default function ProfessorSemesterViewer() {
     if (!novaAulaTitulo || !novaAulaDescricao) return alert("Título e Descrição obrigatórios");
     try {
       const nextNum = (classroom?.total_aulas || classroom?.cronograma_oficial?.length || 0) + 1;
-      await fetch("http://localhost:8000/api/gerar_aula_avulsa", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      await fetch(`${apiUrl}/api/gerar_aula_avulsa`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -12,21 +12,29 @@ import gerador_conteudo
 import orquestrador_editorial
 from macro_roteirista import MacroRoteirista
 
+import json
+
 # Inicialização do Firebase Admin
 try:
-    cred_path = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
-    if os.path.exists(cred_path):
-        cred = credentials.Certificate(cred_path)
-        try:
-            firebase_admin.get_app()
-        except ValueError:
-            firebase_admin.initialize_app(cred)
-            
-        db = firestore.client()
-        print("[OK] Firebase Admin inicializado com sucesso.")
+    if os.environ.get("FIREBASE_CREDENTIALS"):
+        # Modo Produção: Ler da Variável de Ambiente (Render.com)
+        cred_dict = json.loads(os.environ.get("FIREBASE_CREDENTIALS"))
+        cred = credentials.Certificate(cred_dict)
     else:
-        print("[AVISO] serviceAccountKey.json não encontrado. Firebase não foi inicializado.")
-        db = None
+        # Modo Local: Ler do Arquivo
+        cred_path = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
+        if os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+        else:
+            raise FileNotFoundError("Credenciais (arquivo ou ENV) não encontradas.")
+            
+    try:
+        firebase_admin.get_app()
+    except ValueError:
+        firebase_admin.initialize_app(cred)
+        
+    db = firestore.client()
+    print("[OK] Firebase Admin inicializado com sucesso.")
 except Exception as e:
     print(f"[ERRO] Falha ao inicializar o Firebase: {e}")
     db = None

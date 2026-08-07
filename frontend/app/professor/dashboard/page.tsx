@@ -62,7 +62,8 @@ export default function ProfessorDashboard() {
     formData.append("files", file);
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload_pdf", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/upload_pdf`, {
         method: "POST",
         body: formData,
       });
@@ -108,7 +109,8 @@ export default function ProfessorDashboard() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload_pdf", { method: "POST", body: formData });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/upload_pdf`, { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok) {
         setArquivoGlobalPdf(data.texto_extraido);
@@ -243,7 +245,8 @@ export default function ProfessorDashboard() {
       // Chamada para a API Python geradora do semestre (Nível 2)
       // Usaremos max_aulas=3 por padrão para travar custos durante testes
       try {
-        await fetch("http://localhost:8000/api/gerar_semestre", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        await fetch(`${apiUrl}/api/gerar_semestre`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
