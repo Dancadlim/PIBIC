@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
+import { doc, onSnapshot, collection, getDocs, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -94,7 +94,78 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   );
 }
 
-export default function SemesterViewer() {
+function BlockEditor({
+  valorInicial,
+  caminhoBloco,
+  salaId,
+  aulaId,
+  onSaved
+}: { valorInicial: string, caminhoBloco: string, salaId: string, aulaId: string, onSaved: () => void }) {
+  const [editMode, setEditMode] = useState(false);
+  const [conteudo, setConteudo] = useState(valorInicial);
+  const [promptIA, setPromptIA] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const salvar = async () => {
+    setSaving(true);
+    try {
+      await fetch("http://localhost:8000/api/editar_aula_bloco", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sala_id: salaId,
+          aula_id: aulaId,
+          caminho_bloco: caminhoBloco,
+          novo_conteudo: conteudo,
+          prompt_ia: promptIA
+        })
+      });
+      setEditMode(false);
+      onSaved();
+    } catch (e) {
+      alert("Erro ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editMode) {
+    return (
+      <button onClick={() => setEditMode(true)} className="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded hover:bg-slate-300 flex items-center gap-1 mb-4 font-bold shadow-sm">
+        ✏️ Editar Bloco
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-4 shadow-inner">
+      <h4 className="font-bold text-yellow-800 text-sm mb-2">Modo de Edição (Markdown/LaTeX)</h4>
+      <textarea
+        className="w-full h-40 p-3 border border-yellow-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono text-sm bg-white text-slate-900"
+        value={conteudo}
+        onChange={(e) => setConteudo(e.target.value)}
+      />
+      <div className="mt-4">
+        <label className="text-xs font-bold text-yellow-800 mb-1 block">Pedir para IA reescrever (opcional):</label>
+        <input
+          type="text"
+          placeholder="Ex: Deixe este texto mais didático e inclua um exemplo prático."
+          className="w-full p-2 border border-yellow-300 rounded text-sm bg-white"
+          value={promptIA}
+          onChange={(e) => setPromptIA(e.target.value)}
+        />
+      </div>
+      <div className="flex justify-end gap-2 mt-4">
+        <button onClick={() => setEditMode(false)} className="px-4 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-100">Cancelar</button>
+        <button onClick={salvar} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 font-bold flex items-center gap-2">
+          {saving ? "Salvando..." : "💾 Salvar Alterações"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function ProfessorSemesterViewer() {
   const params = useParams();
   const router = useRouter();
 
@@ -125,6 +196,71 @@ export default function SemesterViewer() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'teoria' | 'exercicios' | 'referencias'>('teoria');
+  
+  const [modalNovaAulaOpen, setModalNovaAulaOpen] = useState(false);
+  const [novaAulaTitulo, setNovaAulaTitulo] = useState("");
+  const [novaAulaDescricao, setNovaAulaDescricao] = useState("");
+  const [novaAulaPdf, setNovaAulaPdf] = useState("");
+  const [uploadingNovaAula, setUploadingNovaAula] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".pdf")) return alert("Somente PDF");
+    setUploadingNovaAula(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch("http://localhost:8000/api/upload_pdf", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        setNovaAulaPdf(data.texto_extraido);
+      } else {
+        alert("Erro no upload");
+      }
+    } catch (e) {
+      alert("Erro na rede");
+    } finally {
+      setUploadingNovaAula(false);
+    }
+  };
+
+  const handleCriarAulaAvulsa = async () => {
+    if (!novaAulaTitulo || !novaAulaDescricao) return alert("Título e Descrição obrigatórios");
+    try {
+      const nextNum = (classroom?.total_aulas || classroom?.cronograma_oficial?.length || 0) + 1;
+      await fetch("http://localhost:8000/api/gerar_aula_avulsa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sala_id: id,
+          id_disciplina: classroom?.id_disciplina,
+          numero_aula: nextNum,
+          aula_manual: {
+            titulo: novaAulaTitulo,
+            descricao: novaAulaDescricao,
+            texto_base_pdf: novaAulaPdf,
+            gerar_exercicios: true,
+            gerar_simulador: false
+          }
+        })
+      });
+      setModalNovaAulaOpen(false);
+      alert("Sua aula foi enviada para geração em background!");
+    } catch (e) {
+      alert("Erro ao criar nova aula");
+    }
+  };
+
+  const togglePublish = async (aula: any) => {
+    try {
+      const aulaRef = doc(db, "classrooms", id, "aulas", aula.id);
+      await updateDoc(aulaRef, { publicada: !aula.publicada });
+    } catch (error) {
+      alert("Erro ao alterar visibilidade da aula.");
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -142,9 +278,7 @@ export default function SemesterViewer() {
 
     // Listener da subcoleção de Aulas Geradas
     const unsubAulas = onSnapshot(collection(db, "classrooms", id, "aulas"), (snap) => {
-      const aulasList = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter((a: any) => a.publicada === true);
+      const aulasList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setAulasGeradas(aulasList);
     });
 
@@ -184,9 +318,11 @@ export default function SemesterViewer() {
             <p className="text-xs text-blue-200">Sala: {classroom?.code} | Status: {status}</p>
           </div>
         </div>
-        <button onClick={() => router.back()} className="text-sm bg-blue-800 px-4 py-2 rounded hover:bg-blue-700 transition">
-          Voltar
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => router.push("/professor/dashboard")} className="text-sm bg-blue-800 px-4 py-2 rounded hover:bg-blue-700 transition">
+            Voltar ao Dashboard
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
@@ -241,7 +377,48 @@ export default function SemesterViewer() {
                </div>
             )}
           </div>
+          <div className="p-4 mt-auto border-t border-slate-200">
+            <button 
+              onClick={() => setModalNovaAulaOpen(true)}
+              className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 font-bold py-2 px-4 rounded transition"
+            >
+              + Adicionar Nova Aula
+            </button>
+          </div>
         </aside>
+
+        {/* Modal de Nova Aula */}
+        {modalNovaAulaOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+              <div className="bg-blue-900 p-4 flex justify-between items-center text-white">
+                <h3 className="font-bold text-lg">Criar Aula Extra</h3>
+                <button onClick={() => setModalNovaAulaOpen(false)}><X size={20}/></button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Título da Aula</label>
+                  <input className="w-full border rounded p-2" value={novaAulaTitulo} onChange={e => setNovaAulaTitulo(e.target.value)} placeholder="Ex: Exercícios Avançados" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Upload de PDF Base</label>
+                  <input type="file" ref={fileInputRef} className="hidden" onChange={e => e.target.files && handleFileUpload(e.target.files[0])} accept=".pdf" />
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-slate-200 px-4 py-2 rounded text-sm block" disabled={uploadingNovaAula}>
+                    {uploadingNovaAula ? "Extraindo..." : "Anexar PDF"}
+                  </button>
+                  {novaAulaPdf && <p className="text-green-600 text-xs mt-1">PDF carregado ({novaAulaPdf.length} chars)</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Diretrizes (O que a IA deve criar?)</label>
+                  <textarea className="w-full border rounded p-2 h-24" value={novaAulaDescricao} onChange={e => setNovaAulaDescricao(e.target.value)} placeholder="Descreva os tópicos." />
+                </div>
+                <button onClick={handleCriarAulaAvulsa} className="w-full bg-blue-600 text-white font-bold py-3 rounded">
+                  Gerar Nova Aula
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content: Visualizador da Aula Selecionada */}
         <main className="flex-1 bg-slate-50 overflow-y-auto p-8">
@@ -252,9 +429,21 @@ export default function SemesterViewer() {
             </div>
           ) : (
             <div className="max-w-4xl mx-auto pb-20">
-              <h2 className="text-3xl font-bold text-blue-900 mb-6 pb-2 border-b-2 border-slate-200">
-                Aula {selectedAula.numero_aula}: {selectedAula.titulo}
-              </h2>
+              <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-slate-200">
+                <h2 className="text-3xl font-bold text-blue-900">
+                  Aula {selectedAula.numero_aula}: {selectedAula.titulo}
+                </h2>
+                <button
+                  onClick={() => togglePublish(selectedAula)}
+                  className={`px-4 py-2 rounded-full font-bold shadow-sm transition-colors flex items-center gap-2 ${
+                    selectedAula.publicada 
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300' 
+                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300 border border-slate-300'
+                  }`}
+                >
+                  {selectedAula.publicada ? "👁️ Visível p/ Alunos" : "🙈 Oculta p/ Alunos"}
+                </button>
+              </div>
 
               {/* TABS NAVIGATION */}
               <div className="flex gap-2 mb-8 bg-slate-200/50 p-1.5 rounded-lg w-fit border border-slate-200">
@@ -301,6 +490,15 @@ export default function SemesterViewer() {
                   <p className="text-blue-800 leading-relaxed">
                     {selectedAula.conteudo_json.resumo_executivo_aula}
                   </p>
+                  <div className="mt-4">
+                    <BlockEditor 
+                      valorInicial={selectedAula.conteudo_json.resumo_executivo_aula}
+                      caminhoBloco="conteudo_json.resumo_executivo_aula"
+                      salaId={classroom.id}
+                      aulaId={selectedAula.id}
+                      onSaved={() => {}}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -328,6 +526,14 @@ export default function SemesterViewer() {
                         {idx + 1}. {titulo}
                       </h3>
                       
+                      <BlockEditor 
+                        valorInicial={textoProsa}
+                        caminhoBloco={isLapidada ? `conteudo_json.paginas_conteudo.${idx}.discussao_teorica_prosa` : `conteudo_json.conteudo_paginas.${idx}.conteudo.conceito_intuitivo`}
+                        salaId={classroom.id}
+                        aulaId={selectedAula.id}
+                        onSaved={() => {}}
+                      />
+
                       <div className="prose prose-lg prose-blue max-w-none text-slate-700">
                         <div className="whitespace-pre-wrap leading-relaxed mb-6">
                           <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>

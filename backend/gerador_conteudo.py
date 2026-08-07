@@ -275,7 +275,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
 2. 'conteudo' (objeto ConteudoSubtopico):
    - 'tipo_bloco' (string): Deve ser preenchido estritamente como 'teorico'.
-   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos. Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
+   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \\n\\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
    - 'conceito_formal' (string): Apresente o enunciado matemático definitivo do conceito ou teorema. Defina o espaço amostral, os parâmetros e as variáveis com rigor matemático absoluto utilizando LaTeX estruturado ($$ ou $).
    - 'propriedades_do_conceito' (lista de strings): Mapeie de forma exaustiva e rigorosa todas as leis, teoremas e propriedades matemáticas deduzidas diretamente desse conceito.
    - 'pre_requisitos_e_auxiliares' (lista de strings): Liste os pré-requisitos conceituais e ferramentas de cálculo necessários para compreender este subtópico.

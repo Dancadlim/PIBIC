@@ -117,7 +117,7 @@ class CadernoExerciciosValidado(BaseModel):
 
 class PaginaLapidada(BaseModel):
     titulo_subtopico: str
-    discussao_teorica_prosa: str = Field(description="Texto longo e denso em prosa acadêmica sem bullets. O conteúdo deve se conectar fluentemente com o subtópico anterior.")
+    discussao_teorica_prosa: str = Field(description="Texto em prosa dividida em parágrafos bem espaçados (use \\n\\n para separar). É proibido usar listas ou bullets.")
     prosa_longa_expandida: Optional[str] = Field(default=None, description="Texto extremamente longo, denso e exaustivo em prosa fluida gerado pelo Construtor de Prosa.")
     formalismo_latex: str = Field(description="Bloco de fórmulas em LaTeX ($$) sem repetições de equações que já apareceram na aula.")
     

@@ -44,8 +44,9 @@ Sua responsabilidade pedagógica é ler a Ementa Oficial completa de uma discipl
 em um cronograma letivo perfeito, garantindo equilíbrio de carga cognitiva para os alunos.
 
 DIRETRIZES DE FATIAMENTO:
-- Uma ementa deve ser dividida em um cronograma que atenda toda a carga horária semestral.
-- Se um tópico for muito complexo (ex: Teorema Central do Limite), divida-o em 2 ou 3 aulas sequenciais.
+- OBRIGATÓRIO: Siga RIGOROSAMENTE a ordem cronológica da ementa. Não misture tópicos do final do curso com os do início.
+- Uma ementa deve ser dividida em um cronograma que atenda toda a carga horária semestral estipulada.
+- Se um tópico for muito complexo, divida-o em 2 ou 3 aulas sequenciais.
 - Se os tópicos forem simples, agrupe-os de forma lógica na mesma aula.
 - Evite criar aulas puramente curtas ou extremamente longas. O objetivo é equilibrar o conteúdo.
 - Aulas de exercícios ou práticas guiadas (tarefas) devem estar incluídas em cada etapa onde fizer sentido pedagógico, ou seja, as próprias aulas devem ter em seu escopo momentos de prática, mas você também pode dedicar algumas aulas exclusivamente para revisão e exercícios antes de mudar de grande bloco de assunto.
@@ -57,7 +58,8 @@ Exemplo de um objeto do Array:
   "numero_aula": 1,
   "titulo": "Introdução aos Conceitos Fundamentais",
   "objetivo_principal": "Compreender o espaço amostral e variáveis primárias.",
-  "topicos_abordados": ["Espaço Amostral", "Eventos Independentes"]
+  "topicos_abordados": ["Espaço Amostral", "Eventos Independentes"],
+  "aula_complementar": false
 }
 """
 
@@ -86,6 +88,7 @@ REGRAS_MESTRE_ESCRITOR = f"""
 1. Conexão com o RAG e Grounding: Se houver base literária, aterre os conceitos rigorosamente na base bibliográfica. Indique os números de página ou capítulos do PDF lido. Ex: "De acordo com Morettin, p. 122...".
 2. Didática Exaustiva e Profunda: Seja extremamente minucioso e denso nas provas matemáticas. Não crie listas e balas, crie prosa robusta e universitária (como um livro clássico de Springer-Verlag ou Wiley).
 3. Exemplos Reais de Alta Complexidade Comercial: Fuja de dados triviais ("lançamento de moedas"). Crie contextos de mercado e modelagem robusta, mostrando vetores/matrizes grandes.
+4. LIMITAÇÃO EXTREMA DE ESCOPO (PACING): Sob NENHUMA HIPÓTESE aborde tópicos que não foram solicitados para esta aula. Se você receber uma lista de "Tópicos Proibidos" (que serão ensinados nas próximas aulas), é ESTRITAMENTE PROIBIDO mencioná-los, explicá-los ou usá-los como exemplo. Mantenha o foco TOTAL apenas no que foi solicitado.
 
 {DICIONARIO_LATEX}
 """
@@ -162,7 +165,7 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
 3. 'paginas_conteudo' (lista de objetos PaginaLapidada):
    Cada item representa a versão unificada de um subtópico da aula e deve conter:
    - 'titulo_subtopico' (string): Título com alta sonoridade acadêmica e elegância temática.
-   - 'discussao_teorica_prosa' (string): Texto em prosa denso e elegante costurando o material conceitual do Escritor de forma contínua e sem repetições conceituais.
+   - 'discussao_teorica_prosa' (string): Texto em prosa denso e elegante costurando o material conceitual do Escritor. É OBRIGATÓRIO dividir o texto em parágrafos bem espaçados, utilizando DUAS quebras de linha (\\n\\n) entre cada parágrafo. Proibido usar listas ou bullets.
    - 'prosa_longa_expandida' (string ou null): Espaço reservado para expansão futura (inicialmente copie o valor de 'discussao_teorica_prosa').
    - 'formalismo_latex' (string): Bloco LaTeX ($$) com as fórmulas mais marcantes da página, sem equações duplicadas. Lembre-se: use EXATAMENTE `$$` e nunca apenas um cifrão!
    - 'deducao_analitica_linhas' (lista de strings): As passagens matemáticas completas e analíticas linha por linha em LaTeX ($$).
