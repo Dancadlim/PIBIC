@@ -201,8 +201,13 @@ export default function ProfessorSemesterViewer() {
   
   const [modalNovaAulaOpen, setModalNovaAulaOpen] = useState(false);
   const [novaAulaTitulo, setNovaAulaTitulo] = useState("");
+  const [novaAulaFormato, setNovaAulaFormato] = useState<"ia_decide" | "so_temas" | "desenhar_aula">("ia_decide");
   const [novaAulaDescricao, setNovaAulaDescricao] = useState("");
   const [novaAulaPdf, setNovaAulaPdf] = useState("");
+  const [novaAulaGerarExercicios, setNovaAulaGerarExercicios] = useState(true);
+  const [novaAulaSugestoesExercicios, setNovaAulaSugestoesExercicios] = useState("");
+  const [novaAulaGerarSimulador, setNovaAulaGerarSimulador] = useState(false);
+  const [novaAulaSugestoesSimulador, setNovaAulaSugestoesSimulador] = useState("");
   const [uploadingNovaAula, setUploadingNovaAula] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -230,7 +235,7 @@ export default function ProfessorSemesterViewer() {
   };
 
   const handleCriarAulaAvulsa = async () => {
-    if (!novaAulaTitulo || !novaAulaDescricao) return alert("Título e Descrição obrigatórios");
+    if (!novaAulaTitulo) return alert("Título é obrigatório");
     try {
       const nextNum = (classroom?.total_aulas || classroom?.cronograma_oficial?.length || 0) + 1;
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -243,14 +248,17 @@ export default function ProfessorSemesterViewer() {
           numero_aula: nextNum,
           aula_manual: {
             titulo: novaAulaTitulo,
-            descricao: novaAulaDescricao,
-            texto_base_pdf: novaAulaPdf,
-            gerar_exercicios: true,
-            gerar_simulador: false
+            descricao: novaAulaFormato === "desenhar_aula" ? novaAulaDescricao + (novaAulaGerarExercicios && novaAulaSugestoesExercicios ? `\n(Dica p/ Exercícios: ${novaAulaSugestoesExercicios})` : "") + (novaAulaGerarSimulador && novaAulaSugestoesSimulador ? `\n(Dica p/ Simulador: ${novaAulaSugestoesSimulador})` : "") : "",
+            texto_base_pdf: novaAulaFormato !== "so_temas" ? novaAulaPdf : "",
+            gerar_exercicios: novaAulaFormato === "desenhar_aula" ? novaAulaGerarExercicios : true,
+            gerar_simulador: novaAulaFormato === "desenhar_aula" ? novaAulaGerarSimulador : false
           }
         })
       });
       setModalNovaAulaOpen(false);
+      setNovaAulaTitulo("");
+      setNovaAulaDescricao("");
+      setNovaAulaPdf("");
       alert("Sua aula foi enviada para geração em background!");
     } catch (e) {
       alert("Erro ao criar nova aula");
@@ -367,7 +375,12 @@ export default function ProfessorSemesterViewer() {
                   >
                     <div className="flex justify-between items-start mb-1">
                       <span className={`font-bold ${aulaCompleta ? 'text-blue-700' : 'text-slate-500'}`}>Aula {numero}</span>
-                      {aulaCompleta && <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded uppercase font-bold">Pronta</span>}
+                      {aulaCompleta && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded uppercase font-bold">Pronta</span>
+                          {!aulaCompleta.publicada && <span className="text-[10px] bg-slate-200 text-slate-600 px-1 rounded uppercase font-bold" title="Oculta para alunos">🙈 Oculta</span>}
+                        </div>
+                      )}
                     </div>
                     <p className={`font-medium line-clamp-2 ${aulaCompleta ? 'text-slate-800' : 'text-slate-500'}`}>
                       {aulaMeta.titulo}
@@ -394,30 +407,84 @@ export default function ProfessorSemesterViewer() {
         {/* Modal de Nova Aula */}
         {modalNovaAulaOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-              <div className="bg-blue-900 p-4 flex justify-between items-center text-white">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-y-auto max-h-[90vh]">
+              <div className="bg-indigo-900 p-4 flex justify-between items-center text-white sticky top-0 z-10">
                 <h3 className="font-bold text-lg">Criar Aula Extra</h3>
-                <button onClick={() => setModalNovaAulaOpen(false)}><X size={20}/></button>
+                <button onClick={() => setModalNovaAulaOpen(false)} className="hover:bg-indigo-800 p-1 rounded"><X size={20}/></button>
               </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Título da Aula</label>
-                  <input className="w-full border rounded p-2" value={novaAulaTitulo} onChange={e => setNovaAulaTitulo(e.target.value)} placeholder="Ex: Exercícios Avançados" />
+              <div className="p-6 space-y-6">
+                
+                {/* 1. Escolha do Formato */}
+                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                  <h4 className="font-bold text-indigo-900 mb-3 text-sm">Como deseja criar esta aula?</h4>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setNovaAulaFormato("ia_decide")}
+                      className={`flex-1 p-2 rounded-lg text-xs font-bold border-2 transition-all ${novaAulaFormato === "ia_decide" ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white border-indigo-200 text-indigo-700"}`}
+                    >🤖 IA a partir de PDF</button>
+                    <button 
+                      onClick={() => setNovaAulaFormato("so_temas")}
+                      className={`flex-1 p-2 rounded-lg text-xs font-bold border-2 transition-all ${novaAulaFormato === "so_temas" ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white border-indigo-200 text-indigo-700"}`}
+                    >📝 Apenas Tema</button>
+                    <button 
+                      onClick={() => setNovaAulaFormato("desenhar_aula")}
+                      className={`flex-1 p-2 rounded-lg text-xs font-bold border-2 transition-all ${novaAulaFormato === "desenhar_aula" ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white border-indigo-200 text-indigo-700"}`}
+                    >🛠️ Artesão Completo</button>
+                  </div>
                 </div>
+
+                {/* 2. Título (Sempre visível) */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Upload de PDF Base</label>
-                  <input type="file" ref={fileInputRef} className="hidden" onChange={e => e.target.files && handleFileUpload(e.target.files[0])} accept=".pdf" />
-                  <button onClick={() => fileInputRef.current?.click()} className="bg-slate-200 px-4 py-2 rounded text-sm block" disabled={uploadingNovaAula}>
-                    {uploadingNovaAula ? "Extraindo..." : "Anexar PDF"}
-                  </button>
-                  {novaAulaPdf && <p className="text-green-600 text-xs mt-1">PDF carregado ({novaAulaPdf.length} chars)</p>}
+                  <label className="block text-sm font-bold text-slate-800 mb-1">Título / Tema da Aula <span className="text-red-500">*</span></label>
+                  <input className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 text-slate-900" value={novaAulaTitulo} onChange={e => setNovaAulaTitulo(e.target.value)} placeholder="Ex: Exercícios Avançados de Dinâmica" />
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Diretrizes (O que a IA deve criar?)</label>
-                  <textarea className="w-full border rounded p-2 h-24" value={novaAulaDescricao} onChange={e => setNovaAulaDescricao(e.target.value)} placeholder="Descreva os tópicos." />
-                </div>
-                <button onClick={handleCriarAulaAvulsa} className="w-full bg-blue-600 text-white font-bold py-3 rounded">
-                  Gerar Nova Aula
+
+                {/* 3. PDF (Visível em ia_decide e desenhar_aula) */}
+                {novaAulaFormato !== "so_temas" && (
+                  <div>
+                    <label className="block text-sm font-bold text-slate-800 mb-1">Upload de Material Base (PDF)</label>
+                    <input type="file" ref={fileInputRef} className="hidden" onChange={e => e.target.files && handleFileUpload(e.target.files[0])} accept=".pdf" />
+                    <button onClick={() => fileInputRef.current?.click()} className="bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-700 font-bold px-4 py-3 rounded-lg text-sm w-full transition" disabled={uploadingNovaAula}>
+                      {uploadingNovaAula ? "Extraindo texto do PDF..." : "📎 Anexar PDF"}
+                    </button>
+                    {novaAulaPdf && <p className="text-green-700 text-xs mt-2 font-bold bg-green-50 p-2 rounded border border-green-200">✓ PDF carregado e lido com sucesso!</p>}
+                  </div>
+                )}
+
+                {/* 4. Artesão Completo (Só visível em desenhar_aula) */}
+                {novaAulaFormato === "desenhar_aula" && (
+                  <div className="space-y-4 border-t border-slate-200 pt-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-1">Diretrizes / Notas Opcionais</label>
+                      <textarea className="w-full border border-slate-300 rounded-lg p-3 h-20 focus:ring-2 focus:ring-indigo-500 text-slate-900" value={novaAulaDescricao} onChange={e => setNovaAulaDescricao(e.target.value)} placeholder="O que a IA deve cobrir especificamente nesta aula?" />
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                      <div>
+                        <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                            <input type="checkbox" checked={novaAulaGerarExercicios} onChange={(e) => setNovaAulaGerarExercicios(e.target.checked)} className="w-4 h-4 text-indigo-600" />
+                            Gerar Exercícios ao Final
+                        </label>
+                        {novaAulaGerarExercicios && (
+                            <input type="text" placeholder="Sugestões? (Ex: 3 abertas). Deixe em branco p/ IA decidir." className="w-full mt-2 p-2 border border-slate-300 rounded text-sm text-slate-900" value={novaAulaSugestoesExercicios} onChange={(e) => setNovaAulaSugestoesExercicios(e.target.value)} />
+                        )}
+                      </div>
+                      <hr className="border-slate-200" />
+                      <div>
+                        <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                            <input type="checkbox" checked={novaAulaGerarSimulador} onChange={(e) => setNovaAulaGerarSimulador(e.target.checked)} className="w-4 h-4 text-indigo-600" />
+                            Injetar Simulador Interativo
+                        </label>
+                        {novaAulaGerarSimulador && (
+                            <input type="text" placeholder="Ex: Mostrar um bloco deslizando. Deixe em branco p/ IA decidir." className="w-full mt-2 p-2 border border-slate-300 rounded text-sm text-slate-900" value={novaAulaSugestoesSimulador} onChange={(e) => setNovaAulaSugestoesSimulador(e.target.value)} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={handleCriarAulaAvulsa} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition text-lg mt-4">
+                  Gerar Nova Aula 🚀
                 </button>
               </div>
             </div>

@@ -3,6 +3,7 @@ import sys
 import json
 import re
 import time
+import concurrent.futures
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
@@ -199,38 +200,31 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
     # FASE 2: AGENTE 2 + 2.5 - O ESCRITOR COM LOOP DE REVISÃO ATIVA
     # ==============================================================================
     t_inicio_escrita = time.time()
-    print("\n[Agente 2 + 2.5] Iniciando laço de escrita com loop de revisão ativa...")
-    aulas_conteudo_final = []
-    MAX_TENTATIVAS_REVISAO = 3
-
-    for idx, sub in enumerate(roteiro_pedagogico.esquema_paginas):
+    print("\n[Agente 2 + 2.5] Iniciando laço de escrita com loop de revisão ativa EM PARALELO...")
+    
+    # Função isolada para processar um único subtópico
+    def processar_subtopico(idx, sub):
         t_inicio_sub = time.time()
-        # Pausa preventiva de 5 segundos entre subtópicos para evitar estouro de limite de cota (Rate Limits / 429)
-        if idx > 0:
-            print("[INFO] Pausa de 5 segundos para respeitar limites de cota (Rate Limit)...")
-            time.sleep(5)
-            
-        print(f"\n   -> Processando Subtópico [{idx+1}/{len(roteiro_pedagogico.esquema_paginas)}]: {sub.titulo}")
+        print(f"\n   -> Iniciando Processamento Subtópico [{idx+1}/{len(roteiro_pedagogico.esquema_paginas)}]: {sub.titulo}")
         
-        # Criação da Query Contextualizada e Hierárquica para o RAG
         termos_busca = " ".join(sub.conceitos_chave_rag)
         query_rag = f"{tema_solicitado} - {sub.titulo} - {termos_busca}"
         
-        # Variáveis de controle do loop de refação
         tentativa = 0
         bloco_aprovado = False
         comentario_feedback_llm = "Nenhum. Esta é a primeira tentativa de escrita do bloco."
         subtopico_atual_dados = None
-        dados_escritor_dict = None  # CORREÇÃO: Evita vazamento de escopo e duplicação em caso de erro
+        dados_escritor_dict = None
         
         feedbacks = []
         erros_429 = 0
         erros_503 = 0
         erros_outros = 0
+        MAX_TENTATIVAS_REVISAO = 3
 
         while tentativa < MAX_TENTATIVAS_REVISAO and not bloco_aprovado:
             tentativa += 1
-            print(f"      [Tentativa {tentativa}/{MAX_TENTATIVAS_REVISAO}] Enviando para o Escritor...")
+            print(f"      [Topico {idx+1} | Tentativa {tentativa}/{MAX_TENTATIVAS_REVISAO}] Enviando para o Escritor...")
 
             if store_names:
                 diretriz_veracidade = "Baseie-se estritamente e exclusivamente nas informações contidas nos documentos do RAG e nos materiais do professor fornecidos pelo File Search. É terminantemente proibido inventar teoremas, deduzir propriedades sem fundamentação teórica nas fontes recuperadas, ou citar livros que não constem de fato nas referências obtidas."
@@ -255,12 +249,12 @@ Você é um Professor Titular de Estatística e co-autor de livros didáticos cl
 
 ### CONTEXTO E MISSÃO
 Você receberá as Diretrizes de Notação e Design do professor, {contexto_rag_descricao} e um [SUBTÓPICO_ALVO] que integra o [TÓPICO_DA_AULA].
-Sua missão é atuar como o produtor científico principal do conteúdo teórico: você deve redigir a teoria acadêmica e formalismo matemático de forma extremamente completa e exaustiva para o [SUBTÓPICO_ALVO], preenchendo rigorosamente a estrutura 'SubtopicoValidado'.
+Sua missão é atuar como o produtor científico principal do conteúdo teórico: você deve redigir a teoria acadêmica e formalismo matemático de forma extremamente completa para o [SUBTÓPICO_ALVO], preenchendo rigorosamente a estrutura 'SubtopicoValidado'.
 
 ---
 
 ### DIRETRIZES DE ESCOPO E EXAUSTIVIDADE (MANDATÓRIO)
-1. Escrita Exaustiva de Livro: Você tem um limite de saída de 65.000 tokens. USE ESTE ESPAÇO PARA SER O MÁXIMO POSSÍVEL EXAUSTIVO. É OBRIGATÓRIO escrever o máximo de texto, explicações e detalhes analíticos possíveis. Proibido resumir, simplificar ou abreviar em nenhuma hipótese.
+1. Escrita Didática de Livro: Você tem um limite de saída alto. USE ESTE ESPAÇO PARA SER O MÁXIMO POSSÍVEL DIDÁTICO E CLARO. É OBRIGATÓRIO escrever o texto, explicações e detalhes analíticos para que o aluno compreenda plenamente o assunto. Proibido simplificar demais a ponto de perder o rigor matemático.
 2. Regra de Ouro de Veracidade: {diretriz_veracidade}
 3. Rigor Científico e LaTeX: Toda notação matemática formal, hipóteses, variabilidades, distribuições e deduções devem ser apresentadas com rigor absoluto em LaTeX estruturado ($$ para destaque centralizado ou $ para linha).
 
@@ -275,7 +269,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
 2. 'conteudo' (objeto ConteudoSubtopico):
    - 'tipo_bloco' (string): Deve ser preenchido estritamente como 'teorico'.
-   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \\n\\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
+   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \n\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
    - 'conceito_formal' (string): Apresente o enunciado matemático definitivo do conceito ou teorema. Defina o espaço amostral, os parâmetros e as variáveis com rigor matemático absoluto utilizando LaTeX estruturado ($$ ou $).
    - 'propriedades_do_conceito' (lista de strings): Mapeie de forma exaustiva e rigorosa todas as leis, teoremas e propriedades matemáticas deduzidas diretamente desse conceito.
    - 'pre_requisitos_e_auxiliares' (lista de strings): Liste os pré-requisitos conceituais e ferramentas de cálculo necessários para compreender este subtópico.
@@ -318,24 +312,20 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                     config=config_escritor
                 )
                 
-                # Parsing temporário do que o escritor acabou de gerar
                 dados_escritor_dict = json.loads(resposta_escritor.text)
                 
-                # ACIONA O AGENTE 2.5 (REVISOR DE CONTEÚDO) IMEDIATAMENTE
-                print("      [REVISOR] Analisando rigor matemático e profundidade...")
+                print(f"      [REVISOR] Analisando tópico {idx+1}...")
                 laudo_revisao = auditar_subtopico_local(dados_escritor_dict, diretrizes_texto)
                 
                 if laudo_revisao.aprovado:
-                    print("      [OK] Bloco APROVADO pelo revisor científico!")
+                    print(f"      [OK] Bloco {idx+1} APROVADO pelo revisor!")
                     bloco_aprovado = True
                     
-                    # Usa o conteúdo revisado se fornecido, senão cria do dict bruto
                     if laudo_revisao.conteudo_corrigido:
                         subtopico_atual_dados = laudo_revisao.conteudo_corrigido
                     else:
                         subtopico_atual_dados = SubtopicoValidado(**dados_escritor_dict)
                     
-                    # Captura os metadados do grounding normais do RAG
                     fontes_capturadas = []
                     if hasattr(resposta_escritor, "grounding_metadata") and resposta_escritor.grounding_metadata:
                         chunks = resposta_escritor.grounding_metadata.grounding_chunks
@@ -353,7 +343,6 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                                         )
                                     )
                     if fontes_capturadas:
-                        # Remove duplicatas
                         vistas = set()
                         fontes_unicas = []
                         for f in fontes_capturadas:
@@ -363,29 +352,25 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                                 fontes_unicas.append(f)
                         subtopico_atual_dados.fontes_rag = fontes_unicas
                 else:
-                    # Se reprovado, o laudo vira o prompt da próxima iteração do laço while!
-                    print(f"      [REPROVADO] Bloco REPROVADO! Motivo: {laudo_revisao.comentario_correcao}")
+                    print(f"      [REPROVADO] Bloco {idx+1} REPROVADO! Motivo: {laudo_revisao.comentario_correcao}")
                     comentario_feedback_llm = f"ALERTA DE ERRO NA TENTATIVA ANTERIOR: Seu bloco foi reprovado pelo revisor com o seguinte comentário: {laudo_revisao.comentario_correcao}. Por favor, refaça o trabalho corrigindo este problema."
                     feedbacks.append(laudo_revisao.comentario_correcao)
                     
             except Exception as e:
-                # CORREÇÃO INTELIGENTE (Recomendação do Usuário):
-                # Distingue erro 429 (cota esgotada: exige espera longa de 15s) de erro 503 (servidor ocupado: retentativa rápida de 2s)
                 erro_str = str(e)
                 if "429" in erro_str or "RESOURCE_EXHAUSTED" in erro_str:
                     erros_429 += 1
-                    print(f"      [AVISO] Limite de cota excedido (429). Aguardando 15 segundos para renovar a cota... Erro: {e}")
-                    time.sleep(15)
+                    print(f"      [AVISO 429] Limite de cota excedido no tópico {idx+1}. Propagando erro para gerenciador de pool...")
+                    raise Exception("429_TOO_MANY_REQUESTS")
                 elif "503" in erro_str or "UNAVAILABLE" in erro_str:
                     erros_503 += 1
-                    print(f"      [AVISO] Servidor da Google ocupado (503). Retentando rapidamente em 2 segundos...")
+                    print(f"      [AVISO 503] Servidor ocupado no tópico {idx+1}. Retentando rapidamente em 2s...")
                     time.sleep(2)
                 else:
                     erros_outros += 1
-                    print(f"      [ERRO] Falha de comunicação genérica. Retentando em 5 segundos... Erro: {e}")
+                    print(f"      [ERRO] Falha genérica no tópico {idx+1}. Retentando em 5s... Erro: {e}")
                     time.sleep(5)
                 
-        # Se estourar os retries e não aprovar, salva o último gerado para não travar o pipeline
         if not subtopico_atual_dados and dados_escritor_dict:
             subtopico_atual_dados = SubtopicoValidado(**dados_escritor_dict)
             subtopico_atual_dados.fontes_rag = [
@@ -396,11 +381,8 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                 )
             ]
             
-        if subtopico_atual_dados:
-            aulas_conteudo_final.append(subtopico_atual_dados)
-            
         t_fim_sub = time.time()
-        log_subtopicos.append({
+        log_data = {
             "titulo": sub.titulo,
             "tentativas": tentativa,
             "reprovacoes": len(feedbacks),
@@ -412,8 +394,73 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
             },
             "tempo_segundos": round(t_fim_sub - t_inicio_sub, 2),
             "aprovado": bloco_aprovado
-        })
+        }
+        
+        return (idx, subtopico_atual_dados, log_data)
 
+
+    # Controle de Pool de Execução
+    aulas_conteudo_final = [None] * len(roteiro_pedagogico.esquema_paginas)
+    log_subtopicos = [None] * len(roteiro_pedagogico.esquema_paginas)
+    
+    tarefas_pendentes = list(enumerate(roteiro_pedagogico.esquema_paginas))
+    max_workers_atuais = 5
+    
+    while tarefas_pendentes:
+        print(f"\n[POOL] Iniciando pool com {max_workers_atuais} workers para {len(tarefas_pendentes)} tópicos pendentes.")
+        ocorreu_429 = False
+        tarefas_falhadas_429 = []
+        
+        # O ThreadPoolExecutor será cancelado nativamente no Python 3.9+ usando cancel_futures=True se houver erro
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers_atuais)
+        
+        # Submete as tarefas
+        futuros = {}
+        for item in tarefas_pendentes:
+            fut = executor.submit(processar_subtopico, item[0], item[1])
+            futuros[fut] = item
+            
+        tarefas_pendentes = [] # Limpa a lista para o caso de precisarmos reabastecer com as falhas
+        
+        try:
+            for futuro in concurrent.futures.as_completed(futuros):
+                item = futuros[futuro]
+                idx_orig, sub_orig = item
+                try:
+                    res_idx, res_dados, res_log = futuro.result()
+                    aulas_conteudo_final[res_idx] = res_dados
+                    log_subtopicos[res_idx] = res_log
+                    print(f"   -> [CONCLUÍDO] Tópico {res_idx+1} gerado com sucesso!")
+                except Exception as e:
+                    if "429_TOO_MANY_REQUESTS" in str(e):
+                        if not ocorreu_429:
+                            print("\n[ERRO CRÍTICO 429] Detectado limite de requisições! Iniciando protocolo de cancelamento e cooldown...")
+                            ocorreu_429 = True
+                        tarefas_falhadas_429.append(item)
+                    else:
+                        print(f"\n[ERRO FATAL] O tópico {idx_orig+1} falhou e não pode ser recuperado: {e}")
+                        
+        finally:
+            # Encerra o pool atual. Em Python 3.9+, cancel_futures=True cancela as tarefas que ainda estão na fila de espera
+            # Para manter compatibilidade com versões antigas, cancelamos manualmente as pendentes que não completaram.
+            executor.shutdown(wait=False, cancel_futures=True) if hasattr(executor, 'shutdown') and 'cancel_futures' in executor.shutdown.__code__.co_varnames else executor.shutdown(wait=False)
+            
+            # As tarefas canceladas não retornarão result(), então elas não foram colocadas em aulas_conteudo_final
+            # Precisamos re-adicionar todas as tarefas que ainda não estão prontas na lista pendente
+            tarefas_pendentes = []
+            for i, sub in enumerate(roteiro_pedagogico.esquema_paginas):
+                if aulas_conteudo_final[i] is None:
+                    tarefas_pendentes.append((i, sub))
+        
+        if ocorreu_429 and tarefas_pendentes:
+            print("[COOLDOWN] Aguardando 60 segundos antes de tentar novamente...")
+            time.sleep(60)
+            max_workers_atuais = 3
+            print("[COOLDOWN] Reduzindo paralelismo para 3 workers para evitar novos erros 429.")
+            
+    # Remove eventuais Nones caso algum tópico tenha falhado irreversivelmente
+    aulas_conteudo_final = [x for x in aulas_conteudo_final if x is not None]
+    
     t_fim_escrita = time.time()
 
     return {

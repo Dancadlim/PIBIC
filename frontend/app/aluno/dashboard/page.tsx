@@ -27,18 +27,20 @@ export default function AlunoDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!auth.currentUser) return;
+      // MOCK USER PARA TESTES:
+      const mockUser = { uid: "TEST_ALUNO_123" };
+      // if (!auth.currentUser) return;
 
       try {
         // 1. Busca perfil do aluno
-        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        const userDoc = await getDoc(doc(db, "users", mockUser.uid));
         if (userDoc.exists()) {
           setAlunoName(userDoc.data().nome);
           setAlunoCurso(userDoc.data().curso);
         }
 
         // 2. Busca matriculas do aluno
-        const qEnrollments = query(collection(db, "enrollments"), where("studentId", "==", auth.currentUser.uid));
+        const qEnrollments = query(collection(db, "enrollments"), where("studentId", "==", mockUser.uid));
         const enrollSnapshot = await getDocs(qEnrollments);
         
         const turmas: any[] = [];
@@ -93,7 +95,7 @@ export default function AlunoDashboard() {
       // 2. Verifica se já está matriculado
       const qCheck = query(
         collection(db, "enrollments"), 
-        where("studentId", "==", auth.currentUser?.uid),
+        where("studentId", "==", "TEST_ALUNO_123"),
         where("classroomId", "==", classId)
       );
       const checkSnap = await getDocs(qCheck);
@@ -107,7 +109,7 @@ export default function AlunoDashboard() {
 
       // 3. Cria a matricula
       await addDoc(collection(db, "enrollments"), {
-        studentId: auth.currentUser?.uid,
+        studentId: "TEST_ALUNO_123",
         classroomId: classId,
         joinedAt: serverTimestamp()
       });

@@ -18,10 +18,12 @@ class MacroRoteirista:
     def gerar_cronograma(self, ementa_texto: str, instrucoes_personalizadas: str = None, tipo_carga_horaria: str = "padrao_30", permitir_aprofundamento: bool = False, max_aulas: int = 30) -> list:
         
         instrucao_carga = ""
-        if tipo_carga_horaria == "padrao_30":
-            instrucao_carga = f"O curso DEVE TER EXATAMENTE {max_aulas} aulas no total. Não gere mais nem menos aulas. Aloque toda a ementa de forma balanceada nesse espaço."
+        if tipo_carga_horaria == "padrao_30" or tipo_carga_horaria == "manual":
+            instrucao_carga = f"O curso DEVE TER EXATAMENTE {max_aulas} aulas no total. Não gere mais nem menos aulas. Aloque todo o conteúdo de forma balanceada nesse espaço."
         elif tipo_carga_horaria == "auto_ementa":
             instrucao_carga = "O curso deve ter a quantidade de aulas calculada matematicamente a partir da ementa oficial. Leia a ementa, ache a Carga Horária. Se a carga horária for quebrada ou antiga (ex: 72h, 54h), ARREDONDE para a grade universitária oficial mais próxima (30, 45, 60 ou 90 horas). Depois, divida essa carga oficial por ~2.5 horas (150 minutos) para obter a quantidade total de aulas da matéria. Use EXATAMENTE essa quantidade de aulas para estruturar o cronograma."
+        elif tipo_carga_horaria == "auto_ia":
+            instrucao_carga = "Você deve analisar todo o material e decidir a quantidade ideal de aulas para abordá-lo de forma profunda e bem cadenciada. O número total de aulas geradas DEVE OBRIGATORIAMENTE ser entre MÍNIMO 20 aulas e MÁXIMO 40 aulas."
             
         instrucao_aprofundamento = ""
         if permitir_aprofundamento:
