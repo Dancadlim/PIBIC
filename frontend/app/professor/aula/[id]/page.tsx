@@ -15,6 +15,17 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   const [html, setHtml] = useState<string | null>(htmlCode || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [iframeHeight, setIframeHeight] = useState(800);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'resize' && event.data.height) {
+         setIframeHeight(event.data.height + 50);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const carregarSimulador = async () => {
     setLoading(true);
@@ -75,6 +86,15 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
     );
   }
 
+  const injectedHtml = html ? html + `<script>
+    window.addEventListener('load', () => {
+        const ro = new ResizeObserver(() => {
+          window.parent.postMessage({ type: 'resize', height: document.documentElement.scrollHeight }, '*');
+        });
+        ro.observe(document.body);
+    });
+  </script>` : null;
+
   return (
     <div className="my-8 border border-slate-200 rounded-xl overflow-hidden shadow-lg bg-white">
       <div className="bg-slate-800 text-slate-100 px-4 py-3 flex justify-between items-center">
@@ -86,9 +106,10 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         </div>
       </div>
       <iframe 
-        srcDoc={html!}
-        className="w-full h-[900px] border-none bg-white"
-        sandbox="allow-scripts"
+        srcDoc={injectedHtml!}
+        style={{ height: `${iframeHeight}px` }}
+        className="w-full border-none bg-white transition-all duration-300"
+        sandbox="allow-scripts allow-same-origin"
         scrolling="no"
         title="Simulador Interativo"
       />
