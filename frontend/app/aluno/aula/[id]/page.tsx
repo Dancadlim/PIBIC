@@ -87,8 +87,9 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
       </div>
       <iframe 
         srcDoc={html!}
-        className="w-full min-h-[800px] h-[90vh] border-none bg-white"
+        className="w-full h-[900px] border-none bg-white"
         sandbox="allow-scripts"
+        scrolling="no"
         title="Simulador Interativo"
       />
     </div>
@@ -353,7 +354,7 @@ export default function SemesterViewer() {
                         })()}
 
                         {latexCode && (
-                          <div className="my-8 p-6 bg-slate-50 rounded-xl overflow-x-auto border border-slate-200 text-center">
+                          <div className="my-8 p-6 bg-slate-50 rounded-xl  border border-slate-200 text-center">
                             <span className="text-blue-800 font-bold block mb-2 text-sm uppercase tracking-wider">Fórmula / Definição Formal</span>
                             <div className="text-lg text-left inline-block">
                               <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
@@ -370,7 +371,7 @@ export default function SemesterViewer() {
                             </div>
                             <div className="p-6 bg-slate-50/50 space-y-4">
                               {deducoes.map((passo: string, pIdx: number) => (
-                                <div key={pIdx} className="text-slate-600 text-sm md:text-base overflow-x-auto">
+                                <div key={pIdx} className="text-slate-600 text-sm md:text-base ">
                                   <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                     {processLatex(passo)}
                                   </ReactMarkdown>
@@ -397,7 +398,7 @@ export default function SemesterViewer() {
                                 
                                 <div className="mt-6">
                                   {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao) && (
-                                    <div className="bg-white p-4 rounded-lg mb-4 border border-slate-200 shadow-sm overflow-x-auto space-y-2">
+                                    <div className="bg-white p-4 rounded-lg mb-4 border border-slate-200 shadow-sm  space-y-2">
                                       <h5 className="font-bold text-slate-700 mb-2 text-sm uppercase">Passo a Passo</h5>
                                       {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao).map((passo: string, pIdx: number) => (
                                         <div key={pIdx} className="text-slate-600 text-sm">
@@ -513,7 +514,7 @@ export default function SemesterViewer() {
                                 <div className="text-indigo-600 font-bold inline-flex items-center gap-1">
                                   <span>Solução Passo a Passo:</span>
                                 </div>
-                                <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg overflow-x-auto space-y-4">
+                                <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg  space-y-4">
                                   {q.gabarito_passo_a_passo.map((passo: string, pIdx: number) => (
                                     <div key={pIdx} className="text-slate-600">
                                       <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
