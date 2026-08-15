@@ -15,23 +15,22 @@ export default function CriarSalaPersonalizada() {
 
   // General Settings
   const [selectedDisciplina, setSelectedDisciplina] = useState("");
-  const [tomPersonalidade, setTomPersonalidade] = useState("");
-  const [nivelExercicios, setNivelExercicios] = useState("");
+  const [diretrizesGerais, setDiretrizesGerais] = useState("");
   
   // Logic Tree State
+  const [modoCriacao, setModoCriacao] = useState<"magico" | "artesao">("magico");
+  
+  // Magic Mode Settings
   const [modoAulas, setModoAulas] = useState<"padrao" | "auto" | "manual">("padrao");
   const [qtdManual, setQtdManual] = useState<number>(30);
-  const [formatoCriacao, setFormatoCriacao] = useState<"ia_decide" | "so_temas" | "desenhar_aula">("ia_decide");
-  const [aulasComplementares, setAulasComplementares] = useState(false);
 
-  // Upload Global (Quando não for Bloco-a-Bloco)
+  // Upload Global (Quando for Mágico)
   const [uploadingGlobal, setUploadingGlobal] = useState(false);
   const [arquivoGlobalPdf, setArquivoGlobalPdf] = useState("");
   const [arquivoGlobalNome, setArquivoGlobalNome] = useState("");
-  const [observacoesGlobais, setObservacoesGlobais] = useState("");
   const globalPdfRef = useRef<HTMLInputElement>(null);
 
-  // Blocos Manuais (Quando for Manual -> Desenhar Aula)
+  // Blocos Manuais (Quando for Artesão)
   const [aulasManuais, setAulasManuais] = useState<any[]>([{
     id: 1,
     titulo: "",
@@ -41,7 +40,7 @@ export default function CriarSalaPersonalizada() {
     uploading: false,
     gerar_exercicios: true,
     sugestoes_exercicios: "",
-    gerar_simulador: false,
+    gerar_simulador: true,
     sugestoes_simulador: ""
   }]);
   const fileInputRefs = useRef<any>({});
@@ -61,8 +60,6 @@ export default function CriarSalaPersonalizada() {
     };
     fetchData();
   }, []);
-
-  const isBlocoABloco = formatoCriacao === "desenhar_aula" || formatoCriacao === "so_temas";
 
   const handleGlobalFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -89,7 +86,6 @@ export default function CriarSalaPersonalizada() {
       const res = await fetch(`${apiUrl}/api/upload_pdf`, { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok) {
-        // Se mandou múltiplos, o backend concatena.
         setArquivoGlobalPdf(data.texto_extraido);
         setArquivoGlobalNome(`${validFilesCount} arquivo(s) processado(s) com sucesso`);
       } else {
@@ -145,15 +141,25 @@ export default function CriarSalaPersonalizada() {
       uploading: false,
       gerar_exercicios: true,
       sugestoes_exercicios: "",
-      gerar_simulador: false,
+      gerar_simulador: true,
       sugestoes_simulador: ""
     }]);
   };
 
+  const removeBloco = (index: number) => {
+    if (aulasManuais.length === 1) return;
+    const updated = [...aulasManuais];
+    updated.splice(index, 1);
+    setAulasManuais(updated);
+  };
+
   const handleSubmit = async () => {
     if (!selectedDisciplina) return alert("Selecione uma disciplina.");
-    if (modoAulas === "manual" && (qtdManual < 1 || qtdManual > 100)) {
+    if (modoCriacao === "magico" && modoAulas === "manual" && (qtdManual < 1 || qtdManual > 100)) {
         return alert("Quantidade manual deve ser entre 1 e 100.");
+    }
+    if (modoCriacao === "artesao" && aulasManuais.some(a => !a.titulo.trim())) {
+        return alert("Todas as aulas no Modo Artesão precisam de pelo menos um Título.");
     }
     
     setSubmitting(true);
@@ -175,20 +181,20 @@ export default function CriarSalaPersonalizada() {
       // Mapeamento
       let payloadTipoCarga = "padrao_30";
       let payloadLimite = 30;
+      const isBlocoABloco = modoCriacao === "artesao";
 
-      if (modoAulas === "padrao") {
-          payloadTipoCarga = "auto_ementa"; 
-      } else if (modoAulas === "auto") {
-          payloadTipoCarga = "auto_ia"; 
-      } else if (modoAulas === "manual") {
+      if (isBlocoABloco) {
           payloadTipoCarga = "manual";
-          payloadLimite = qtdManual;
-      }
-
-      // Constrói as instruções customizadas adicionando as observações globais
-      let customInstructions = `Tom/Personalidade: ${tomPersonalidade}\nNível Exercícios: ${nivelExercicios}`;
-      if (!isBlocoABloco && observacoesGlobais.trim() !== "") {
-          customInstructions += `\nObservações Gerais (Materiais/Foco): ${observacoesGlobais}`;
+          payloadLimite = aulasManuais.length;
+      } else {
+          if (modoAulas === "padrao") {
+              payloadTipoCarga = "auto_ementa"; 
+          } else if (modoAulas === "auto") {
+              payloadTipoCarga = "auto_ia"; 
+          } else if (modoAulas === "manual") {
+              payloadTipoCarga = "manual";
+              payloadLimite = qtdManual;
+          }
       }
 
       const formattedBlocos = isBlocoABloco ? aulasManuais.map(a => ({
@@ -203,11 +209,11 @@ export default function CriarSalaPersonalizada() {
         id_sala: docRef.id,
         id_disciplina: selectedDisciplina,
         modo: "livre",
-        instrucoes_personalizadas: customInstructions,
+        instrucoes_personalizadas: diretrizesGerais,
         max_aulas: payloadLimite, 
         limite_execucao: payloadLimite,
         tipo_carga_horaria: payloadTipoCarga,
-        permitir_aprofundamento: aulasComplementares,
+        permitir_aprofundamento: false, // Default desativado
         tipo_crie_seu_jeito: isBlocoABloco ? "bloco_a_bloco" : "automatico",
         arquivo_global_pdf: isBlocoABloco ? "" : arquivoGlobalPdf,
         aulas_manuais: formattedBlocos
@@ -248,7 +254,7 @@ export default function CriarSalaPersonalizada() {
                 <div className="text-4xl">✏️</div>
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800">Crie do Seu Jeito</h2>
-                    <p className="text-slate-500">Controle absoluto sobre a criação do semestre. Anexe seus próprios PDFs, dite as regras e esculpe aula por aula (se quiser).</p>
+                    <p className="text-slate-500">Controle absoluto sobre a criação do semestre. Dite as regras gerais, forneça seus materiais e monte aula a aula se preferir.</p>
                 </div>
             </div>
 
@@ -267,97 +273,45 @@ export default function CriarSalaPersonalizada() {
                 </select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Tom e Personalidade do Conteúdo</label>
-                    <textarea
-                    placeholder="Ex: Quero um tom provocativo, estilo professor descolado que usa cultura pop..."
-                    className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-slate-50"
-                    rows={3}
-                    value={tomPersonalidade}
-                    onChange={(e) => setTomPersonalidade(e.target.value)}
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Nível e Foco dos Exercícios</label>
-                    <textarea
-                    placeholder="Ex: Nível de dificuldade alto, foco em raciocínio lógico e menos decoreba..."
-                    className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-slate-50"
-                    rows={3}
-                    value={nivelExercicios}
-                    onChange={(e) => setNivelExercicios(e.target.value)}
-                    />
-                </div>
+            <div className="mb-8">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Diretrizes Gerais e Estilo (Opcional)</label>
+                <textarea
+                placeholder="Ex: Quero um tom provocativo, foco em aplicações práticas, e exercícios de nível IME/ITA..."
+                className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                rows={4}
+                value={diretrizesGerais}
+                onChange={(e) => setDiretrizesGerais(e.target.value)}
+                />
             </div>
-
-            <div className="mb-8 border-t border-slate-200 pt-8">
-                <h3 className="text-xl font-bold text-slate-800 mb-6">Quantidade de Aulas (Cronograma)</h3>
-                <div className="space-y-3">
-                    <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-400">
-                        <input type="radio" checked={modoAulas === "padrao"} onChange={() => setModoAulas("padrao")} className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-slate-700">Usar carga horária oficial da ementa (Ex: 30 aulas)</span>
-                    </label>
-                    <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-400">
-                        <input type="radio" checked={modoAulas === "auto"} onChange={() => setModoAulas("auto")} className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-slate-700">A IA decide com base no material que eu enviar</span>
-                    </label>
-                    <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-400">
-                        <input type="radio" checked={modoAulas === "manual"} onChange={() => setModoAulas("manual")} className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-slate-700">Manual (Quantidade exata estrita)</span>
-                    </label>
-                </div>
-            </div>
-
-            {modoAulas === "manual" && (
-                <div className="mb-8 p-6 bg-blue-50 rounded-xl border border-blue-100 animate-fade-in">
-                    <div className="flex items-center gap-4">
-                        <label className="text-sm font-bold text-blue-900 w-48">Total Exato de Aulas:</label>
-                        <input 
-                            type="number" min="1" max="100" 
-                            value={qtdManual} 
-                            onChange={e => setQtdManual(Number(e.target.value))} 
-                            className="p-2 border border-blue-200 rounded w-24 text-center font-bold text-blue-900 shadow-inner"
-                        />
-                    </div>
-                </div>
-            )}
 
             <div className="mb-8 p-6 bg-indigo-50 rounded-xl border border-indigo-100">
-                <h4 className="text-lg font-bold text-indigo-900 mb-4">Como você deseja estruturar o conteúdo?</h4>
+                <h4 className="text-lg font-bold text-indigo-900 mb-4">Como você deseja criar o semestre?</h4>
                 <div className="flex flex-col md:flex-row gap-4">
                     <button 
-                        onClick={() => setFormatoCriacao("ia_decide")}
-                        className={`flex-1 py-4 px-4 rounded-xl font-bold border-2 transition-all ${formatoCriacao === "ia_decide" ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-100"}`}
+                        onClick={() => setModoCriacao("magico")}
+                        className={`flex-1 py-6 px-4 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center ${modoCriacao === "magico" ? "bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105" : "bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-100"}`}
                     >
-                        <span className="block text-2xl mb-2">🤖</span>
-                        Deixar o trabalho pra IA
-                        <span className="block text-xs font-normal opacity-80 mt-1">Piscina global de PDFs</span>
+                        <span className="block text-4xl mb-3">🪄</span>
+                        Modo Mágico
+                        <span className="block text-sm font-normal opacity-90 mt-2 text-center">Jogue todos os seus PDFs e deixe a IA criar e dividir todo o cronograma.</span>
                     </button>
                     <button 
-                        onClick={() => setFormatoCriacao("so_temas")}
-                        className={`flex-1 py-4 px-4 rounded-xl font-bold border-2 transition-all ${formatoCriacao === "so_temas" ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-100"}`}
+                        onClick={() => setModoCriacao("artesao")}
+                        className={`flex-1 py-6 px-4 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center ${modoCriacao === "artesao" ? "bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105" : "bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-100"}`}
                     >
-                        <span className="block text-2xl mb-2">📝</span>
-                        Colocar apenas os temas
-                        <span className="block text-xs font-normal opacity-80 mt-1">IA pesquisa e escreve o resto</span>
-                    </button>
-                    <button 
-                        onClick={() => setFormatoCriacao("desenhar_aula")}
-                        className={`flex-1 py-4 px-4 rounded-xl font-bold border-2 transition-all ${formatoCriacao === "desenhar_aula" ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-100"}`}
-                    >
-                        <span className="block text-2xl mb-2">🛠️</span>
-                        Desenhar aula a aula
-                        <span className="block text-xs font-normal opacity-80 mt-1">O Artesão de Aulas completo</span>
+                        <span className="block text-4xl mb-3">🛠️</span>
+                        Modo Artesão
+                        <span className="block text-sm font-normal opacity-90 mt-2 text-center">Monte você mesmo a lista de aulas, informando tópicos e PDFs individuais.</span>
                     </button>
                 </div>
             </div>
 
-            {/* ZONA CONDICIONAL: GLOBAL VS BLOCO-A-BLOCO */}
-            {!isBlocoABloco ? (
+            {/* ZONA CONDICIONAL: MODO MÁGICO VS MODO ARTESÃO */}
+            {modoCriacao === "magico" ? (
                 <div className="mt-12 p-8 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 text-center animate-fade-in">
                     <div className="text-5xl mb-4">📚</div>
                     <h3 className="text-xl font-bold text-slate-800 mb-2">Piscina Global de Arquivos</h3>
-                    <p className="text-slate-500 mb-6 max-w-lg mx-auto">Jogue todos os seus PDFs aqui. A IA vai ler absolutamente tudo e dividir o conteúdo nas aulas automaticamente.</p>
+                    <p className="text-slate-500 mb-6 max-w-lg mx-auto">Anexe seus materiais, anotações ou livros em PDF. A IA lerá tudo e moldará as aulas automaticamente baseada nisso.</p>
                     
                     <input type="file" ref={globalPdfRef} className="hidden" accept=".pdf" multiple onChange={e => handleGlobalFileUpload(e.target.files)} />
                     <button 
@@ -369,31 +323,61 @@ export default function CriarSalaPersonalizada() {
                     </button>
                     {arquivoGlobalNome && <p className="text-green-600 mt-4 font-bold bg-green-50 inline-block px-4 py-2 rounded-full border border-green-200">✓ {arquivoGlobalNome}</p>}
 
-                    <div className="mt-8 text-left">
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Observações Globais (Opcional)</label>
-                        <textarea
-                            placeholder="Ex: Baseie-se mais na aula 4 do material. Evite a demonstração do capítulo 2..."
-                            className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                            rows={3}
-                            value={observacoesGlobais}
-                            onChange={(e) => setObservacoesGlobais(e.target.value)}
-                        />
+                    <div className="mt-12 text-left border-t border-slate-200 pt-8">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Quantidade de Aulas do Semestre</h3>
+                        <div className="space-y-3">
+                            <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-400">
+                                <input type="radio" checked={modoAulas === "padrao"} onChange={() => setModoAulas("padrao")} className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-slate-700">Usar carga horária da ementa (Ex: 30 aulas)</span>
+                            </label>
+                            <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-400">
+                                <input type="radio" checked={modoAulas === "auto"} onChange={() => setModoAulas("auto")} className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-slate-700">Deixar a IA decidir com base no tamanho do material</span>
+                            </label>
+                            <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-400">
+                                <input type="radio" checked={modoAulas === "manual"} onChange={() => setModoAulas("manual")} className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-slate-700">Quero um número exato de aulas</span>
+                            </label>
+                        </div>
                     </div>
+
+                    {modoAulas === "manual" && (
+                        <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-center gap-4 animate-fade-in">
+                            <label className="text-sm font-bold text-blue-900">Total Exato de Aulas:</label>
+                            <input 
+                                type="number" min="1" max="100" 
+                                value={qtdManual} 
+                                onChange={e => setQtdManual(Number(e.target.value))} 
+                                className="p-2 border border-blue-200 rounded w-24 text-center font-bold text-blue-900 shadow-inner"
+                            />
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="mt-12 animate-fade-in">
                     <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">🛠️ Artesão de Aulas</h3>
+                    <p className="text-slate-500 mb-8">Adicione blocos abaixo. Cada bloco gerará uma aula individual no seu semestre final. Você tem total controle.</p>
                     
                     <div className="space-y-8">
                     {aulasManuais.map((bloco, idx) => (
-                        <div key={idx} className="border border-slate-300 bg-white shadow-sm p-6 rounded-2xl relative">
+                        <div key={idx} className="border border-slate-300 bg-white shadow-sm p-6 rounded-2xl relative transition-all">
                             <div className="absolute -top-4 -left-4 bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-full font-black text-lg border-4 border-slate-50 shadow">
                                 {idx + 1}
                             </div>
                             
+                            {aulasManuais.length > 1 && (
+                                <button 
+                                    onClick={() => removeBloco(idx)}
+                                    className="absolute -top-3 -right-3 bg-red-100 text-red-600 hover:bg-red-200 w-8 h-8 flex items-center justify-center rounded-full font-bold shadow-sm"
+                                    title="Remover Aula"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                            
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 mt-2">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Título da Aula (Tema)</label>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Título da Aula (Tema Principal)</label>
                                     <input 
                                         type="text" 
                                         className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
@@ -402,102 +386,81 @@ export default function CriarSalaPersonalizada() {
                                         onChange={(e) => { const n = [...aulasManuais]; n[idx].titulo = e.target.value; setAulasManuais(n); }}
                                     />
                                 </div>
-                                {formatoCriacao === "desenhar_aula" && (
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Arquivo Base da Aula (PDF único)</label>
-                                        <div className="flex items-center gap-2">
-                                            <input 
-                                                type="file" accept=".pdf" className="hidden"
-                                                ref={el => { fileInputRefs.current[idx] = el; }}
-                                                onChange={(e) => { if (e.target.files && e.target.files[0]) handleBlocoFileUpload(idx, e.target.files[0]); }}
-                                            />
-                                            <button 
-                                                onClick={() => fileInputRefs.current[idx]?.click()}
-                                                className="bg-slate-100 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-bold hover:bg-slate-200 flex-1 flex justify-center items-center transition"
-                                                disabled={bloco.uploading}
-                                            >
-                                                {bloco.uploading ? "Lendo..." : "📎 Escolher PDF"}
-                                            </button>
-                                        </div>
-                                        {bloco.nome_arquivo && <p className="text-xs text-green-600 mt-2 font-bold px-2">✓ {bloco.nome_arquivo}</p>}
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Arquivo Base da Aula (Opcional)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="file" accept=".pdf" className="hidden"
+                                            ref={el => { fileInputRefs.current[idx] = el; }}
+                                            onChange={(e) => { if (e.target.files && e.target.files[0]) handleBlocoFileUpload(idx, e.target.files[0]); }}
+                                        />
+                                        <button 
+                                            onClick={() => fileInputRefs.current[idx]?.click()}
+                                            className="bg-slate-50 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-bold hover:bg-slate-100 flex-1 flex justify-center items-center transition shadow-sm"
+                                            disabled={bloco.uploading}
+                                        >
+                                            {bloco.uploading ? "Lendo PDF..." : "📎 Escolher PDF Específico"}
+                                        </button>
                                     </div>
-                                )}
+                                    {bloco.nome_arquivo && <p className="text-xs text-green-600 mt-2 font-bold px-2">✓ {bloco.nome_arquivo}</p>}
+                                </div>
                             </div>
                             
-                            {formatoCriacao === "desenhar_aula" && (
-                                <>
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Diretrizes / O que cobrir?</label>
-                                        <textarea 
-                                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
-                                            rows={2}
-                                            placeholder="Ex: Explicar detalhadamente a segunda lei de Newton com exemplos do dia a dia."
-                                            value={bloco.descricao}
-                                            onChange={(e) => { const n = [...aulasManuais]; n[idx].descricao = e.target.value; setAulasManuais(n); }}
-                                        />
-                                    </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Diretrizes ou O que cobrir? (Opcional)</label>
+                                <textarea 
+                                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                                    rows={2}
+                                    placeholder="Ex: Explicar a segunda lei de Newton e dar exemplos do dia a dia..."
+                                    value={bloco.descricao}
+                                    onChange={(e) => { const n = [...aulasManuais]; n[idx].descricao = e.target.value; setAulasManuais(n); }}
+                                />
+                            </div>
 
-                                    <div className="flex flex-col gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                                        <div>
-                                            <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
-                                                <input type="checkbox" checked={bloco.gerar_exercicios} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_exercicios = e.target.checked; setAulasManuais(n); }} className="w-4 h-4" />
-                                                Gerar Exercícios ao Final
-                                            </label>
-                                            {bloco.gerar_exercicios && (
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Sugestões? (Ex: 3 abertas, 2 múltipla escolha sobre atrito). Deixe em branco p/ IA decidir."
-                                                    className="w-full mt-2 p-2 border border-slate-300 rounded text-sm"
-                                                    value={bloco.sugestoes_exercicios}
-                                                    onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_exercicios = e.target.value; setAulasManuais(n); }}
-                                                />
-                                            )}
-                                        </div>
-                                        <hr className="border-slate-200" />
-                                        <div>
-                                            <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
-                                                <input type="checkbox" checked={bloco.gerar_simulador} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_simulador = e.target.checked; setAulasManuais(n); }} className="w-4 h-4" />
-                                                Injetar Simulador Interativo
-                                            </label>
-                                            {bloco.gerar_simulador && (
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Onde ou sobre o que? (Ex: Mostrar um bloco deslizando). Deixe em branco p/ IA decidir."
-                                                    className="w-full mt-2 p-2 border border-slate-300 rounded text-sm"
-                                                    value={bloco.sugestoes_simulador}
-                                                    onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_simulador = e.target.value; setAulasManuais(n); }}
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
+                            <div className="flex flex-col gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                <div>
+                                    <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                                        <input type="checkbox" checked={bloco.gerar_exercicios} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_exercicios = e.target.checked; setAulasManuais(n); }} className="w-5 h-5 text-blue-600 rounded" />
+                                        Gerar Exercícios ao Final
+                                    </label>
+                                    {bloco.gerar_exercicios && (
+                                        <input 
+                                            type="text" 
+                                            placeholder="Sugestões? (Ex: 3 abertas, 2 de múltipla escolha sobre atrito). Deixe em branco p/ IA decidir."
+                                            className="w-full mt-3 p-3 border border-slate-300 rounded-lg text-sm shadow-sm"
+                                            value={bloco.sugestoes_exercicios}
+                                            onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_exercicios = e.target.value; setAulasManuais(n); }}
+                                        />
+                                    )}
+                                </div>
+                                <hr className="border-slate-200" />
+                                <div>
+                                    <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                                        <input type="checkbox" checked={bloco.gerar_simulador} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_simulador = e.target.checked; setAulasManuais(n); }} className="w-5 h-5 text-blue-600 rounded" />
+                                        Injetar Simulador Interativo
+                                    </label>
+                                    {bloco.gerar_simulador && (
+                                        <input 
+                                            type="text" 
+                                            placeholder="Sugestões? (Ex: Mostrar um bloco deslizando num plano inclinado). Deixe em branco p/ IA decidir."
+                                            className="w-full mt-3 p-3 border border-slate-300 rounded-lg text-sm shadow-sm"
+                                            value={bloco.sugestoes_simulador}
+                                            onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_simulador = e.target.value; setAulasManuais(n); }}
+                                        />
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     ))}
                     </div>
                     
-                    <button onClick={addBloco} className="mt-8 w-full py-4 border-2 border-dashed border-blue-400 text-blue-600 font-black text-lg rounded-2xl hover:bg-blue-50 transition shadow-sm">
-                        ➕ ADICIONAR PRÓXIMA AULA
+                    <button onClick={addBloco} className="mt-8 w-full py-5 border-2 border-dashed border-blue-400 text-blue-600 font-black text-xl rounded-2xl hover:bg-blue-50 transition shadow-sm flex items-center justify-center gap-2">
+                        <span>➕</span> ADICIONAR PRÓXIMA AULA
                     </button>
                 </div>
             )}
 
-            <div className="mt-8 mb-4">
-                <label className="flex items-center gap-3 p-4 border border-slate-300 rounded-xl bg-white cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
-                    <input 
-                    type="checkbox" 
-                    checked={aulasComplementares}
-                    onChange={(e) => setAulasComplementares(e.target.checked)}
-                    className="w-5 h-5 text-indigo-600 rounded"
-                    />
-                    <div>
-                    <span className="block font-bold text-slate-800">Permitir Aprofundamento / Aulas Complementares</span>
-                    <span className="text-sm text-slate-500">Se ativo, a IA poderá criar blocos extras para fixação ou aprofundamento ao final do cronograma.</span>
-                    </div>
-                </label>
-            </div>
-
-            <div className="pt-8 mt-4 border-t border-slate-200 flex justify-end gap-4">
+            <div className="pt-8 mt-12 border-t border-slate-200 flex justify-end gap-4">
                 <button 
                   onClick={() => router.push("/professor/dashboard")}
                   className="px-8 py-4 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"

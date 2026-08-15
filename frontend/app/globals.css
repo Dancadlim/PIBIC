@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Correção de overflow para elementos renderizados pelo ReactMarkdown */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem; /* Evita que a barra de rolagem cubra a matemática */
+}
+
+/* Garante que o KaTeX em display não quebre o layout pai */
+.katex-display > .katex {
+  white-space: normal;
+}
