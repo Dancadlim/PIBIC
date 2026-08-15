@@ -87,7 +87,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
       </div>
       <iframe 
         srcDoc={html!}
-        className="w-full h-[600px] border-none bg-white"
+        className="w-full min-h-[800px] h-[90vh] border-none bg-white"
         sandbox="allow-scripts"
         title="Simulador Interativo"
       />
@@ -640,14 +640,11 @@ export default function ProfessorSemesterViewer() {
                         )}
 
                         {deducoes?.length > 0 && (
-                          <details className="mb-8 group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                            <summary className="p-4 bg-slate-50 cursor-pointer font-semibold text-slate-700 flex justify-between items-center outline-none hover:bg-slate-100 transition-colors list-none">
-                              <div className="flex items-center gap-2">
+                          <div className="mb-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="p-4 bg-slate-50 font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200">
                                 <span>🔍</span> Demonstração Passo a Passo
-                              </div>
-                              <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                            </summary>
-                            <div className="p-6 border-t border-slate-200 bg-slate-50/50 space-y-4">
+                            </div>
+                            <div className="p-6 bg-slate-50/50 space-y-4">
                               {deducoes.map((passo: string, pIdx: number) => (
                                 <div key={pIdx} className="text-slate-600 text-sm md:text-base overflow-x-auto">
                                   <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
@@ -656,7 +653,7 @@ export default function ProfessorSemesterViewer() {
                                 </div>
                               ))}
                             </div>
-                          </details>
+                          </div>
                         )}
 
                         {exemplos?.length > 0 && (
@@ -665,15 +662,14 @@ export default function ProfessorSemesterViewer() {
                               <span>💡</span> Exemplos Práticos Interativos
                             </h4>
                             {exemplos.map((exemplo: any, eIdx: number) => (
-                              <details key={eIdx} className="bg-blue-50/40 p-6 rounded-xl mb-6 border border-blue-100 group">
-                                <summary className="font-semibold text-slate-800 cursor-pointer flex justify-between items-center list-none outline-none">
+                              <div key={eIdx} className="bg-blue-50/40 p-6 rounded-xl mb-6 border border-blue-100">
+                                <div className="font-semibold text-slate-800 mb-4 border-b border-blue-200 pb-2">
                                   <div className="flex-1 pr-4">
                                     <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                       {processLatex(exemplo.contexto_e_enunciado || exemplo.enunciado)}
                                     </ReactMarkdown>
                                   </div>
-                                  <span className="text-blue-600 font-bold group-open:rotate-180 transition-transform">▼</span>
-                                </summary>
+                                </div>
                                 
                                 <div className="mt-6">
                                   {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao) && (
@@ -698,7 +694,7 @@ export default function ProfessorSemesterViewer() {
                                     </div>
                                   </div>
                                 </div>
-                              </details>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -752,10 +748,10 @@ export default function ProfessorSemesterViewer() {
                                   </label>
                                 ))}
                               </div>
-                              <details className="group">
-                                <summary className="text-indigo-600 font-bold cursor-pointer outline-none hover:underline inline-flex items-center gap-1 list-none">
-                                  <span>Ver Gabarito</span>
-                                </summary>
+                              <div className="mt-4">
+                                <div className="text-indigo-600 font-bold inline-flex items-center gap-1">
+                                  <span>Gabarito:</span>
+                                </div>
                                 <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900">
                                   <strong className="block mb-2">Alternativa Correta: {q.alternativa_correta}</strong>
                                   <div className="mt-2 text-slate-800">
@@ -764,7 +760,7 @@ export default function ProfessorSemesterViewer() {
                                     </ReactMarkdown>
                                   </div>
                                 </div>
-                              </details>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -789,10 +785,10 @@ export default function ProfessorSemesterViewer() {
                                   </ReactMarkdown>
                                 </span>
                               </div>
-                              <details className="group">
-                                <summary className="text-indigo-600 font-bold cursor-pointer outline-none hover:underline inline-flex items-center gap-1 list-none">
-                                  <span>Ver Solução Passo a Passo</span>
-                                </summary>
+                              <div className="mt-4">
+                                <div className="text-indigo-600 font-bold inline-flex items-center gap-1">
+                                  <span>Solução Passo a Passo:</span>
+                                </div>
                                 <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg overflow-x-auto space-y-4">
                                   {q.gabarito_passo_a_passo.map((passo: string, pIdx: number) => (
                                     <div key={pIdx} className="text-slate-600">
@@ -802,7 +798,7 @@ export default function ProfessorSemesterViewer() {
                                     </div>
                                   ))}
                                 </div>
-                              </details>
+                              </div>
                             </div>
                           ))}
                         </div>
