@@ -87,7 +87,7 @@ REGRAS_MESTRE_ESCRITOR = f"""
 ### REGRAS PEDAGÓGICAS E EDITORIAIS (MANDATÓRIO)
 1. Conexão com o RAG e Grounding: Se a base literária for fornecida (documentos RAG), aterre os conceitos nela, indicando os números de página ou capítulos, se possível. Se houver muitos arquivos, selecione a informação de forma inteligente. Não invente ou cite livros que não foram realmente usados. Se não houver fontes fornecidas, gere o conteúdo com seu próprio conhecimento.
 2. Escrita Didática e Prática: O objetivo é ser **didático e claro**. O aluno deve ter total compreensão do que foi dito. Planeje o conteúdo para que a explicação seja fluida e fácil de entender, focando na utilidade prática.
-3. Exemplos Reais de Alta Complexidade Comercial: Fuja de dados triviais ("lançamento de moedas"). Crie contextos de mercado e modelagem robusta, mostrando vetores/matrizes grandes.
+3. Exemplos Reais e Conectados com a Teoria: Ao introduzir um exemplo prático, faça uma transição suave a partir da teoria recém-explicada. O problema prático não deve parecer solto ou "caído do céu". Explique o motivo de usar aquele exemplo naquele momento. Fuja de dados triviais ("lançamento de moedas"), crie contextos robustos, mas garanta extrema conexão lógica com os conceitos ensinados.
 4. LIMITAÇÃO EXTREMA DE ESCOPO (PACING): Sob NENHUMA HIPÓTESE aborde tópicos que não foram solicitados para esta aula. Se você receber uma lista de "Tópicos Proibidos" (que serão ensinados nas próximas aulas), é ESTRITAMENTE PROIBIDO mencioná-los, explicá-los ou usá-los como exemplo. Mantenha o foco TOTAL apenas no que foi solicitado.
 
 {DICIONARIO_LATEX}
@@ -146,7 +146,7 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
 ---
 
 ### DIRETRIZES DE ORGANIZAÇÃO E LAPIDAÇÃO (MANDATÓRIO)
-1. Divisão de Trabalho e Lapidação: Sua função é puramente de ORGANIZAÇÃO, COERÊNCIA e POLIMENTO. Não invente teorias novas ou novos conteúdos. Costure as transições de prosa, elimine introduções ou fórmulas repetitivas, e faça a aula fluir harmonicamente.
+1. Coesão e Fluidez Narrativa (MUITO IMPORTANTE): Sua função é puramente de ORGANIZAÇÃO, COERÊNCIA e POLIMENTO. Costure ativamente as transições de prosa entre teoria e exemplos práticos. Se um exemplo parece desconectado ou iniciar abruptamente, insira parágrafos de transição explicando como a teoria lida anteriormente se aplica ao problema a seguir. Faça a aula inteira parecer uma conversa contínua e lógica de um professor.
 2. Centralização de Gráficos e Simuladores: Analise as recomendações de simulador. Selecione no máximo 2 ou 3 simuladores realmente distintos e úteis para a aula inteira, alocando-os no campo 'simuladores_da_aula' indicando a página correta.
 3. Rigor de Rodapé Bibliográfico: Colete todas as fontes do RAG utilizadas, elimine as duplicatas e monte uma lista bibliográfica final limpa no rodapé. Se não houver fontes utilizadas, informe claramente no rodapé que o conteúdo foi elaborado inteiramente por IA.
 
@@ -170,7 +170,7 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
    - 'formalismo_latex' (string): Bloco LaTeX ($$) com as fórmulas mais marcantes da página, sem equações duplicadas. Lembre-se: use EXATAMENTE `$$` e nunca apenas um cifrão!
    - 'deducao_analitica_linhas' (lista de strings): As passagens matemáticas completas e analíticas linha por linha em LaTeX ($$).
    - 'exemplos_praticos_ricos' (lista de objetos ExemploResolvidoRico): Mapeie de 2 a 3 exemplos práticos e exaustivos da teoria, cada um contendo:
-     * 'contexto_e_enunciado' (string): Enunciado longo em cenário real complexo (mínimo 2 parágrafos).
+     * 'contexto_e_enunciado' (string): Comece com uma frase de transição que ligue a teoria ao exemplo. Em seguida, apresente o enunciado longo em cenário real (mínimo 2 parágrafos).
      * 'dados_brutos_sumarizados' (string): Exibição dos dados organizados em LaTeX ($$).
      * 'desenvolvimento_aritmético_passo_a_passo' (lista de strings): Substituição numérica detalhada nas equações sem saltar passos algébricos.
      * 'conclusao_e_laudo_comercial' (string): Interpretação qualitativa robusta para tomador de decisão (min 1 parágrafo).
