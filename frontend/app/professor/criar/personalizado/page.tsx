@@ -365,15 +365,7 @@ export default function CriarSalaPersonalizada() {
                                 {idx + 1}
                             </div>
                             
-                            {aulasManuais.length > 1 && (
-                                <button 
-                                    onClick={() => removeBloco(idx)}
-                                    className="absolute -top-3 -right-3 bg-red-100 text-red-600 hover:bg-red-200 w-8 h-8 flex items-center justify-center rounded-full font-bold shadow-sm"
-                                    title="Remover Aula"
-                                >
-                                    ✕
-                                </button>
-                            )}
+
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 mt-2">
                                 <div>
@@ -450,6 +442,17 @@ export default function CriarSalaPersonalizada() {
                                     )}
                                 </div>
                             </div>
+                            
+                            {aulasManuais.length > 1 && (
+                                <div className="mt-4 flex justify-end">
+                                    <button 
+                                        onClick={() => removeBloco(idx)}
+                                        className="text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 border border-transparent hover:border-red-200"
+                                    >
+                                        🗑️ Remover esta aula
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ))}
                     </div>

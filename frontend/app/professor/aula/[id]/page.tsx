@@ -185,6 +185,24 @@ function BlockEditor({
           {saving ? "Salvando..." : "💾 Salvar Alterações"}
         </button>
       </div>
+        {/* Modal de Sucesso */}
+        {modalSucessoOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-center animate-fade-in">
+              <div className="text-6xl mb-4">⏳</div>
+              <h3 className="font-bold text-2xl text-blue-900 mb-2">Sua aula está sendo preparada!</h3>
+              <p className="text-slate-600 mb-6">
+                A IA está estruturando todo o conteúdo. Isso pode levar alguns minutos. Você não precisa atualizar a página, o cronograma lateral será atualizado automaticamente quando ela ficar pronta.
+              </p>
+              <button 
+                onClick={() => setModalSucessoOpen(false)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow transition"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
@@ -231,6 +249,7 @@ export default function ProfessorSemesterViewer() {
   const [novaAulaGerarSimulador, setNovaAulaGerarSimulador] = useState(true);
   const [novaAulaSugestoesSimulador, setNovaAulaSugestoesSimulador] = useState("");
   const [uploadingNovaAula, setUploadingNovaAula] = useState(false);
+  const [modalSucessoOpen, setModalSucessoOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -281,9 +300,20 @@ export default function ProfessorSemesterViewer() {
       setNovaAulaTitulo("");
       setNovaAulaDescricao("");
       setNovaAulaPdf("");
-      alert("Sua aula foi enviada para geração em background!");
+      setModalSucessoOpen(true);
     } catch (e) {
       alert("Erro ao criar nova aula");
+    }
+  };
+
+  const handleExcluirAula = async (aula: any) => {
+    const confirmou = window.confirm(`Tem certeza que deseja excluir a aula "${aula.titulo}"? Esta ação não pode ser desfeita.`);
+    if (!confirmou) return;
+    try {
+      await deleteDoc(doc(db, "classrooms", id, "aulas", aula.id));
+      setSelectedAula(null);
+    } catch (error) {
+      alert("Erro ao excluir a aula.");
     }
   };
 
@@ -503,8 +533,15 @@ export default function ProfessorSemesterViewer() {
                 <h2 className="text-3xl font-bold text-blue-900">
                   Aula {selectedAula.numero_aula}: {selectedAula.titulo}
                 </h2>
-                <button
-                  onClick={() => togglePublish(selectedAula)}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleExcluirAula(selectedAula)}
+                    className="px-4 py-2 rounded-full font-bold shadow-sm transition-colors flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
+                  >
+                    🗑️ Excluir Aula
+                  </button>
+                  <button
+                    onClick={() => togglePublish(selectedAula)}
                   className={`px-4 py-2 rounded-full font-bold shadow-sm transition-colors flex items-center gap-2 ${
                     selectedAula.publicada 
                       ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300' 
@@ -513,6 +550,7 @@ export default function ProfessorSemesterViewer() {
                 >
                   {selectedAula.publicada ? "👁️ Visível p/ Alunos" : "🙈 Oculta p/ Alunos"}
                 </button>
+                </div>
               </div>
 
               {/* TABS NAVIGATION */}
@@ -829,6 +867,24 @@ export default function ProfessorSemesterViewer() {
           )}
         </main>
       </div>
+        {/* Modal de Sucesso */}
+        {modalSucessoOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-center animate-fade-in">
+              <div className="text-6xl mb-4">⏳</div>
+              <h3 className="font-bold text-2xl text-blue-900 mb-2">Sua aula está sendo preparada!</h3>
+              <p className="text-slate-600 mb-6">
+                A IA está estruturando todo o conteúdo. Isso pode levar alguns minutos. Você não precisa atualizar a página, o cronograma lateral será atualizado automaticamente quando ela ficar pronta.
+              </p>
+              <button 
+                onClick={() => setModalSucessoOpen(false)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow transition"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
