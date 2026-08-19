@@ -38,3 +38,18 @@ body {
   max-width: 100%;
   overflow-x: auto;
 }
+
+
+/* Adiciona scroll horizontal somente em blocos que não conseguem quebrar */
+.markdown-body {
+  overflow-wrap: break-word;
+}
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+}
+.markdown-body table, .markdown-body pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
