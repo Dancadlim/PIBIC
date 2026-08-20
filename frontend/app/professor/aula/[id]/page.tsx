@@ -214,20 +214,29 @@ export default function ProfessorSemesterViewer() {
   // Agora que o Backend garante a formatação rigorosa via o Agente Formatador LaTeX,
   // o Frontend precisa apenas isolar os blocos $$ em seus próprios parágrafos
   // para que o remark-math consiga processá-los corretamente como 'display math'.
-  const processLatex = (text: string) => {
+    const processLatex = (text: string) => {
     if (!text) return "";
-    // 1. O plugin remark-math já lida com $$ inline. Remover a quebra de linha agressiva.
     let processed = text;
+
+    // 1. Converter delimitadores clássicos LaTeX \[ \] e \( \) para $$ e $
+    processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
+    processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
+
+    // 2. Garantir que delimitadores $$ fiquem em suas próprias linhas para o remark-math
+    processed = processed.replace(/([^\n])\$\$/g, '$1\n$$');
+    processed = processed.replace(/\$\$([^\n])/g, '$$\n$1');
     
-    // 2. Remove espaços em branco no INÍCIO de qualquer linha!
-    // Isso impede que o Markdown leia a linha como um bloco de código identado <pre> (o erro da imagem)
+    // 3. Remove espaços em branco no INÍCIO de qualquer linha (impede <pre> identado no Markdown)
     processed = processed.replace(/^[ \t]+/gm, '');
 
-    // 3. Arruma espaços acidentais em math inline gerados pela IA (ex: $ k $ -> $k$)
-    // O plugin remark-math é estrito e não aceita espaços logo após o $
+    // 4. Arruma espaços acidentais em math inline gerados pela IA (ex: $ k $ -> $k$)
     processed = processed.replace(/\$\s+([^$\n]+?)\s+\$/g, '$$$1$$');
 
-    // 4. Remove quebras de linha excessivas
+    // 5. Garantir espaço em branco antes e depois de inline math $...$ quando colado em palavras
+    processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$$2$$');
+    processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$$1$$ $2');
+
+    // 6. Remove quebras de linha excessivas
     return processed.replace(/\n{4,}/g, '\n\n\n');
   };
   const id = params.id as string;

@@ -7,8 +7,9 @@ REGRAS ESTABELECIDAS PARA A FORMATAÇÃO MATEMÁTICA E LATEX (SIGA ESTRITAMENTE)
    - ERRADO: `\\[ ... \\]`, `$ ... $`, `$$ ... $`
    - CERTO: `$$ \\begin{pmatrix} X_1 \\\\ X_2 \\end{pmatrix} $$`
 2. EQUAÇÕES NA MESMA LINHA DO TEXTO (Inline Math): Use `$` simples apenas para equações pequenas que dividem a linha com o texto comum (ex: "Seja a variável $X_i$"). NUNCA coloque quebras de linha dentro de blocos `$ ... $`.
-3. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
-4. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa não devem ficar dentro de delimitadores matemáticos, e símbolos matemáticos devem sempre estar dentro de `$`.
+3. ESPAÇAMENTO OBRIGATÓRIO EM INLINE MATH: É MANDATÓRIO colocar UM ESPAÇO em branco ANTES do `$` de abertura e DEPOIS do `$` de fechamento (ex: escreva "o espaço $\\Omega$ possui" e NUNCA "o$\\Omega$possui" ou "o $\\Omega$possui"). Símbolos e letras gregas nunca devem colar nas palavras em português.
+4. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
+5. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa não devem ficar dentro de delimitadores matemáticos, e símbolos matemáticos devem sempre estar dentro de `$`.
 """
 
 # ==============================================================================
@@ -26,6 +27,7 @@ Sua ÚNICA TAREFA é varrer o texto bruto e garantir 100% de conformidade com o 
 {DICIONARIO_LATEX}
 
 [FOCO DE CORREÇÃO]
+- Garanta que haja espaço em branco antes e depois de qualquer simbolo inline como `$\\Omega$`, `$\\mu$`, `$X$` (ex: "o $\\Omega$ representa", separando do texto adjacente).
 - Procure blocos de matrizes (`\\begin{{pmatrix}}`, `\\begin{{matrix}}`, etc) e blocos com múltiplas linhas (que contenham `\\\\`) que por um erro do escritor foram envolvidos apenas com um cifrão (`$`) ou com delimitadores assimétricos (`$$ ... $`). Substitua esses delimitadores errados por exatos e isolados `$$` antes e depois do bloco.
 - Transforme os delimitadores `\\[` e `\\]` em `$$`.
 - Mantenha todo o resto do texto (explicações em prosa, etc) exatamente igual. Não resuma. Não tire o formato JSON se a entrada for JSON, apenas limpe os valores de string que contenham LaTeX.
@@ -89,6 +91,7 @@ REGRAS_MESTRE_ESCRITOR = f"""
 2. Escrita Didática e Prática: O objetivo é ser **didático e claro**. O aluno deve ter total compreensão do que foi dito. Planeje o conteúdo para que a explicação seja fluida e fácil de entender, focando na utilidade prática.
 3. Exemplos Reais e Conectados com a Teoria: Ao introduzir um exemplo prático, faça uma transição suave a partir da teoria recém-explicada. O problema prático não deve parecer solto ou "caído do céu". Explique o motivo de usar aquele exemplo naquele momento. Fuja de dados triviais ("lançamento de moedas"), crie contextos robustos, mas garanta extrema conexão lógica com os conceitos ensinados.
 4. LIMITAÇÃO EXTREMA DE ESCOPO (PACING): Sob NENHUMA HIPÓTESE aborde tópicos que não foram solicitados para esta aula. Se você receber uma lista de "Tópicos Proibidos" (que serão ensinados nas próximas aulas), é ESTRITAMENTE PROIBIDO mencioná-los, explicá-los ou usá-los como exemplo. Mantenha o foco TOTAL apenas no que foi solicitado.
+5. ADAPTAÇÃO RIGOROSA AO TIPO DE CONTEÚDO (PROIBIÇÃO DE FÓRMULAS ARTIFICIAIS): Identifique a natureza do subtópico. Se for um assunto histórico, filosófico, introdutório ou qualitativo (como "História da Probabilidade", "Motivação Conceitual", etc.), priorize 100% a narrativa, a evolução científica e o contexto. É ESTRITAMENTE PROIBIDO forçar ou inventar fórmulas e demonstrações genéricas nesses tópicos qualitativos — retorne obrigatoriamente `null` nos campos `formalismo_latex` e `deducao_analitica_linhas`.
 
 {DICIONARIO_LATEX}
 """
@@ -109,7 +112,7 @@ Sua missão é atuar como auditor científico: você deve avaliar rigorosamente 
 ### DIRETRIZES DE REVISÃO E RIGOR (MANDATÓRIO)
 1. Tolerância Zero com Desvios de Notação Científica: Se houver qualquer símbolo fora da tabela padrão de estatística, você é OBRIGADO a reprovar o bloco (`aprovado = False`).
 2. Avaliação de Grounding (Páginas do RAG): Se o Escritor usou fontes RAG, inspecione o campo 'fontes_rag'. Só exija páginas exatas se houver de fato documentos fornecidos. Nunca cobre citações de livros que não foram realmente usados.
-3. Critério de Didática e Clareza: Avalie se a prosa é didática, fluida e clara para o aluno. A dedução analítica passo a passo deve estar completa e contínua, mas a leitura deve ser aprazível e compreensível, não necessariamente densa ou exaustiva.
+3. Critério de Didática e Clareza: Avalie se a prosa é didática, fluida e clara para o aluno. A dedução analítica passo a passo deve estar completa e contínua quando couber. Em tópicos históricos/qualitativos, NÃO exija fórmulas e confirme como CORRETO o retorno de `null` para equações.
 4. Inspeção de Delimitadores LaTeX: Se você observar delimitadores ausentes para blocos de display math (ex: matrizes presas em `$` em vez de `$$`), sinalize no laudo de erro e mande refazer!
 
 {DICIONARIO_LATEX}
@@ -167,8 +170,8 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
    - 'titulo_subtopico' (string): Título com alta sonoridade acadêmica e elegância temática.
    - 'discussao_teorica_prosa' (string): Texto em prosa denso e elegante costurando o material conceitual do Escritor. É OBRIGATÓRIO dividir o texto em parágrafos bem espaçados, utilizando DUAS quebras de linha (\\n\\n) entre cada parágrafo. Proibido usar listas ou bullets.
    - 'prosa_longa_expandida' (string ou null): Espaço reservado para expansão futura (inicialmente copie o valor de 'discussao_teorica_prosa').
-   - 'formalismo_latex' (string): Bloco LaTeX ($$) com as fórmulas mais marcantes da página, sem equações duplicadas. Lembre-se: use EXATAMENTE `$$` e nunca apenas um cifrão!
-   - 'deducao_analitica_linhas' (lista de strings): As passagens matemáticas completas e analíticas linha por linha em LaTeX ($$).
+   - 'formalismo_latex' (string ou null): Bloco LaTeX ($$) com as fórmulas mais marcantes da página. Se o subtópico for histórico, filosófico ou qualitativo (sem equações próprias), RETORNE ESTRITAMENTE null.
+   - 'deducao_analitica_linhas' (lista de strings ou null): Passagens matemáticas analíticas linha por linha em LaTeX ($$). Se o assunto for conceitual e não exigir demonstração algébrica, RETORNE ESTRITAMENTE null.
    - 'exemplos_praticos_ricos' (lista de objetos ExemploResolvidoRico): Mapeie de 2 a 3 exemplos práticos e exaustivos da teoria, cada um contendo:
      * 'contexto_e_enunciado' (string): Comece com uma frase de transição que ligue a teoria ao exemplo. Em seguida, apresente o enunciado longo em cenário real (mínimo 2 parágrafos).
      * 'dados_brutos_sumarizados' (string): Exibição dos dados organizados em LaTeX ($$).

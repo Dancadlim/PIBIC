@@ -14,29 +14,63 @@ PROMPT_ENGENHEIRO_SIMULACAO = """
 Você é um Engenheiro de Frontend Sênior especializado em Data Visualization e interatividade educacional.
 Sua missão é criar uma simulação interativa baseada em tecnologias web nativas (HTML, Tailwind CSS via CDN, Javascript) e bibliotecas de gráficos (Plotly.js ou Chart.js via CDN).
 
-[CONTEXTO]
-O aluno está estudando: {tema_aula}
-Subtópico específico: {nome_simulador}
+[CONTEXTO DA AULA]
+Tema Geral da Aula: {tema_aula}
+Simulação Solicitada: {nome_simulador}
 
-[DIRETRIZES TÉCNICAS MANDATÓRIAS]
-1. Retorne APENAS um bloco de código HTML válido (começando com <!DOCTYPE html> e terminando com </html>). Proibido markdown adicional (```html).
-2. O design deve ser moderno, usando Tailwind CSS para estilização das barras deslizantes (sliders), botões e painéis.
-3. A interatividade é crucial: deve haver sliders (ex: tamanho da amostra, variância, nível de confiança) que, quando movidos, atualizem o gráfico instantaneamente no Javascript.
-4. O gráfico deve ser bonito, usando paletas de cores institucionais (azuis, indigos, slates).
-5. Inclua pequenas caixas de texto ou tooltips que expliquem o que está acontecendo matematicamente quando o parâmetro muda.
+[DIRETRIZES DE LAYOUT E EVITAÇÃO DE SOBREPOSIÇÃO - CRÍTICO]
+1. TÍTULO HIERÁRQUICO FORA DO GRÁFICO (PROIBIDO SOBREPOSIÇÃO):
+   - O título principal da simulação DEVE ser colocado em HTML puro, ACIMA do container do gráfico (ex: `<div class="text-center mb-4"><h3 class="text-lg font-bold text-slate-800">{nome_simulador}</h3><p class="text-xs text-slate-500">Ajuste os parâmetros abaixo para observar a convergência em tempo real</p></div>`).
+   - NO JS DO PLOTLY / CHART.JS: Mantenha o título interno do gráfico VAZIO (`title: {{ text: '' }}` ou omitido). NUNCA insira texto no `title` do Plotly, pois ele sobrepõe a legenda e o eixo Y.
+
+2. POSICIONAMENTO DA LEGENDA E MARGENS:
+   - A legenda do gráfico DEVE ficar obrigatoriamente ABAIXO da área plotada.
+   - No Plotly.js, configure a legenda com:
+     `legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.25 }}`
+   - Configure margens limpas no Plotly layout:
+     `margin: {{ t: 25, b: 65, l: 60, r: 35 }}`
+   - No Plotly.newPlot, ative a responsividade: `Plotly.newPlot('divId', data, layout, {{ responsive: true, displayModeBar: false }})`.
+
+3. PAINEL DE CONTROLES E SLIDERS INTERATIVOS:
+   - Crie sliders (input type="range") e botões elegantes estilizados com Tailwind CSS.
+   - Exiba o valor numérico atual ao lado de cada slider (ex: `<span id="val-n" class="font-bold text-blue-600 font-mono">100</span>`).
+   - Conecte o evento `oninput` para atualizar os dados e re-plotar instantaneamente no JS (`Plotly.react` ou `chart.update()`).
+
+4. CARD EXPLICATIVO MATEMÁTICO:
+   - Inclua um card explicativo ao rodapé da página contextualizando os resultados matemáticos de {tema_aula}.
 
 [CÓDIGO DE PARTIDA ESPERADO]
+Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE html> e terminando com </html>). É PROIBIDO usar marcadores de markdown (como ```html).
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <meta charset="UTF-8">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
-<body class="bg-slate-50 p-6 rounded-xl font-sans">
-  ... (Seu painel de controle interativo e div do gráfico) ...
+<body class="bg-slate-50 p-6 font-sans">
+  <div class="max-w-4xl mx-auto bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
+    <div class="text-center">
+      <h2 class="text-xl font-bold text-slate-800 mb-1">{nome_simulador}</h2>
+      <p class="text-xs text-slate-500">Laboratório Interativo Virtual | {tema_aula}</p>
+    </div>
+    <!-- Seu painel de controle e div do gráfico -->
+  </div>
 </body>
 </html>
 """
+
+def sanitizar_layout_grafico(html_code: str) -> str:
+    """
+    Higieniza o código HTML para garantir que títulos do Plotly/Chart.js não fiquem sobrepostos à legenda.
+    """
+    import re
+    if "Plotly.newPlot" in html_code or "Plotly.react" in html_code:
+        # Garante que title.text no Plotly fique vazio para evitar colisão visual
+        html_code = re.sub(r'title\s*:\s*\{[^}]*text\s*:\s*["\'][^"\']+["\'][^}]*\}', 'title: { text: "" }', html_code)
+        html_code = re.sub(r'title\s*:\s*["\'][^"\']+["\']', 'title: ""', html_code)
+    return html_code
 
 def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
     """
@@ -53,7 +87,6 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
     print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini Pro...")
     
     try:
-        # AQUI USAMOS O PRO PARA TAREFAS COMPLEXAS DE PROGRAMAÇÃO/RACIOCÍNIO COMO PEDIDO PELO USUÁRIO
         resposta = client.models.generate_content(
             model="gemini-2.5-pro",
             contents=prompt,
@@ -73,8 +106,9 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
         if codigo_html.endswith("```"):
             codigo_html = codigo_html[:-3]
             
-        print(" [OK] Simulador gerado com sucesso!")
-        return codigo_html.strip()
+        codigo_html = sanitizar_layout_grafico(codigo_html.strip())
+        print(" [OK] Simulador gerado e higienizado com sucesso!")
+        return codigo_html
         
     except Exception as e:
         print(f" [ERRO] Falha ao gerar simulador: {e}")
