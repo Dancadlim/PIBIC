@@ -73,7 +73,8 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> De
         return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))
 
     try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "vertex-key.json"
+        client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
     except Exception as e:
         print(f"[ERRO] Erro ao inicializar o cliente GenAI no Revisor: {e}")
         return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))
@@ -93,7 +94,7 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> De
 
     try:
         resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.6-flash",
             contents=[bloco_bruto_str, prompt_revisor],
             config=config_revisor
         )

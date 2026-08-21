@@ -79,7 +79,8 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
         raise ValueError("Chave de API 'GEMINI_API_KEY' não configurada. Configure a chave nos Secrets do Streamlit ou no ambiente.")
 
     try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "vertex-key.json"
+        client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
     except Exception as e:
         print(f"[ERRO] Erro ao inicializar o cliente do Google GenAI: {e}")
         return None
@@ -179,7 +180,7 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
     try:
         # Usando gemini-3.1-flash-lite com capacidade máxima de raciocínio profundo
         resposta_roteiro = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.6-flash",
             contents=contents_roteirista,
             config=types.GenerateContentConfig(
                 temperature=1.0,
@@ -307,7 +308,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
             try:
                 resposta_escritor = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.6-flash",
                     contents=[query_rag, prompt_escritor],
                     config=config_escritor
                 )

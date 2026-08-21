@@ -11,7 +11,8 @@ class MacroRoteirista:
             raise ValueError("GEMINI_API_KEY não configurada no ambiente.")
         
         # Novo cliente do google-genai
-        self.client = genai.Client(api_key=self.api_key)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "vertex-key.json"
+        self.client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
         
         self.system_instruction = PROMPT_MACRO_ROTEIRISTA
 
@@ -52,7 +53,7 @@ Responda apenas com o Array JSON.
         
         try:
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=self.system_instruction,

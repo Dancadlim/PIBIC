@@ -77,7 +77,8 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
     Gera um código HTML/JS completo para uma simulação interativa usando Gemini Pro.
     """
     carregar_chave_api()
-    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "vertex-key.json"
+        client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
     
     prompt = PROMPT_ENGENHEIRO_SIMULACAO.format(
         tema_aula=tema_aula,
@@ -88,7 +89,7 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
     
     try:
         resposta = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model="gemini-3.6-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,
