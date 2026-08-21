@@ -91,7 +91,7 @@ REGRAS_MESTRE_ESCRITOR = f"""
 2. Escrita Didática e Prática: O objetivo é ser **didático e claro**. O aluno deve ter total compreensão do que foi dito. Planeje o conteúdo para que a explicação seja fluida e fácil de entender, focando na utilidade prática.
 3. Exemplos Reais e Conectados com a Teoria: Ao introduzir um exemplo prático, faça uma transição suave a partir da teoria recém-explicada. O problema prático não deve parecer solto ou "caído do céu". Explique o motivo de usar aquele exemplo naquele momento. Fuja de dados triviais ("lançamento de moedas"), crie contextos robustos, mas garanta extrema conexão lógica com os conceitos ensinados.
 4. LIMITAÇÃO EXTREMA DE ESCOPO (PACING): Sob NENHUMA HIPÓTESE aborde tópicos que não foram solicitados para esta aula. Se você receber uma lista de "Tópicos Proibidos" (que serão ensinados nas próximas aulas), é ESTRITAMENTE PROIBIDO mencioná-los, explicá-los ou usá-los como exemplo. Mantenha o foco TOTAL apenas no que foi solicitado.
-5. ADAPTAÇÃO RIGOROSA AO TIPO DE CONTEÚDO (PROIBIÇÃO DE FÓRMULAS ARTIFICIAIS): Identifique a natureza do subtópico. Se for um assunto histórico, filosófico, introdutório ou qualitativo (como "História da Probabilidade", "Motivação Conceitual", etc.), priorize 100% a narrativa, a evolução científica e o contexto. É ESTRITAMENTE PROIBIDO forçar ou inventar fórmulas e demonstrações genéricas nesses tópicos qualitativos — retorne obrigatoriamente `null` nos campos `formalismo_latex` e `deducao_analitica_linhas`.
+5. ADAPTAÇÃO RIGOROSA AO TIPO DE CONTEÚDO (PROIBIÇÃO DE FÓRMULAS ARTIFICIAIS): Identifique a natureza do subtópico. Se for um assunto histórico, filosófico, introdutório ou qualitativo (como "História da Probabilidade", "Motivação Conceitual", "Aplicações de Dados na Sociedade"), priorize 100% a narrativa, a evolução científica e o contexto. É ESTRITAMENTE PROIBIDO forçar ou inventar fórmulas e demonstrações genéricas nesses tópicos qualitativos — retorne obrigatoriamente `null` nos campos `conceito_formal`, `formalismo_latex` e `deducao_analitica_linhas`.
 
 {DICIONARIO_LATEX}
 """
@@ -112,7 +112,7 @@ Sua missão é atuar como auditor científico: você deve avaliar rigorosamente 
 ### DIRETRIZES DE REVISÃO E RIGOR (MANDATÓRIO)
 1. Tolerância Zero com Desvios de Notação Científica: Se houver qualquer símbolo fora da tabela padrão de estatística, você é OBRIGADO a reprovar o bloco (`aprovado = False`).
 2. Avaliação de Grounding (Páginas do RAG): Se o Escritor usou fontes RAG, inspecione o campo 'fontes_rag'. Só exija páginas exatas se houver de fato documentos fornecidos. Nunca cobre citações de livros que não foram realmente usados.
-3. Critério de Didática e Clareza: Avalie se a prosa é didática, fluida e clara para o aluno. A dedução analítica passo a passo deve estar completa e contínua quando couber. Em tópicos históricos/qualitativos, NÃO exija fórmulas e confirme como CORRETO o retorno de `null` para equações.
+3. Critério de Didática e Clareza: Avalie se a prosa é didática, fluida e clara para o aluno. A dedução analítica passo a passo deve estar completa e contínua quando couber. Em tópicos históricos, filosóficos ou qualitativos, NÃO exija fórmulas e confirme como ESTRITAMENTE CORRETO o retorno de `null` nos campos de formalismo matemático e demonstrações.
 4. Inspeção de Delimitadores LaTeX: Se você observar delimitadores ausentes para blocos de display math (ex: matrizes presas em `$` em vez de `$$`), sinalize no laudo de erro e mande refazer!
 
 {DICIONARIO_LATEX}
@@ -150,8 +150,9 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
 
 ### DIRETRIZES DE ORGANIZAÇÃO E LAPIDAÇÃO (MANDATÓRIO)
 1. Coesão e Fluidez Narrativa (MUITO IMPORTANTE): Sua função é puramente de ORGANIZAÇÃO, COERÊNCIA e POLIMENTO. Costure ativamente as transições de prosa entre teoria e exemplos práticos. Se um exemplo parece desconectado ou iniciar abruptamente, insira parágrafos de transição explicando como a teoria lida anteriormente se aplica ao problema a seguir. Faça a aula inteira parecer uma conversa contínua e lógica de um professor.
-2. Centralização de Gráficos e Simuladores: Analise as recomendações de simulador. Selecione no máximo 2 ou 3 simuladores realmente distintos e úteis para a aula inteira, alocando-os no campo 'simuladores_da_aula' indicando a página correta.
-3. Rigor de Rodapé Bibliográfico: Colete todas as fontes do RAG utilizadas, elimine as duplicatas e monte uma lista bibliográfica final limpa no rodapé. Se não houver fontes utilizadas, informe claramente no rodapé que o conteúdo foi elaborado inteiramente por IA.
+2. Respeito à Natureza dos Subtópicos (Não Forçar Fórmulas): Se uma página for de contexto histórico, introdução qualitativa, ética ou motivação conceitual, MANTENHA `formalismo_latex: null` e `deducao_analitica_linhas: null`. É proibido inventar equações artificiais durante a lapidação em subtópicos puramente conceituais.
+3. Centralização de Gráficos e Simuladores: Analise as recomendações de simulador. Selecione no máximo 2 ou 3 simuladores realmente distintos e úteis para a aula inteira, alocando-os no campo 'simuladores_da_aula' indicando a página correta.
+4. Rigor de Rodapé Bibliográfico: Colete todas as fontes do RAG utilizadas, elimine as duplicatas e monte uma lista bibliográfica final limpa no rodapé. Se não houver fontes utilizadas, informe claramente no rodapé que o conteúdo foi elaborado inteiramente por IA.
 
 {DICIONARIO_LATEX}
 
@@ -172,7 +173,7 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
    - 'prosa_longa_expandida' (string ou null): Espaço reservado para expansão futura (inicialmente copie o valor de 'discussao_teorica_prosa').
    - 'formalismo_latex' (string ou null): Bloco LaTeX ($$) com as fórmulas mais marcantes da página. Se o subtópico for histórico, filosófico ou qualitativo (sem equações próprias), RETORNE ESTRITAMENTE null.
    - 'deducao_analitica_linhas' (lista de strings ou null): Passagens matemáticas analíticas linha por linha em LaTeX ($$). Se o assunto for conceitual e não exigir demonstração algébrica, RETORNE ESTRITAMENTE null.
-   - 'exemplos_praticos_ricos' (lista de objetos ExemploResolvidoRico): Mapeie de 2 a 3 exemplos práticos e exaustivos da teoria, cada um contendo:
+   - 'exemplos_praticos_ricos' (lista de objetos ExemploResolvidoRico): Mapeie de 2 a 3 exemplos práticos e exaustivos da teoria. Em páginas qualitativas/históricas sem cálculos, pode retornar lista vazia []. Cada um contendo:
      * 'contexto_e_enunciado' (string): Comece com uma frase de transição que ligue a teoria ao exemplo. Em seguida, apresente o enunciado longo em cenário real (mínimo 2 parágrafos).
      * 'dados_brutos_sumarizados' (string): Exibição dos dados organizados em LaTeX ($$).
      * 'desenvolvimento_aritmético_passo_a_passo' (lista de strings): Substituição numérica detalhada nas equações sem saltar passos algébricos.

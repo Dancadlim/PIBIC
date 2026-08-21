@@ -384,7 +384,7 @@ export default function SemesterViewer() {
                           return null;
                         })()}
 
-                        {latexCode && (
+                        {latexCode && latexCode !== "null" && (
                           <div className="my-8 p-6 bg-slate-50 rounded-xl  border border-slate-200 text-center">
                             <span className="text-blue-800 font-bold block mb-2 text-sm uppercase tracking-wider">Fórmula / Definição Formal</span>
                             <div className="text-lg text-left inline-block w-full overflow-x-auto overflow-y-hidden">
@@ -395,7 +395,7 @@ export default function SemesterViewer() {
                           </div>
                         )}
 
-                        {deducoes?.length > 0 && (
+                        {deducoes?.length > 0 && deducoes[0] !== "null" && (
                           <div className="mb-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                             <div className="p-4 bg-slate-50 font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200">
                                 <span>🔍</span> Demonstração Passo a Passo

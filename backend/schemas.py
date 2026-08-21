@@ -47,7 +47,7 @@ class ConteudoSubtopico(BaseModel):
     # CAMPOS COMUNS
     # ----------------------------------------------------
     conceito_intuitivo: str = Field(description="Explicação profunda do conceito em linguagem natural e fluida, sem formalismo matemático ainda.")
-    conceito_formal: str = Field(description="Definição matemática precisa ou enunciado acadêmico formal do conceito em LaTeX.")
+    conceito_formal: Optional[str] = Field(default=None, description="Definição matemática precisa ou enunciado acadêmico formal em LaTeX. Se o subtópico for histórico/qualitativo/conceitual (sem fórmulas próprias), retorne estritamente null.")
     propriedades_do_conceito: List[str] = Field(description="Lista de regras, teoremas ou leis que este conceito sempre segue.")
     pre_requisitos_e_auxiliares: List[str] = Field(description="Mapeamento de ferramentas matemáticas ou aulas passadas necessárias aqui.")
     condicoes_de_contorno: List[str] = Field(description="Suposições obrigatórias para que a teoria seja válida. Se não houver, responda 'N/A'.")
@@ -119,11 +119,12 @@ class PaginaLapidada(BaseModel):
     titulo_subtopico: str
     discussao_teorica_prosa: str = Field(description="Texto em prosa dividida em parágrafos bem espaçados (use \\n\\n para separar). É proibido usar listas ou bullets.")
     prosa_longa_expandida: Optional[str] = Field(default=None, description="Texto extremamente longo, denso e exaustivo em prosa fluida gerado pelo Construtor de Prosa.")
-    formalismo_latex: str = Field(description="Bloco de fórmulas em LaTeX ($$) sem repetições de equações que já apareceram na aula.")
+    formalismo_latex: Optional[str] = Field(default=None, description="Bloco de fórmulas em LaTeX ($$). Se o subtópico for histórico, filosófico ou qualitativo (sem equações próprias), retorne estritamente null.")
     
     # Mudança de String para List para forçar a abertura de todas as linhas matemáticas
-    deducao_analitica_linhas: List[str] = Field(
-        description="A derivação matemática completa dividida linha por linha em LaTeX ($$). Cada item da lista deve ser uma equação que se desdobra logicamente da anterior."
+    deducao_analitica_linhas: Optional[List[str]] = Field(
+        default=None,
+        description="A derivação matemática completa dividida linha por linha em LaTeX ($$). Se o assunto for conceitual/histórico e não exigir demonstração algébrica, retorne estritamente null."
     )
     
     # Transformado em lista obrigatória para garantir volume de conteúdo prático
