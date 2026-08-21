@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
@@ -21,10 +21,21 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // DESVINCULAÇÃO DE LOGIN PARA TESTES
   useEffect(() => {
-    router.push("/professor/dashboard");
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().role === "aluno") {
+          router.push("/aluno/dashboard");
+        } else {
+          router.push("/professor/dashboard");
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

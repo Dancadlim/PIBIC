@@ -28,8 +28,7 @@ export default function AlunoDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       // MOCK USER PARA TESTES:
-      const mockUser = { uid: "TEST_ALUNO_123" };
-      // if (!auth.currentUser) return;
+        // if (!auth.currentUser) return;
 
       try {
         // 1. Busca perfil do aluno

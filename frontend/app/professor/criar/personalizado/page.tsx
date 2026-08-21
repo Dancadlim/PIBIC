@@ -170,7 +170,7 @@ export default function CriarSalaPersonalizada() {
       
       const docRef = await addDoc(collection(db, "classrooms"), {
         code,
-        teacherId: "TEST_PROFESSOR_123", // mockUser
+        teacherId: auth.currentUser?.uid || "TEST_PROFESSOR_123",
         id_disciplina: selectedDisciplina,
         nome_disciplina: disc?.nome || "Disciplina",
         createdAt: serverTimestamp(),

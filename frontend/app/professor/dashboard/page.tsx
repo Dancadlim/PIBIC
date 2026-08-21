@@ -26,13 +26,13 @@ export default function ProfessorDashboard() {
     let unsubscribeSalas: (() => void) | undefined;
 
     // DESVINCULAÇÃO DE LOGIN PARA TESTES
-    // const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-    //   if (!user) {
-    //     setLoading(false);
-    //     return;
-    //   }
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/login");
+    setLoading(false);
+        return;
+      }
     
-    const mockUser = { uid: "TEST_PROFESSOR_123" };
     const loadData = async (user: any) => {
 
       try {
@@ -74,10 +74,11 @@ export default function ProfessorDashboard() {
       }
     };
     
-    loadData(mockUser);
+    loadData(user);
+    });
 
     return () => {
-      // unsubscribeAuth();
+      unsubscribeAuth();
       if (unsubscribeSalas) unsubscribeSalas();
     };
   }, []);
