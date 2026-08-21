@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
@@ -20,6 +20,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // DESVINCULAÇÃO DE LOGIN PARA TESTES
+  useEffect(() => {
+    router.push("/professor/dashboard");
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
