@@ -87,7 +87,7 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
     
     try:
         resposta = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model="gemini-1.5-flash-002",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,

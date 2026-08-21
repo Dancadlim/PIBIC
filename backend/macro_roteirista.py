@@ -51,7 +51,7 @@ Responda apenas com o Array JSON.
         
         try:
             response = self.client.models.generate_content(
-                model="gemini-3.6-flash",
+                model="gemini-1.5-flash-002",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=self.system_instruction,
