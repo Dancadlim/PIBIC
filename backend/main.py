@@ -319,6 +319,7 @@ def api_editar_aula_bloco(req: EditarBlocoRequest):
         # Se mandou prompt_ia, passa pela IA para reescrever o bloco
         if req.prompt_ia:
             from google import genai
+            if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "vertex-key.json"
         client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
             resp = client.models.generate_content(
