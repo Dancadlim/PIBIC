@@ -185,24 +185,6 @@ function BlockEditor({
           {saving ? "Salvando..." : "💾 Salvar Alterações"}
         </button>
       </div>
-        {/* Modal de Sucesso */}
-        {modalSucessoOpen && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-center animate-fade-in">
-              <div className="text-6xl mb-4">⏳</div>
-              <h3 className="font-bold text-2xl text-blue-900 mb-2">Sua aula está sendo preparada!</h3>
-              <p className="text-slate-600 mb-6">
-                A IA está estruturando todo o conteúdo. Isso pode levar alguns minutos. Você não precisa atualizar a página, o cronograma lateral será atualizado automaticamente quando ela ficar pronta.
-              </p>
-              <button 
-                onClick={() => setModalSucessoOpen(false)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow transition"
-              >
-                Entendi
-              </button>
-            </div>
-          </div>
-        )}
     </div>
   );
 }
