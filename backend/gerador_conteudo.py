@@ -270,12 +270,12 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 2. 'conteudo' (objeto ConteudoSubtopico):
    - 'tipo_bloco' (string): Deve ser preenchido estritamente como 'teorico'.
    - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \n\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
-   - 'conceito_formal' (string): Apresente o enunciado matemático definitivo do conceito ou teorema. Defina o espaço amostral, os parâmetros e as variáveis com rigor matemático absoluto utilizando LaTeX estruturado ($$ ou $).
-   - 'propriedades_do_conceito' (lista de strings): Mapeie de forma exaustiva e rigorosa todas as leis, teoremas e propriedades matemáticas deduzidas diretamente desse conceito.
-   - 'pre_requisitos_e_auxiliares' (lista de strings): Liste os pré-requisitos conceituais e ferramentas de cálculo necessários para compreender este subtópico.
-   - 'condicoes_de_contorno' (lista de strings): Descreva todas as premissas matemáticas e suposições fundamentais para a validade do modelo (ex: homocedasticidade, independência dos erros, normalidade). Se não houver, preencha 'N/A'.
-   - 'simulador_interativo_recomendado' (string): Proponha uma simulação interativa baseada em Plotly que auxilie a visualizar este conceito (ex: reta OLS com sliders de tamanho amostral $n$ e ruído $\sigma$). Detalhe as variáveis e os limites dos sliders para o frontend do Streamlit.
-   - 'deducao_formal_passo_a_passo' (lista de strings): Forneça a demonstração matemática completa. Cada string deve representar um único passo ou equação matemática em LaTeX ($$), organizados de forma logicamente contígua e sem saltar passagens algébricas cruciais. Lembre-se que QUALQUER BLOCO DE MULTIPLAS LINHAS DEVE ESTAR ENVOLVIDO POR $$ DUPLO.
+   - 'conceito_formal' (string ou null): Apresente o enunciado matemático definitivo do conceito ou teorema em LaTeX. Se o subtópico for histórico, filosófico ou qualitativo (sem equações próprias), retorne estritamente null.
+   - 'propriedades_do_conceito' (lista de strings): Mapeie de forma exaustiva as regras, teoremas ou princípios que este conceito segue.
+   - 'pre_requisitos_e_auxiliares' (lista de strings): Liste os pré-requisitos conceituais e ferramentas necessários para compreender este subtópico.
+   - 'condicoes_de_contorno' (lista de strings): Descreva todas as premissas e suposições fundamentais para a validade do modelo. Se não houver, preencha 'N/A'.
+   - 'simulador_interativo_recomendado' (string ou null): Proponha uma simulação interativa baseada em Plotly se relevante. Se não precisar, retorne null.
+   - 'deducao_formal_passo_a_passo' (lista de strings ou null): Forneça a demonstração matemática completa em LaTeX ($$). Se o assunto for conceitual/histórico e não exigir demonstração algébrica, retorne estritamente null.
    - 'interpretacao_geometrica_grafica' (string): Explique de forma clara como visualizar esse conceito graficamente ou espacialmente (ex: inclinação da reta, áreas de probabilidade sob curvas, vetores de erro).
    - 'exemplo_canonico' (objeto EstruturaExemplo):
      * 'enunciado' (string): Enunciado realista e complexo sobre o mundo real (controle de qualidade, ensaios clínicos, IoT), evitando problemas puramente abstratos.

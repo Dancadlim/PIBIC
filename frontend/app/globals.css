@@ -25,30 +25,33 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Adiciona scroll horizontal somente em blocos que não conseguem quebrar */
+/* Tratamento de quebra e rolagem de Markdown */
 .markdown-body {
   overflow-wrap: break-word;
 }
+
+/* Padrão Ouro de Espaçamento e Prevenção de Corte de LaTeX */
 .katex-display {
   overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 0.5rem;
-}
-.markdown-body table, .markdown-body pre {
+  overflow-y: visible !important;
+  padding: 0.75rem 0.5rem !important;
+  margin: 1.25rem 0 !important;
   max-width: 100%;
-  overflow-x: auto;
 }
 
+.katex {
+  font-size: 1.05em;
+  margin: 0 0.22em;
+  display: inline-block;
+  vertical-align: middle;
+}
 
-/* Adiciona scroll horizontal somente em blocos que não conseguem quebrar */
-.markdown-body {
-  overflow-wrap: break-word;
+/* Aumento de respiro vertical para parágrafos com equações inline */
+.prose p {
+  line-height: 1.85 !important;
+  margin-bottom: 1.25rem;
 }
-.katex-display {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 0.5rem;
-}
+
 .markdown-body table, .markdown-body pre {
   max-width: 100%;
   overflow-x: auto;

@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBKt99lfFfW1MeSNwqxtU66x8eqV0nGI88",
-  authDomain: "plataforma-aulas-ufba.firebaseapp.com",
-  projectId: "plataforma-aulas-ufba",
-  storageBucket: "plataforma-aulas-ufba.firebasestorage.app",
-  messagingSenderId: "838145348800",
-  appId: "1:838145348800:web:a76e45f35d62657bc7c925",
-  measurementId: "G-NSBFDC8E38"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBKt99lfFfW1MeSNwqxtU66x8eqV0nGI88",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "plataforma-aulas-ufba.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "plataforma-aulas-ufba",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "plataforma-aulas-ufba.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "838145348800",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:838145348800:web:a76e45f35d62657bc7c925",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-NSBFDC8E38"
 };
 
 // Initialize Firebase (Singleton pattern para Next.js)

@@ -39,7 +39,9 @@ def carregar_chave_api():
             print(f"[ALERTA] Erro ao tentar ler {path}: {e}")
     return False
 
-def lapidar_conteudo_global(payload_bruto: dict):
+from model_utils import prepare_model_and_config
+
+def lapidar_conteudo_global(payload_bruto: dict, modelo_ia: str = "padrao"):
     # Garante a inicialização da chave
     carregar_chave_api()
     client = genai.Client(vertexai=True, api_key=os.environ.get("GEMINI_API_KEY"))
@@ -51,15 +53,17 @@ def lapidar_conteudo_global(payload_bruto: dict):
     from prompts import PROMPT_ORQUESTRADOR
     prompt_editorial = PROMPT_ORQUESTRADOR.replace("[CAPÍTULO_BRUTO_AULA]", dados_entrada_str)
 
-    config_editorial = types.GenerateContentConfig(
-        temperature=1.0,
+    model_name, config_editorial = prepare_model_and_config(
+        modelo_solicitado=modelo_ia,
+        default_model="gemini-2.5-flash",
+        default_temp=1.0,
         response_mime_type="application/json",
         response_schema=AulaUnificadaELapidada
     )
 
     try:
         resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model_name,
             contents=[dados_entrada_str, prompt_editorial],
             config=config_editorial
         )
@@ -67,9 +71,8 @@ def lapidar_conteudo_global(payload_bruto: dict):
         print(" [OK] Aula unificada, referências compiladas no rodapé e livre de repetições!")
         
         # --- PASSO ADICIONAL: FORMATADOR DE LATEX ---
-        # Garantir que nenhum LaTeX saiu quebrado do Orquestrador
         aula_unificada_json = json.loads(resposta.text)
-        aula_formatada = formatar_latex_final(aula_unificada_json, client)
+        aula_formatada = formatar_latex_final(aula_unificada_json, client, modelo_ia=modelo_ia)
         
         # --- PASSO ADICIONAL: GERADOR DE SIMULADORES INTERATIVOS ---
         import agente_simulador
@@ -80,7 +83,7 @@ def lapidar_conteudo_global(payload_bruto: dict):
                 nome = sim.get("nome_simulador")
                 if nome:
                     print(f" [Orquestrador] Requisitando código do simulador: {nome}")
-                    html_code = agente_simulador.gerar_simulador_html(tema, nome)
+                    html_code = agente_simulador.gerar_simulador_html(tema, nome, modelo_ia=modelo_ia)
                     sim["codigo_html_gerado"] = html_code
         
         return aula_formatada
@@ -89,12 +92,14 @@ def lapidar_conteudo_global(payload_bruto: dict):
         print(f" [ERRO] Erro crítico no processo editorial: {e}")
         return payload_bruto
 
-def formatar_latex_final(aula_json: dict, client) -> dict:
+def formatar_latex_final(aula_json: dict, client, modelo_ia: str = "padrao") -> dict:
     from prompts import PROMPT_FORMATADOR_LATEX
     print("\n[Formatador LaTeX] Inspecionando e corrigindo delimitadores matemáticos...")
     
-    config_formatador = types.GenerateContentConfig(
-        temperature=0.1, # Muito baixo para não alterar conteúdo, apenas formatar
+    model_name, config_formatador = prepare_model_and_config(
+        modelo_solicitado=modelo_ia,
+        default_model="gemini-2.5-flash",
+        default_temp=0.1,
         response_mime_type="application/json",
         response_schema=AulaUnificadaELapidada
     )
@@ -102,7 +107,7 @@ def formatar_latex_final(aula_json: dict, client) -> dict:
     try:
         dados_str = json.dumps(aula_json, ensure_ascii=False)
         resposta_formatada = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model_name,
             contents=[dados_str, PROMPT_FORMATADOR_LATEX],
             config=config_formatador
         )

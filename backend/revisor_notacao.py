@@ -47,6 +47,8 @@ def carregar_chave_api():
 # Inicializa o carregamento da chave de API
 carregar_chave_api()
 
+from model_utils import prepare_model_and_config
+
 # ==============================================================================
 # SCHEMA DE DECISÃO DO AGENTE REVISOR (CRITIC)
 # ==============================================================================
@@ -66,7 +68,7 @@ class DecisaoRevisao(BaseModel):
 # ==============================================================================
 # FUNÇÃO DE AUDITORIA DO SUBTÓPICO
 # ==============================================================================
-def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> DecisaoRevisao:
+def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, modelo_ia: str = "padrao") -> DecisaoRevisao:
     # Garante que temos a chave configurada
     if not os.environ.get("GEMINI_API_KEY"):
         print("[ERRO] Erro no Revisor: Chave de API 'GEMINI_API_KEY' não configurada.")
@@ -81,24 +83,23 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> De
     bloco_bruto_str = json.dumps(bloco_bruto_dict, ensure_ascii=False, indent=2)
 
     from prompts import PROMPT_REVISOR_CIENTIFICO, DICIONARIO_LATEX
-    # Nota: No prompts.py o DICIONARIO_LATEX já está formatado dentro do PROMPT_REVISOR_CIENTIFICO, 
-    # ou podemos simplesmente substituir se o string template precisar
     prompt_revisor = PROMPT_REVISOR_CIENTIFICO.replace("[CONTEÚDO_BRUTO]", bloco_bruto_str).replace("[DIRETRIZES_DE_ESTILO]", diretrizes_texto)
 
-    config_revisor = types.GenerateContentConfig(
-        temperature=1.0, # Puramente analítico e focado nas regras
+    model_name, config_revisor = prepare_model_and_config(
+        modelo_solicitado=modelo_ia,
+        default_model="gemini-2.5-flash",
+        default_temp=1.0,
         response_mime_type="application/json",
         response_schema=DecisaoRevisao
     )
 
     try:
         resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model_name,
             contents=[bloco_bruto_str, prompt_revisor],
             config=config_revisor
         )
         return DecisaoRevisao.model_validate_json(resposta.text)
     except Exception as e:
-        # Em caso de pane na chamada do revisor, força aprovação preventiva para não quebrar o script de lote
         print(f"      [ALERTA] Falha operacional no motor do Revisor: {e}")
         return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))

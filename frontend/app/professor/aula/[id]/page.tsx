@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot, collection, getDocs, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
+import { processLatex, getSortedAlternativas } from "@/lib/latex";
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
@@ -15,12 +16,12 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   const [html, setHtml] = useState<string | null>(htmlCode || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [iframeHeight, setIframeHeight] = useState(800);
+  const [iframeHeight, setIframeHeight] = useState(750);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'resize' && event.data.height) {
-         setIframeHeight(event.data.height + 50);
+      if (event.data && event.data.type === 'resize' && typeof event.data.height === 'number') {
+         setIframeHeight(Math.max(650, event.data.height + 40));
       }
     };
     window.addEventListener('message', handleMessage);
@@ -86,14 +87,50 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
     );
   }
 
-  const injectedHtml = html ? html + `<script>
-    window.addEventListener('load', () => {
-        const ro = new ResizeObserver(() => {
-          window.parent.postMessage({ type: 'resize', height: document.documentElement.scrollHeight }, '*');
-        });
+  const resizeScript = `<script>
+    (function() {
+      function emitHeight() {
+        var b = document.body, h = document.documentElement;
+        var height = Math.max(
+          b ? b.scrollHeight : 0,
+          b ? b.offsetHeight : 0,
+          h ? h.clientHeight : 0,
+          h ? h.scrollHeight : 0,
+          h ? h.offsetHeight : 0
+        );
+        if (height > 0) {
+          window.parent.postMessage({ type: 'resize', height: height }, '*');
+        }
+      }
+      if (document.readyState === 'complete') {
+        emitHeight();
+      } else {
+        window.addEventListener('load', emitHeight);
+        document.addEventListener('DOMContentLoaded', emitHeight);
+      }
+      if (typeof ResizeObserver !== 'undefined' && document.body) {
+        var ro = new ResizeObserver(emitHeight);
         ro.observe(document.body);
-    });
-  </script>` : null;
+      }
+      document.addEventListener('input', emitHeight);
+      document.addEventListener('change', emitHeight);
+      var count = 0;
+      var timer = setInterval(function() {
+        emitHeight();
+        count++;
+        if (count > 7) clearInterval(timer);
+      }, 500);
+    })();
+  </script>`;
+
+  let injectedHtml = html;
+  if (html) {
+    if (html.includes("</body>")) {
+      injectedHtml = html.replace("</body>", `${resizeScript}</body>`);
+    } else {
+      injectedHtml = html + resizeScript;
+    }
+  }
 
   return (
     <div className="my-8 border border-slate-200 rounded-xl overflow-hidden shadow-lg bg-white">
@@ -210,35 +247,6 @@ function BlockEditor({
 export default function ProfessorSemesterViewer() {
   const params = useParams();
   const router = useRouter();
-
-  // Agora que o Backend garante a formatação rigorosa via o Agente Formatador LaTeX,
-  // o Frontend precisa apenas isolar os blocos $$ em seus próprios parágrafos
-  // para que o remark-math consiga processá-los corretamente como 'display math'.
-    const processLatex = (text: string) => {
-    if (!text) return "";
-    let processed = text;
-
-    // 1. Converter delimitadores clássicos LaTeX \[ \] e \( \) para $$ e $
-    processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
-    processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
-
-    // 2. Garantir que delimitadores $$ fiquem em suas próprias linhas para o remark-math
-    processed = processed.replace(/([^\n])\$\$/g, '$1\n$$');
-    processed = processed.replace(/\$\$([^\n])/g, '$$\n$1');
-    
-    // 3. Remove espaços em branco no INÍCIO de qualquer linha (impede <pre> identado no Markdown)
-    processed = processed.replace(/^[ \t]+/gm, '');
-
-    // 4. Arruma espaços acidentais em math inline gerados pela IA (ex: $ k $ -> $k$)
-    processed = processed.replace(/\$\s+([^$\n]+?)\s+\$/g, '$$$1$$');
-
-    // 5. Garantir espaço em branco antes e depois de inline math $...$ quando colado em palavras
-    processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$$2$$');
-    processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$$1$$ $2');
-
-    // 6. Remove quebras de linha excessivas
-    return processed.replace(/\n{4,}/g, '\n\n\n');
-  };
   const id = params.id as string;
 
   const [classroom, setClassroom] = useState<any>(null);
@@ -347,12 +355,17 @@ export default function ProfessorSemesterViewer() {
         router.push("/aluno/dashboard");
       }
       setLoading(false);
+    }, (error) => {
+      console.warn("Aviso ao carregar sala (verifique as regras do Firestore):", error);
+      setLoading(false);
     });
 
     // Listener da subcoleção de Aulas Geradas
     const unsubAulas = onSnapshot(collection(db, "classrooms", id, "aulas"), (snap) => {
       const aulasList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setAulasGeradas(aulasList);
+    }, (error) => {
+      console.warn("Aviso ao carregar aulas (verifique as regras do Firestore):", error);
     });
 
     return () => {
@@ -444,7 +457,9 @@ export default function ProfessorSemesterViewer() {
                       )}
                     </div>
                     <p className={`font-medium line-clamp-2 ${aulaCompleta ? 'text-slate-800' : 'text-slate-500'}`}>
-                      {aulaMeta.titulo}
+                      <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>
+                        {processLatex(aulaMeta.titulo)}
+                      </ReactMarkdown>
                     </p>
                   </div>
                 );
@@ -541,7 +556,7 @@ export default function ProfessorSemesterViewer() {
               <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-slate-200">
                 <h2 className="text-3xl font-bold text-blue-900 flex flex-wrap items-center gap-2">
                   <span>Aula {selectedAula.numero_aula}:</span>
-                  <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>
+                  <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>
                     {processLatex(selectedAula.titulo)}
                   </ReactMarkdown>
                 </h2>
@@ -644,7 +659,7 @@ export default function ProfessorSemesterViewer() {
                     <section key={idx} className="mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                       <h3 className="text-2xl font-bold text-slate-800 mb-6 pb-2 border-b border-slate-100 flex items-center gap-2">
                         <span>{idx + 1}.</span>
-                        <span><ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>{processLatex(titulo)}</ReactMarkdown></span>
+                        <span><ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>{processLatex(titulo)}</ReactMarkdown></span>
                       </h3>
                       
                       <BlockEditor 
@@ -657,7 +672,7 @@ export default function ProfessorSemesterViewer() {
 
                       <div className="prose prose-lg prose-blue max-w-none text-slate-700">
                         <div className="whitespace-pre-wrap leading-relaxed mb-6">
-                          <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                          <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                             {processLatex(textoProsa)}
                           </ReactMarkdown>
                         </div>
@@ -681,8 +696,8 @@ export default function ProfessorSemesterViewer() {
                         {latexCode && (
                           <div className="my-8 p-6 bg-slate-50 rounded-xl  border border-slate-200 text-center">
                             <span className="text-blue-800 font-bold block mb-2 text-sm uppercase tracking-wider">Fórmula / Definição Formal</span>
-                            <div className="text-lg text-left inline-block w-full overflow-x-auto overflow-y-hidden">
-                              <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                            <div className="text-lg text-left inline-block w-full overflow-x-auto overflow-y-visible py-3">
+                              <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                 {processLatex(latexCode)}
                               </ReactMarkdown>
                             </div>
@@ -696,8 +711,8 @@ export default function ProfessorSemesterViewer() {
                             </div>
                             <div className="p-6 bg-slate-50/50 space-y-4">
                               {deducoes.map((passo: string, pIdx: number) => (
-                                <div key={pIdx} className="text-slate-600 text-sm md:text-base w-full overflow-x-auto overflow-y-hidden">
-                                  <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                <div key={pIdx} className="text-slate-600 text-sm md:text-base w-full overflow-x-auto overflow-y-visible py-3">
+                                  <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                     {processLatex(passo)}
                                   </ReactMarkdown>
                                 </div>
@@ -714,8 +729,8 @@ export default function ProfessorSemesterViewer() {
                             {exemplos.map((exemplo: any, eIdx: number) => (
                               <div key={eIdx} className="bg-blue-50/40 p-6 rounded-xl mb-6 border border-blue-100">
                                 <div className="font-semibold text-slate-800 mb-4 border-b border-blue-200 pb-2">
-                                  <div className="flex-1 pr-4 overflow-x-auto overflow-y-hidden">
-                                    <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                  <div className="flex-1 pr-4 overflow-x-auto overflow-y-visible py-3">
+                                    <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                       {processLatex(exemplo.contexto_e_enunciado || exemplo.enunciado)}
                                     </ReactMarkdown>
                                   </div>
@@ -723,11 +738,11 @@ export default function ProfessorSemesterViewer() {
                                 
                                 <div className="mt-6">
                                   {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao) && (
-                                    <div className="bg-white p-4 rounded-lg mb-4 border border-slate-200 shadow-sm overflow-x-auto overflow-y-hidden space-y-2">
+                                    <div className="bg-white p-4 rounded-lg mb-4 border border-slate-200 shadow-sm overflow-x-auto overflow-y-visible py-3 space-y-2">
                                       <h5 className="font-bold text-slate-700 mb-2 text-sm uppercase">Passo a Passo</h5>
                                       {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao).map((passo: string, pIdx: number) => (
                                         <div key={pIdx} className="text-slate-600 text-sm">
-                                          <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                          <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                             {processLatex(passo)}
                                           </ReactMarkdown>
                                         </div>
@@ -738,7 +753,7 @@ export default function ProfessorSemesterViewer() {
                                   <div className="bg-green-50 p-4 rounded-lg mt-4 border border-green-200">
                                     <strong className="text-green-800 block mb-1">Conclusão:</strong>
                                     <div className="text-green-900">
-                                      <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                      <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                         {processLatex(exemplo.conclusao_e_laudo_comercial || exemplo.resultado_final)}
                                       </ReactMarkdown>
                                     </div>
@@ -778,19 +793,19 @@ export default function ProfessorSemesterViewer() {
                               <div className="font-semibold text-slate-800 mb-6 flex items-start gap-2">
                                 <span className="text-indigo-600 font-bold">{i + 1}.</span>
                                 <span className="flex-1">
-                                  <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                  <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                     {processLatex(q.enunciado)}
                                   </ReactMarkdown>
                                 </span>
                               </div>
                               <div className="space-y-3 mb-6">
-                                {Object.entries(q.alternativas).filter(([k, v]) => v).sort(([a], [b]) => a.localeCompare(b)).map(([letra, texto]: any) => (
+                                {getSortedAlternativas(q.alternativas).map(({ letra, texto }) => (
                                   <label key={letra} className="flex gap-4 p-4 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-colors items-start">
                                     <input type="radio" name={`q-${i}`} className="mt-1" />
                                     <div>
                                       <strong className="text-slate-700 mr-2">{letra})</strong>
                                       <span className="flex-1 text-slate-600">
-                                        <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                        <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                           {processLatex(texto)}
                                         </ReactMarkdown>
                                       </span>
@@ -805,7 +820,7 @@ export default function ProfessorSemesterViewer() {
                                 <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900">
                                   <strong className="block mb-2">Alternativa Correta: {q.alternativa_correta}</strong>
                                   <div className="mt-2 text-slate-800">
-                                    <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                    <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                       {processLatex(q.gabarito_comentado)}
                                     </ReactMarkdown>
                                   </div>
@@ -830,7 +845,7 @@ export default function ProfessorSemesterViewer() {
                               <div className="font-semibold text-slate-800 mb-4 flex items-start gap-2">
                                 <span className="text-indigo-600 font-bold">Q{i + 1}.</span>
                                 <span className="flex-1">
-                                  <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                  <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                     {processLatex(q.enunciado)}
                                   </ReactMarkdown>
                                 </span>
@@ -839,10 +854,10 @@ export default function ProfessorSemesterViewer() {
                                 <div className="text-indigo-600 font-bold inline-flex items-center gap-1">
                                   <span>Solução Passo a Passo:</span>
                                 </div>
-                                <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg overflow-x-auto overflow-y-hidden space-y-4">
+                                <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg overflow-x-auto overflow-y-visible py-3 space-y-4">
                                   {q.gabarito_passo_a_passo.map((passo: string, pIdx: number) => (
                                     <div key={pIdx} className="text-slate-600">
-                                      <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                      <ReactMarkdown remarkPlugins={[[remarkMath, { singleDollarTextMath: true }], remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                         {processLatex(passo)}
                                       </ReactMarkdown>
                                     </div>

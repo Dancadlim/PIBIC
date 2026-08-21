@@ -3,13 +3,14 @@
 # ==============================================================================
 DICIONARIO_LATEX = """
 REGRAS ESTABELECIDAS PARA A FORMATAÇÃO MATEMÁTICA E LATEX (SIGA ESTRITAMENTE):
-1. EQUAÇÕES DE BLOCO (Display Math): Você DEVE OBRIGATORIAMENTE usar `$$` duplo para abrir e fechar QUALQUER bloco de equação que deva ficar centralizado em uma linha própria ou que contenha múltiplas linhas (como matrizes, alinhamentos, demonstrações passo-a-passo).
+1. NÃO OBRIGATORIEDADE DE FÓRMULAS EM AULAS QUALITATIVAS/HISTÓRICAS: Nem toda aula ou subtópico exige formalismo matemático. Se o assunto for contextualização histórica, motivação conceitual, ética, introdução qualitativa ou panorama geral (ex: "História da Probabilidade", "Aplicações de IA na Sociedade"), É ESTRITAMENTE PROIBIDO inventar fórmulas ou demonstrações artificiais. Nestes casos, defina `conceito_formal`, `formalismo_latex` e `deducao_analitica_linhas` obrigatoriamente como `null`.
+2. EQUAÇÕES DE BLOCO (Display Math): Quando houver fórmulas matematicamente necessárias, use OBRIGATORIAMENTE `$$` duplo para abrir e fechar QUALQUER bloco de equação que deva ficar centralizado em uma linha própria ou que contenha múltiplas linhas (matrizes, alinhamentos, demonstrações).
    - ERRADO: `\\[ ... \\]`, `$ ... $`, `$$ ... $`
    - CERTO: `$$ \\begin{pmatrix} X_1 \\\\ X_2 \\end{pmatrix} $$`
-2. EQUAÇÕES NA MESMA LINHA DO TEXTO (Inline Math): Use `$` simples apenas para equações pequenas que dividem a linha com o texto comum (ex: "Seja a variável $X_i$"). NUNCA coloque quebras de linha dentro de blocos `$ ... $`.
-3. ESPAÇAMENTO OBRIGATÓRIO EM INLINE MATH: É MANDATÓRIO colocar UM ESPAÇO em branco ANTES do `$` de abertura e DEPOIS do `$` de fechamento (ex: escreva "o espaço $\\Omega$ possui" e NUNCA "o$\\Omega$possui" ou "o $\\Omega$possui"). Símbolos e letras gregas nunca devem colar nas palavras em português.
-4. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
-5. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa não devem ficar dentro de delimitadores matemáticos, e símbolos matemáticos devem sempre estar dentro de `$`.
+3. EQUAÇÕES NA MESMA LINHA DO TEXTO (Inline Math): Use `$` simples apenas para equações pequenas que dividem a linha com o texto comum (ex: "Seja a variável $X_i$"). NUNCA coloque quebras de linha dentro de blocos `$ ... $`.
+4. ESPAÇAMENTO OBRIGATÓRIO EM INLINE MATH: É MANDATÓRIO colocar UM ESPAÇO em branco ANTES do `$` de abertura e DEPOIS do `$` de fechamento (ex: escreva "o espaço $\\Omega$ possui" e NUNCA "o$\\Omega$possui" ou "o $\\Omega$possui"). Símbolos e letras gregas nunca devem colar nas palavras em português.
+5. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
+6. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa não devem ficar dentro de delimitadores matemáticos, e símbolos matemáticos devem sempre estar dentro de `$`.
 """
 
 # ==============================================================================
@@ -75,8 +76,8 @@ Você é um Professor Catedrático de Estatística Matemática. Sua única miss�
 
 REGRAS DE CONSTRUÇÃO DE TEXTO:
 1. ESCREVA DE FORMA DIDÁTICA E CLARA: Expanda o texto de acordo com a necessidade do conteúdo para que ele fique fácil de entender. Se o assunto pedir mais detalhes, aprofunde-se; se for mais simples, seja conciso. A prosa tem que ser didática e fluida. O objetivo é a compreensão total do aluno.
-2. PROFUNDIDADE HISTÓRICA E MOTIVAÇÃO: Explique o porquê desse conceito existir, qual problem prático da ciência ele resolve, como os pesquisadores pensavam antes dele e as implicações práticas de sua aplicação.
-3. RIGOR: Conecte o texto de forma elegante com as fórmulas em LaTeX ($$) fornecidas, explicando o significado estatístico de cada componente no meio do texto.
+2. PROFUNDIDADE HISTÓRICA E MOTIVAÇÃO: Explique o porquê desse conceito existir, qual problema prático da ciência ele resolve, como os pesquisadores pensavam antes dele e as implicações práticas de sua aplicação.
+3. RIGOR: Conecte o texto de forma elegante com as fórmulas em LaTeX ($$) fornecidas, quando houver. Se o subtópico for histórico ou qualitativo, priorize 100% a prosa explicativa fluida.
 
 {dicionario_latex}
 
@@ -91,7 +92,7 @@ REGRAS_MESTRE_ESCRITOR = f"""
 2. Escrita Didática e Prática: O objetivo é ser **didático e claro**. O aluno deve ter total compreensão do que foi dito. Planeje o conteúdo para que a explicação seja fluida e fácil de entender, focando na utilidade prática.
 3. Exemplos Reais e Conectados com a Teoria: Ao introduzir um exemplo prático, faça uma transição suave a partir da teoria recém-explicada. O problema prático não deve parecer solto ou "caído do céu". Explique o motivo de usar aquele exemplo naquele momento. Fuja de dados triviais ("lançamento de moedas"), crie contextos robustos, mas garanta extrema conexão lógica com os conceitos ensinados.
 4. LIMITAÇÃO EXTREMA DE ESCOPO (PACING): Sob NENHUMA HIPÓTESE aborde tópicos que não foram solicitados para esta aula. Se você receber uma lista de "Tópicos Proibidos" (que serão ensinados nas próximas aulas), é ESTRITAMENTE PROIBIDO mencioná-los, explicá-los ou usá-los como exemplo. Mantenha o foco TOTAL apenas no que foi solicitado.
-5. ADAPTAÇÃO RIGOROSA AO TIPO DE CONTEÚDO (PROIBIÇÃO DE FÓRMULAS ARTIFICIAIS): Identifique a natureza do subtópico. Se for um assunto histórico, filosófico, introdutório ou qualitativo (como "História da Probabilidade", "Motivação Conceitual", etc.), priorize 100% a narrativa, a evolução científica e o contexto. É ESTRITAMENTE PROIBIDO forçar ou inventar fórmulas e demonstrações genéricas nesses tópicos qualitativos — retorne obrigatoriamente `null` nos campos `formalismo_latex` e `deducao_analitica_linhas`.
+5. ADAPTAÇÃO RIGOROSA AO TIPO DE CONTEÚDO (PROIBIÇÃO DE FÓRMULAS ARTIFICIAIS): Identifique a natureza do subtópico. Se for um assunto histórico, filosófico, introdutório ou qualitativo (como "História da Probabilidade", "Motivação Conceitual", "Aplicações de Dados na Sociedade"), priorize 100% a narrativa, a evolução científica e o contexto. É ESTRITAMENTE PROIBIDO forçar ou inventar fórmulas e demonstrações genéricas nesses tópicos qualitativos — retorne obrigatoriamente `null` nos campos `conceito_formal`, `formalismo_latex` e `deducao_analitica_linhas`.
 
 {DICIONARIO_LATEX}
 """
@@ -112,7 +113,7 @@ Sua missão é atuar como auditor científico: você deve avaliar rigorosamente 
 ### DIRETRIZES DE REVISÃO E RIGOR (MANDATÓRIO)
 1. Tolerância Zero com Desvios de Notação Científica: Se houver qualquer símbolo fora da tabela padrão de estatística, você é OBRIGADO a reprovar o bloco (`aprovado = False`).
 2. Avaliação de Grounding (Páginas do RAG): Se o Escritor usou fontes RAG, inspecione o campo 'fontes_rag'. Só exija páginas exatas se houver de fato documentos fornecidos. Nunca cobre citações de livros que não foram realmente usados.
-3. Critério de Didática e Clareza: Avalie se a prosa é didática, fluida e clara para o aluno. A dedução analítica passo a passo deve estar completa e contínua quando couber. Em tópicos históricos/qualitativos, NÃO exija fórmulas e confirme como CORRETO o retorno de `null` para equações.
+3. Critério de Didática, Clareza e Não-Obrigatoriedade de Equações em Tópicos Qualitativos: Avalie se a prosa é didática, fluida e clara para o aluno. A dedução analítica passo a passo deve estar completa e contínua quando a matéria for matemática/cálculo. Em tópicos históricos, filosóficos ou qualitativos, NÃO exija fórmulas e confirme como ESTRITAMENTE CORRETO o retorno de `null` nos campos de formalismo matemático e demonstrações.
 4. Inspeção de Delimitadores LaTeX: Se você observar delimitadores ausentes para blocos de display math (ex: matrizes presas em `$` em vez de `$$`), sinalize no laudo de erro e mande refazer!
 
 {DICIONARIO_LATEX}
@@ -150,8 +151,9 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
 
 ### DIRETRIZES DE ORGANIZAÇÃO E LAPIDAÇÃO (MANDATÓRIO)
 1. Coesão e Fluidez Narrativa (MUITO IMPORTANTE): Sua função é puramente de ORGANIZAÇÃO, COERÊNCIA e POLIMENTO. Costure ativamente as transições de prosa entre teoria e exemplos práticos. Se um exemplo parece desconectado ou iniciar abruptamente, insira parágrafos de transição explicando como a teoria lida anteriormente se aplica ao problema a seguir. Faça a aula inteira parecer uma conversa contínua e lógica de um professor.
-2. Centralização de Gráficos e Simuladores: Analise as recomendações de simulador. Selecione no máximo 2 ou 3 simuladores realmente distintos e úteis para a aula inteira, alocando-os no campo 'simuladores_da_aula' indicando a página correta.
-3. Rigor de Rodapé Bibliográfico: Colete todas as fontes do RAG utilizadas, elimine as duplicatas e monte uma lista bibliográfica final limpa no rodapé. Se não houver fontes utilizadas, informe claramente no rodapé que o conteúdo foi elaborado inteiramente por IA.
+2. Respeito à Natureza dos Subtópicos (Não Forçar Fórmulas): Se uma página for de contexto histórico, introdução qualitativa, ética ou motivação conceitual, MANTENHA `formalismo_latex: null` e `deducao_analitica_linhas: null`. É proibido inventar equações artificiais durante a lapidação em subtópicos puramente conceituais.
+3. Centralização de Gráficos e Simuladores: Analise as recomendações de simulador. Selecione no máximo 2 ou 3 simuladores realmente distintos e úteis para a aula inteira, alocando-os no campo 'simuladores_da_aula' indicando a página correta.
+4. Rigor de Rodapé Bibliográfico: Colete todas as fontes do RAG utilizadas, elimine as duplicatas e monte uma lista bibliográfica final limpa no rodapé. Se não houver fontes utilizadas, informe claramente no rodapé que o conteúdo foi elaborado inteiramente por IA.
 
 {DICIONARIO_LATEX}
 
@@ -171,12 +173,8 @@ Sua missão é atuar como editor unificador: você deve lapidar, costurar e orga
    - 'discussao_teorica_prosa' (string): Texto em prosa denso e elegante costurando o material conceitual do Escritor. É OBRIGATÓRIO dividir o texto em parágrafos bem espaçados, utilizando DUAS quebras de linha (\\n\\n) entre cada parágrafo. Proibido usar listas ou bullets.
    - 'prosa_longa_expandida' (string ou null): Espaço reservado para expansão futura (inicialmente copie o valor de 'discussao_teorica_prosa').
    - 'formalismo_latex' (string ou null): Bloco LaTeX ($$) com as fórmulas mais marcantes da página. Se o subtópico for histórico, filosófico ou qualitativo (sem equações próprias), RETORNE ESTRITAMENTE null.
-   - 'deducao_analitica_linhas' (lista de strings ou null): Passagens matemáticas analíticas linha por linha em LaTeX ($$). Se o assunto for conceitual e não exigir demonstração algébrica, RETORNE ESTRITAMENTE null.
-   - 'exemplos_praticos_ricos' (lista de objetos ExemploResolvidoRico): Mapeie de 2 a 3 exemplos práticos e exaustivos da teoria, cada um contendo:
-     * 'contexto_e_enunciado' (string): Comece com uma frase de transição que ligue a teoria ao exemplo. Em seguida, apresente o enunciado longo em cenário real (mínimo 2 parágrafos).
-     * 'dados_brutos_sumarizados' (string): Exibição dos dados organizados em LaTeX ($$).
-     * 'desenvolvimento_aritmético_passo_a_passo' (lista de strings): Substituição numérica detalhada nas equações sem saltar passos algébricos.
-     * 'conclusao_e_laudo_comercial' (string): Interpretação qualitativa robusta para tomador de decisão (min 1 parágrafo).
+   - 'deducao_analitica_linhas' (lista de strings ou null): Passagens matemáticas analíticas linha por linha em LaTeX ($$). Se o assunto for conceitual/histórico e não exigir demonstração algébrica, RETORNE ESTRITAMENTE null.
+   - 'exemplos_praticos_ricos' (lista de objetos ExemploResolvidoRico): Mapeie de 2 a 3 exemplos práticos e exaustivos da teoria. Em páginas qualitativas/históricas sem cálculos, pode retornar lista vazia [].
 
 4. 'simuladores_da_aula' (lista de objetos MapeamentoSimulador):
    Cada item mapeia a localização de um gráfico Plotly e deve conter:

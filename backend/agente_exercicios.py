@@ -26,7 +26,9 @@ Sua missão é ler o conteúdo de uma aula recém-criada e elaborar um caderno d
 5. Assegure que não há ambiguidades nas alternativas e que a alternativa correta seja matematicamente inquestionável.
 """
 
-def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
+from model_utils import prepare_model_and_config
+
+def gerar_caderno_exercicios(conteudo_aula_json: dict, modelo_ia: str = "padrao") -> dict:
     """
     Recebe a aula unificada e lapidada e gera o Caderno de Exercícios correspondente,
     garantindo a saída como um dicionário JSON compatível com o schema CadernoExerciciosValidado.
@@ -43,17 +45,20 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
 
     prompt = PROMPT_CRIADOR_EXERCICIOS.format(conteudo_aula=resumo_aula)
     
-    print(f"\n[Agente de Exercícios] Elaborando caderno de exercícios para '{conteudo_aula_json.get('tema_global', 'Aula')}'...")
+    print(f"\n[Agente de Exercícios] Elaborando caderno de exercícios para '{conteudo_aula_json.get('tema_global', 'Aula')}' (Modelo={modelo_ia})...")
     
     try:
+        model_name, config = prepare_model_and_config(
+            modelo_solicitado=modelo_ia,
+            default_model="gemini-2.5-flash",
+            default_temp=0.4,
+            response_mime_type="application/json",
+            response_schema=CadernoExerciciosValidado
+        )
         resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model_name,
             contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.4,
-                response_mime_type="application/json",
-                response_schema=CadernoExerciciosValidado
-            )
+            config=config
         )
         
         caderno_dict = json.loads(resposta.text)

@@ -2,7 +2,7 @@ import os
 import json
 from google import genai
 from google.genai import types
-from prompts import PROMPT_MACRO_ROTEIRISTA
+from model_utils import prepare_model_and_config
 
 class MacroRoteirista:
     def __init__(self):
@@ -15,7 +15,7 @@ class MacroRoteirista:
         
         self.system_instruction = PROMPT_MACRO_ROTEIRISTA
 
-    def gerar_cronograma(self, ementa_texto: str, instrucoes_personalizadas: str = None, tipo_carga_horaria: str = "padrao_30", permitir_aprofundamento: bool = False, max_aulas: int = 30) -> list:
+    def gerar_cronograma(self, ementa_texto: str, instrucoes_personalizadas: str = None, tipo_carga_horaria: str = "padrao_30", permitir_aprofundamento: bool = False, max_aulas: int = 30, modelo_ia: str = "padrao") -> list:
         
         instrucao_carga = ""
         if tipo_carga_horaria == "padrao_30" or tipo_carga_horaria == "manual":
@@ -48,17 +48,20 @@ DIRETRIZ DE APROFUNDAMENTO (MANDATÓRIO):
 
 Responda apenas com o Array JSON.
 """
-        print(f"[MacroRoteirista] Pensando e fatiando a ementa. (Carga={tipo_carga_horaria}, Aprofundamento={permitir_aprofundamento})...")
+        print(f"[MacroRoteirista] Pensando e fatiando a ementa. (Modelo={modelo_ia}, Carga={tipo_carga_horaria}, Aprofundamento={permitir_aprofundamento})...")
         
         try:
+            model_name, config = prepare_model_and_config(
+                modelo_solicitado=modelo_ia,
+                default_model="gemini-2.5-flash",
+                default_temp=0.4,
+                response_mime_type="application/json",
+                system_instruction=self.system_instruction
+            )
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=model_name,
                 contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=self.system_instruction,
-                    response_mime_type="application/json",
-                    temperature=0.4
-                )
+                config=config
             )
             return json.loads(response.text)
         except Exception as e:

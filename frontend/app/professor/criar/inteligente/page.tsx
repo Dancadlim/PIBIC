@@ -18,6 +18,7 @@ export default function CriarSalaInteligente() {
   const [modoDefinicao, setModoDefinicao] = useState<"padrao" | "auto" | "manual">("padrao");
   const [qtdManual, setQtdManual] = useState<number>(30);
   const [aulasComplementares, setAulasComplementares] = useState(false);
+  const [modeloIa, setModeloIa] = useState<"padrao" | "gemini-3.5-flash-lite">("padrao");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,7 +83,8 @@ export default function CriarSalaInteligente() {
         permitir_aprofundamento: aulasComplementares,
         tipo_crie_seu_jeito: "bloco_a_bloco",
         arquivo_global_pdf: "",
-        aulas_manuais: []
+        aulas_manuais: [],
+        modelo_ia: modeloIa
       };
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -171,19 +173,35 @@ export default function CriarSalaInteligente() {
                 )}
             </div>
 
-            <div className="mb-8">
-                <label className="flex items-center gap-3 p-4 border border-slate-300 rounded-xl bg-white cursor-pointer hover:bg-slate-50">
-                    <input 
-                    type="checkbox" 
-                    checked={aulasComplementares}
-                    onChange={(e) => setAulasComplementares(e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded"
-                    />
-                    <div>
-                    <span className="block font-bold text-slate-800">Permitir Aulas Complementares de Aprofundamento</span>
-                    <span className="text-sm text-slate-500">Autoriza a IA a ultrapassar o limite de aulas sugerindo tópicos de nivelamento/aprofundamento.</span>
+            <div className="mb-8 p-6 border border-slate-200 rounded-xl bg-white shadow-sm">
+                <label className="block text-sm font-bold text-slate-800 mb-2">🤖 Modelo de Inteligência Artificial</label>
+                <p className="text-xs text-slate-500 mb-4">Escolha o motor de inteligência artificial que irá orquestrar e escrever o conteúdo das aulas.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div 
+                        onClick={() => setModeloIa("padrao")}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${modeloIa === "padrao" ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20" : "border-slate-200 bg-slate-50/50 hover:border-slate-300"}`}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-slate-800 text-sm">⚡ Multi-Modelo Padrão</span>
+                            <input type="radio" name="modelo_ia_opt" checked={modeloIa === "padrao"} onChange={() => setModeloIa("padrao")} className="text-blue-600" />
+                        </div>
+                        <p className="text-xs text-slate-500">Orquestração híbrida nativa (Gemini 2.5 Pro / Flash para máxima profundidade matemática e rigor).</p>
                     </div>
-                </label>
+
+                    <div 
+                        onClick={() => setModeloIa("gemini-3.5-flash-lite")}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${modeloIa === "gemini-3.5-flash-lite" ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20" : "border-slate-200 bg-slate-50/50 hover:border-slate-300"}`}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-indigo-900 text-sm flex items-center gap-1.5">
+                                🚀 Gemini 3.5 Flash-Lite
+                                <span className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Novo</span>
+                            </span>
+                            <input type="radio" name="modelo_ia_opt" checked={modeloIa === "gemini-3.5-flash-lite"} onChange={() => setModeloIa("gemini-3.5-flash-lite")} className="text-indigo-600" />
+                        </div>
+                        <p className="text-xs text-slate-500">Execução ultraveloz com o novo Gemini 3.5 Flash-Lite (sem parâmetro de temperatura nas requisições).</p>
+                    </div>
+                </div>
             </div>
 
             <div className="pt-6 border-t border-slate-200 flex justify-end gap-4">

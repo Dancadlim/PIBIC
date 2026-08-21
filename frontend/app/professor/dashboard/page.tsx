@@ -25,22 +25,19 @@ export default function ProfessorDashboard() {
   useEffect(() => {
     let unsubscribeSalas: (() => void) | undefined;
 
-    // DESVINCULAÇÃO DE LOGIN PARA TESTES
-    // const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-    //   if (!user) {
-    //     setLoading(false);
-    //     return;
-    //   }
-    
-    const mockUser = { uid: "TEST_PROFESSOR_123" };
-    const loadData = async (user: any) => {
+    const currentUser = auth.currentUser || { uid: "TEST_PROFESSOR_123" };
 
+    const loadData = async (user: any) => {
       try {
         // 1. Buscar Perfil do Professor
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          setProfessorName(userDoc.data().nome);
-          setProfessorDept(userDoc.data().departamento);
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            setProfessorName(userDoc.data().nome);
+            setProfessorDept(userDoc.data().departamento);
+          }
+        } catch (e) {
+          console.warn("Permissão negada ao ler perfil do professor:", e);
         }
 
         // 2. Buscar Salas em TEMPO REAL (onSnapshot)
@@ -54,7 +51,7 @@ export default function ProfessorDashboard() {
           const salasList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
           setMinhasSalas(salasList);
         }, (error) => {
-          console.warn("Aviso: Índice de salas ainda construindo. As turmas aparecerão em breve.");
+          console.warn("Aviso ao carregar salas (verifique Regras do Firestore):", error);
         });
 
         // 3. Buscar Disciplinas disponíveis no Banco
@@ -62,7 +59,6 @@ export default function ProfessorDashboard() {
           const discSnapshot = await getDocs(collection(db, "disciplinas"));
           const discList = discSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
           setDisciplinas(discList);
-          // if (discList.length > 0) setSelectedDisciplina(discList[0].id_disciplina);
         } catch (error) {
           console.error("Erro ao carregar disciplinas:", error);
         }
@@ -74,10 +70,9 @@ export default function ProfessorDashboard() {
       }
     };
     
-    loadData(mockUser);
+    loadData(currentUser);
 
     return () => {
-      // unsubscribeAuth();
       if (unsubscribeSalas) unsubscribeSalas();
     };
   }, []);

@@ -36,8 +36,9 @@ Simulação Solicitada: {nome_simulador}
    - Exiba o valor numérico atual ao lado de cada slider (ex: `<span id="val-n" class="font-bold text-blue-600 font-mono">100</span>`).
    - Conecte o evento `oninput` para atualizar os dados e re-plotar instantaneamente no JS (`Plotly.react` ou `chart.update()`).
 
-4. CARD EXPLICATIVO MATEMÁTICO:
-   - Inclua um card explicativo ao rodapé da página contextualizando os resultados matemáticos de {tema_aula}.
+4. CARD EXPLICATIVO MATEMÁTICO E ALTURA FLUIDA (MANDATÓRIO):
+   - Inclua um card explicativo no rodapé da página contextualizando os resultados matemáticos de {tema_aula}.
+   - ESTRITAMENTE PROIBIDO fixar altura (`height: 100vh`, `height: 100%`, `overflow: hidden`) no `<body>` ou `<html>`. O container principal DEVE usar altura fluida (`h-auto`) com margem de segurança no rodapé (`pb-8` / `mb-6`) para garantir que os cartões e textos do rodapé nunca sejam cortados.
 
 [CÓDIGO DE PARTIDA ESPERADO]
 Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE html> e terminando com </html>). É PROIBIDO usar marcadores de markdown (como ```html).
@@ -49,13 +50,13 @@ Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE ht
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
-<body class="bg-slate-50 p-6 font-sans">
-  <div class="max-w-4xl mx-auto bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
+<body class="bg-slate-50 p-6 font-sans h-auto">
+  <div class="max-w-4xl mx-auto bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6 pb-8 mb-6">
     <div class="text-center">
       <h2 class="text-xl font-bold text-slate-800 mb-1">{nome_simulador}</h2>
       <p class="text-xs text-slate-500">Laboratório Interativo Virtual | {tema_aula}</p>
     </div>
-    <!-- Seu painel de controle e div do gráfico -->
+    <!-- Seu painel de controle, div do gráfico e card explicativo final -->
   </div>
 </body>
 </html>
@@ -72,9 +73,11 @@ def sanitizar_layout_grafico(html_code: str) -> str:
         html_code = re.sub(r'title\s*:\s*["\'][^"\']+["\']', 'title: ""', html_code)
     return html_code
 
-def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
+from model_utils import prepare_model_and_config
+
+def gerar_simulador_html(tema_aula: str, nome_simulador: str, modelo_ia: str = "padrao") -> str:
     """
-    Gera um código HTML/JS completo para uma simulação interativa usando Gemini Pro.
+    Gera um código HTML/JS completo para uma simulação interativa usando o modelo selecionado.
     """
     carregar_chave_api()
     client = genai.Client(vertexai=True, api_key=os.environ.get("GEMINI_API_KEY"))
@@ -84,16 +87,19 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
         nome_simulador=nome_simulador
     )
     
-    print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini Pro...")
+    print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' (Modelo={modelo_ia})...")
     
     try:
+        model_name, config = prepare_model_and_config(
+            modelo_solicitado=modelo_ia,
+            default_model="gemini-2.5-pro",
+            default_temp=0.3,
+            response_mime_type="text/plain"
+        )
         resposta = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model=model_name,
             contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                response_mime_type="text/plain"
-            )
+            config=config
         )
         
         codigo_html = resposta.text.strip()

@@ -71,6 +71,7 @@ class SemestreRequest(BaseModel):
     tipo_crie_seu_jeito: str = "bloco_a_bloco"
     arquivo_global_pdf: str = ""
     aulas_manuais: Optional[List[AulaManual]] = []
+    modelo_ia: Optional[str] = "padrao" # "padrao" ou "gemini-3.5-flash-lite"
 
 def processar_semestre_background(req: SemestreRequest):
     print(f"[BACKGROUND] Iniciando orquestração do semestre para a sala: {req.id_sala}")
@@ -109,7 +110,8 @@ def processar_semestre_background(req: SemestreRequest):
                     instrucoes_personalizadas=req.instrucoes_personalizadas, 
                     tipo_carga_horaria=req.tipo_carga_horaria,
                     permitir_aprofundamento=req.permitir_aprofundamento,
-                    max_aulas=req.max_aulas
+                    max_aulas=req.max_aulas,
+                    modelo_ia=req.modelo_ia
                 )
                 if not cronograma:
                     db.collection("classrooms").document(req.id_sala).update({"status": "erro_macro_roteirista"})
@@ -125,7 +127,8 @@ def processar_semestre_background(req: SemestreRequest):
                 instrucoes_personalizadas=req.instrucoes_personalizadas, 
                 tipo_carga_horaria=req.tipo_carga_horaria,
                 permitir_aprofundamento=req.permitir_aprofundamento,
-                max_aulas=req.max_aulas
+                max_aulas=req.max_aulas,
+                modelo_ia=req.modelo_ia
             )
             
             if not cronograma:
@@ -143,7 +146,7 @@ def processar_semestre_background(req: SemestreRequest):
         # 3. Loop: Agentes Micro geram as aulas individualmente
         limite = req.limite_execucao if req.limite_execucao is not None else len(cronograma)
         limite = min(limite, len(cronograma))
-        print(f"[BACKGROUND] Gerando {limite} aulas na fábrica de conteúdo (cronograma total: {len(cronograma)})...")
+        print(f"[BACKGROUND] Gerando {limite} aulas na fábrica de conteúdo (Modelo={req.modelo_ia}, cronograma total: {len(cronograma)})...")
         
         for idx, aula in enumerate(cronograma[:limite]):
             numero = aula.get("numero_aula", idx + 1)
@@ -176,15 +179,16 @@ def processar_semestre_background(req: SemestreRequest):
                 codigo_disciplina=req.id_disciplina,
                 tema_solicitado=tema_montado,
                 ementa_texto=ementa_texto,
-                diretrizes_texto=diretrizes
+                diretrizes_texto=diretrizes,
+                modelo_ia=req.modelo_ia
             )
             
             if conteudo_bruto:
-                conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto)
+                conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, modelo_ia=req.modelo_ia)
                 if conteudo_final:
                     # --- NOVO: GERAR EXERCÍCIOS PARA MÉTRICAS ---
                     import agente_exercicios
-                    caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final)
+                    caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final, modelo_ia=req.modelo_ia)
                     if caderno:
                         conteudo_final["exercicios_da_aula"] = caderno
 
@@ -254,15 +258,15 @@ class EditarBlocoRequest(BaseModel):
     prompt_ia: str = "" # Se vier preenchido, usa IA para editar
 
 
-def rodar_agentes_paralelos(conteudo_final, titulo_aula):
+def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_ia: str = "padrao"):
     import agente_exercicios
     import agente_simulador
     
     def task_exercicios():
-        return agente_exercicios.gerar_caderno_exercicios(conteudo_final)
+        return agente_exercicios.gerar_caderno_exercicios(conteudo_final, modelo_ia=modelo_ia)
         
     def task_simulador(idx, nome_sim):
-        html = agente_simulador.gerar_simulador_html(titulo_aula, nome_sim)
+        html = agente_simulador.gerar_simulador_html(titulo_aula, nome_sim, modelo_ia=modelo_ia)
         if html:
             return {"indice_pagina": idx + 1, "nome_simulador": nome_sim, "codigo_html_gerado": html}
         return None
@@ -319,11 +323,12 @@ def api_editar_aula_bloco(req: EditarBlocoRequest):
 class SimuladorRequest(BaseModel):
     tema_aula: str
     nome_simulador: str
+    modelo_ia: Optional[str] = "padrao"
 
 @app.post("/api/gerar_simulador")
 def api_gerar_simulador(req: SimuladorRequest):
     import agente_simulador
-    html = agente_simulador.gerar_simulador_html(req.tema_aula, req.nome_simulador)
+    html = agente_simulador.gerar_simulador_html(req.tema_aula, req.nome_simulador, modelo_ia=req.modelo_ia)
     if not html:
         raise HTTPException(status_code=500, detail="Erro ao gerar simulador")
     return {"html_code": html}
@@ -338,6 +343,7 @@ class AulaAvulsaRequest(BaseModel):
     id_disciplina: str
     numero_aula: int
     aula_manual: AulaManual
+    modelo_ia: Optional[str] = "padrao"
 
 @app.post("/api/toggle_visibilidade")
 def toggle_visibilidade(req: VisibilidadeRequest):
@@ -368,14 +374,15 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
             codigo_disciplina=req.id_disciplina,
             tema_solicitado=tema_montado,
             ementa_texto=ementa_texto,
-            diretrizes_texto=diretrizes
+            diretrizes_texto=diretrizes,
+            modelo_ia=req.modelo_ia
         )
         if conteudo_bruto:
             db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agente Orquestrador (Fase 2/3)..."})
-            conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto)
+            conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, modelo_ia=req.modelo_ia)
             if conteudo_final:
                 db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agentes Paralelos (Simulador/Exercícios) (Fase 3/3)..."})
-                conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo)
+                conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo, modelo_ia=req.modelo_ia)
 
                 db.collection("classrooms").document(req.sala_id).collection("aulas").document(str(req.numero_aula)).set({
                     "numero_aula": req.numero_aula,

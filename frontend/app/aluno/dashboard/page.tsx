@@ -27,32 +27,37 @@ export default function AlunoDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // MOCK USER PARA TESTES:
-      const mockUser = { uid: "TEST_ALUNO_123" };
-      // if (!auth.currentUser) return;
+      const currentUser = auth.currentUser || { uid: "TEST_ALUNO_123" };
 
       try {
         // 1. Busca perfil do aluno
-        const userDoc = await getDoc(doc(db, "users", mockUser.uid));
-        if (userDoc.exists()) {
-          setAlunoName(userDoc.data().nome);
-          setAlunoCurso(userDoc.data().curso);
+        try {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            setAlunoName(userDoc.data().nome);
+            setAlunoCurso(userDoc.data().curso);
+          }
+        } catch (e) {
+          console.warn("Permissão negada ao buscar perfil do aluno:", e);
         }
 
         // 2. Busca matriculas do aluno
-        const qEnrollments = query(collection(db, "enrollments"), where("studentId", "==", mockUser.uid));
-        const enrollSnapshot = await getDocs(qEnrollments);
-        
-        const turmas: any[] = [];
-        for (const enrollDoc of enrollSnapshot.docs) {
-          const classId = enrollDoc.data().classroomId;
-          // Buscar detalhes da turma
-          const classDoc = await getDoc(doc(db, "classrooms", classId));
-          if (classDoc.exists()) {
-            turmas.push({ id: classDoc.id, ...classDoc.data() });
+        try {
+          const qEnrollments = query(collection(db, "enrollments"), where("studentId", "==", currentUser.uid));
+          const enrollSnapshot = await getDocs(qEnrollments);
+          
+          const turmas: any[] = [];
+          for (const enrollDoc of enrollSnapshot.docs) {
+            const classId = enrollDoc.data().classroomId;
+            const classDoc = await getDoc(doc(db, "classrooms", classId));
+            if (classDoc.exists()) {
+              turmas.push({ id: classDoc.id, ...classDoc.data() });
+            }
           }
+          setMinhasTurmas(turmas);
+        } catch (e) {
+          console.warn("Permissão negada ao buscar matrículas:", e);
         }
-        setMinhasTurmas(turmas);
 
       } catch (err) {
         console.error("Erro ao buscar dados do aluno:", err);
