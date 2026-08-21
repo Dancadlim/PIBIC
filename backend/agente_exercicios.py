@@ -46,7 +46,7 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
     
     try:
         resposta = client.models.generate_content(
-            model="gemini-1.5-flash-002",
+            model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.4,

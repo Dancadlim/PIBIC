@@ -177,7 +177,7 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
     try:
         # Usando gemini-3.1-flash-lite com capacidade máxima de raciocínio profundo
         resposta_roteiro = client.models.generate_content(
-            model="gemini-1.5-flash-002",
+            model="gemini-2.5-flash",
             contents=contents_roteirista,
             config=types.GenerateContentConfig(
                 temperature=1.0,
@@ -304,7 +304,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
             try:
                 resposta_escritor = client.models.generate_content(
-                    model="gemini-1.5-flash-002",
+                    model="gemini-2.5-flash",
                     contents=[query_rag, prompt_escritor],
                     config=config_escritor
                 )

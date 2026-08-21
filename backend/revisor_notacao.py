@@ -90,7 +90,7 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> De
 
     try:
         resposta = client.models.generate_content(
-            model="gemini-1.5-flash-002",
+            model="gemini-2.5-pro",
             contents=[bloco_bruto_str, prompt_revisor],
             config=config_revisor
         )
