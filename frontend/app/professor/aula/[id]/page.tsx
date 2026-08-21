@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, onSnapshot, collection, getDocs, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, collection, getDocs, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
