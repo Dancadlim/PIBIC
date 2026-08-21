@@ -439,6 +439,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                         tarefas_falhadas_429.append(item)
                     else:
                         print(f"\n[ERRO FATAL] O tópico {idx_orig+1} falhou e não pode ser recuperado: {e}")
+                        aulas_conteudo_final[idx_orig] = "FALHA"
                         
         finally:
             # Encerra o pool atual. Em Python 3.9+, cancel_futures=True cancela as tarefas que ainda estão na fila de espera
@@ -459,7 +460,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
             print("[COOLDOWN] Reduzindo paralelismo para 3 workers para evitar novos erros 429.")
             
     # Remove eventuais Nones caso algum tópico tenha falhado irreversivelmente
-    aulas_conteudo_final = [x for x in aulas_conteudo_final if x is not None]
+    aulas_conteudo_final = [x for x in aulas_conteudo_final if x is not None and x != "FALHA"]
     
     t_fim_escrita = time.time()
 
