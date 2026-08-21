@@ -356,8 +356,9 @@ export default function SemesterViewer() {
 
                   return (
                     <section key={idx} className="mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                      <h3 className="text-2xl font-bold text-slate-800 mb-6 pb-2 border-b border-slate-100">
-                        {idx + 1}. {titulo}
+                      <h3 className="text-2xl font-bold text-slate-800 mb-6 pb-2 border-b border-slate-100 flex items-center gap-2">
+                        <span>{idx + 1}.</span>
+                        <span><ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>{processLatex(titulo)}</ReactMarkdown></span>
                       </h3>
                       
                       <div className="prose prose-lg prose-blue max-w-none text-slate-700">
@@ -489,7 +490,7 @@ export default function SemesterViewer() {
                                 </span>
                               </div>
                               <div className="space-y-3 mb-6">
-                                {Object.entries(q.alternativas).filter(([k, v]) => v).map(([letra, texto]: any) => (
+                                {Object.entries(q.alternativas).filter(([k, v]) => v).sort(([a], [b]) => a.localeCompare(b)).map(([letra, texto]: any) => (
                                   <label key={letra} className="flex gap-4 p-4 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-colors items-start">
                                     <input type="radio" name={`q-${i}`} className="mt-1" />
                                     <div>

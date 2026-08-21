@@ -166,9 +166,14 @@ export default function ProfessorDashboard() {
                             <span>Gerando Aulas...</span>
                             <span>{sala.aulas_geradas || 0} / {sala.total_aulas || '?'}</span>
                           </div>
-                          <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
                             <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, ((sala.aulas_geradas || 0) / (sala.total_aulas || 1)) * 100)}%` }}></div>
                           </div>
+                          {sala.detalhe_progresso && (
+                            <div className="text-[10px] text-slate-500 italic animate-pulse">
+                              {sala.detalhe_progresso}
+                            </div>
+                          )}
                         </div>
                       )}
                       

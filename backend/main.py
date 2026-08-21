@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile
+from concurrent.futures import ThreadPoolExecutor
 from fastapi.middleware.cors import CORSMiddleware
 import pypdf
 import io
@@ -252,6 +253,46 @@ class EditarBlocoRequest(BaseModel):
     novo_conteudo: str
     prompt_ia: str = "" # Se vier preenchido, usa IA para editar
 
+
+def rodar_agentes_paralelos(conteudo_final, titulo_aula):
+    import agente_exercicios
+    import agente_simulador
+    
+    def task_exercicios():
+        return agente_exercicios.gerar_caderno_exercicios(conteudo_final)
+        
+    def task_simulador(idx, nome_sim):
+        html = agente_simulador.gerar_simulador_html(titulo_aula, nome_sim)
+        if html:
+            return {"indice_pagina": idx + 1, "nome_simulador": nome_sim, "codigo_html_gerado": html}
+        return None
+
+    tasks_simuladores = []
+    for i, pag in enumerate(conteudo_final.get("paginas_conteudo", [])):
+        rec = pag.get("simulador_interativo_recomendado")
+        if rec and str(rec).lower() != "none" and str(rec).strip() != "":
+            tasks_simuladores.append((i, str(rec)))
+
+    simuladores_resultado = []
+    
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_exercicios = executor.submit(task_exercicios)
+        futures_sim = [executor.submit(task_simulador, idx, rec) for idx, rec in tasks_simuladores]
+        
+        caderno = future_exercicios.result()
+        if caderno:
+            conteudo_final["exercicios_da_aula"] = caderno
+            
+        for f in futures_sim:
+            res = f.result()
+            if res:
+                simuladores_resultado.append(res)
+                
+        if simuladores_resultado:
+            conteudo_final["simuladores_da_aula"] = simuladores_resultado
+            
+    return conteudo_final
+
 @app.post("/api/editar_aula_bloco")
 def api_editar_aula_bloco(req: EditarBlocoRequest):
     try:
@@ -321,6 +362,7 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
         if req.aula_manual.texto_base_pdf:
             diretrizes += f"\nATENÇÃO ESTRITA - MATERIAL DE APOIO DO PROFESSOR: Baseie toda a estrutura desta aula, os exemplos, as explicações e o contexto exclusivamente ou prioritariamente no material a seguir fornecido pelo professor:\n\n{req.aula_manual.texto_base_pdf}\n\n[FIM DO MATERIAL DO PROFESSOR]."
             
+        db.collection("classrooms").document(req.sala_id).update({"status": "gerando_aulas", "detalhe_progresso": f"Aula Avulsa: Agente Escritor (Fase 1/3)..."})
         conteudo_bruto = gerador_conteudo.gerar_conteudo_aula(
             nome_professor="Professor UFBA",
             codigo_disciplina=req.id_disciplina,
@@ -329,12 +371,11 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
             diretrizes_texto=diretrizes
         )
         if conteudo_bruto:
+            db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agente Orquestrador (Fase 2/3)..."})
             conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto)
             if conteudo_final:
-                import agente_exercicios
-                caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final)
-                if caderno:
-                    conteudo_final["exercicios_da_aula"] = caderno
+                db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agentes Paralelos (Simulador/Exercícios) (Fase 3/3)..."})
+                conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo)
 
                 db.collection("classrooms").document(req.sala_id).collection("aulas").document(str(req.numero_aula)).set({
                     "numero_aula": req.numero_aula,
@@ -344,7 +385,9 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
                 })
                 db.collection("classrooms").document(req.sala_id).update({
                     "aulas_geradas": firestore.Increment(1),
-                    "total_aulas": firestore.Increment(1)
+                    "total_aulas": firestore.Increment(1),
+                    "status": "pronto",
+                    "detalhe_progresso": "Aula concluída com sucesso!"
                 })
     except Exception as e:
         print(f"[ERRO] Erro ao gerar aula avulsa: {e}")

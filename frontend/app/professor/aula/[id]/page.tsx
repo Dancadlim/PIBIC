@@ -539,8 +539,11 @@ export default function ProfessorSemesterViewer() {
           ) : (
             <div className="max-w-4xl mx-auto pb-20">
               <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-slate-200">
-                <h2 className="text-3xl font-bold text-blue-900">
-                  Aula {selectedAula.numero_aula}: {selectedAula.titulo}
+                <h2 className="text-3xl font-bold text-blue-900 flex flex-wrap items-center gap-2">
+                  <span>Aula {selectedAula.numero_aula}:</span>
+                  <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>
+                    {processLatex(selectedAula.titulo)}
+                  </ReactMarkdown>
                 </h2>
                 <div className="flex items-center gap-3">
                   <button
@@ -639,8 +642,9 @@ export default function ProfessorSemesterViewer() {
 
                   return (
                     <section key={idx} className="mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                      <h3 className="text-2xl font-bold text-slate-800 mb-6 pb-2 border-b border-slate-100">
-                        {idx + 1}. {titulo}
+                      <h3 className="text-2xl font-bold text-slate-800 mb-6 pb-2 border-b border-slate-100 flex items-center gap-2">
+                        <span>{idx + 1}.</span>
+                        <span><ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>{processLatex(titulo)}</ReactMarkdown></span>
                       </h3>
                       
                       <BlockEditor 
@@ -780,7 +784,7 @@ export default function ProfessorSemesterViewer() {
                                 </span>
                               </div>
                               <div className="space-y-3 mb-6">
-                                {Object.entries(q.alternativas).filter(([k, v]) => v).map(([letra, texto]: any) => (
+                                {Object.entries(q.alternativas).filter(([k, v]) => v).sort(([a], [b]) => a.localeCompare(b)).map(([letra, texto]: any) => (
                                   <label key={letra} className="flex gap-4 p-4 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-colors items-start">
                                     <input type="radio" name={`q-${i}`} className="mt-1" />
                                     <div>
