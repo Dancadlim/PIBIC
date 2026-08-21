@@ -72,6 +72,19 @@ class SemestreRequest(BaseModel):
     arquivo_global_pdf: str = ""
     aulas_manuais: Optional[List[AulaManual]] = []
 
+import time
+from google.cloud import firestore
+
+def log_debug(sala_id, msg):
+    try:
+        if db:
+            db.collection("classrooms").document(sala_id).update({
+                "debug_logs": firestore.ArrayUnion([f"{time.strftime('%H:%M:%S')} - {msg}"])
+            })
+    except Exception:
+        pass
+    print(msg)
+
 def processar_semestre_background(req: SemestreRequest):
     print(f"[BACKGROUND] Iniciando orquestração do semestre para a sala: {req.id_sala}")
     try:
@@ -88,7 +101,7 @@ def processar_semestre_background(req: SemestreRequest):
         
         if req.modo == "manual" or req.modo == "livre":
             if req.tipo_crie_seu_jeito == "bloco_a_bloco" and req.aulas_manuais:
-                print("[BACKGROUND] Modo Manual: Utilizando blocos fornecidos pelo professor.")
+                log_debug(req.id_sala, "Modo Manual: Utilizando blocos fornecidos pelo professor.")
                 db.collection("classrooms").document(req.id_sala).update({"status": "processando_aulas_manuais"})
                 for idx, aula_manual in enumerate(req.aulas_manuais):
                     cronograma.append({
@@ -116,7 +129,7 @@ def processar_semestre_background(req: SemestreRequest):
                     return
         else:
             # 2. Agente Macro Roteirista fatia o semestre
-            print("[BACKGROUND] Acionando Macro Roteirista...")
+            log_debug(req.id_sala, "Acionando Macro Roteirista para fatiar o semestre...")
             db.collection("classrooms").document(req.id_sala).update({"status": "fatiando_ementa"})
             
             macro = MacroRoteirista()
@@ -137,7 +150,8 @@ def processar_semestre_background(req: SemestreRequest):
             "cronograma_oficial": cronograma,
             "status": "gerando_aulas",
             "total_aulas": len(cronograma),
-            "aulas_geradas": 0
+            "aulas_geradas": 0,
+            "debug_logs": []
         })
         
         # 3. Loop: Agentes Micro geram as aulas individualmente
@@ -159,7 +173,7 @@ def processar_semestre_background(req: SemestreRequest):
             
             # Constrói o "Tema Global" para a Fábrica
             tema_montado = f"{titulo}. Objetivo: {objetivo}. Tópicos: {topicos}"
-            print(f"  -> Processando Aula {numero}: {titulo}...")
+            log_debug(req.id_sala, f"Gerando Aula {numero}: {titulo}...")
             
             # Pipeline de Redação
             diretrizes = f"Foque nestes tópicos: {topicos}. Adapte a profundidade para atingir este objetivo: {objetivo}. Use notação matemática rigorosa e seja didático."
