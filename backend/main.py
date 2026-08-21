@@ -200,6 +200,10 @@ def processar_semestre_background(req: SemestreRequest):
                     db.collection("classrooms").document(req.id_sala).update({
                         "aulas_geradas": firestore.Increment(1)
                     })
+                else:
+                    raise Exception(f"Falha na lapidação (orquestrador) para a aula {numero}")
+            else:
+                raise Exception(f"API do Gemini bloqueada ou falhou ao gerar o conteúdo bruto da aula {numero}. Verifique os logs.")
         
         # 4. Finalização
         db.collection("classrooms").document(req.id_sala).update({"status": "pronto"})
