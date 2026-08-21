@@ -42,9 +42,8 @@ def carregar_chave_api():
 def lapidar_conteudo_global(payload_bruto: dict):
     # Garante a inicialização da chave
     carregar_chave_api()
-    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "vertex-key.json"
-        client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
+    os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
+    client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
 
     dados_entrada_str = json.dumps(payload_bruto, ensure_ascii=False)
 
@@ -116,9 +115,8 @@ def formatar_latex_final(aula_json: dict, client) -> dict:
 
 def expandir_subtopico_para_prosa_livro(dados_subtopico: dict) -> str:
     carregar_chave_api()
-    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "vertex-key.json"
-        client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
+    os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
+    client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
     
     from prompts import PROMPT_PROFESSOR_EXPANSOR, DICIONARIO_LATEX
     prompt = PROMPT_PROFESSOR_EXPANSOR.replace("{dicionario_latex}", DICIONARIO_LATEX)

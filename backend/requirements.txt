@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 firebase-admin
-google-genai
+google-genai[vertexai]
 pydantic
 python-dotenv
 pypdf
