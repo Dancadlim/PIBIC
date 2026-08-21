@@ -71,7 +71,7 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> De
     
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-        client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
+        client = genai.Client(vertexai=True, location="us-central1")
     except Exception as e:
         raise e
     

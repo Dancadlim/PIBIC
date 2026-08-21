@@ -78,7 +78,7 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-        client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
+        client = genai.Client(vertexai=True, location="us-central1")
     except Exception as e:
         raise e
     

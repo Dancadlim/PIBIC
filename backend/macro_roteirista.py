@@ -10,7 +10,7 @@ class MacroRoteirista:
         
         # Novo cliente do google-genai
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-        self.client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
+        self.client = genai.Client(vertexai=True, location="us-central1")
         
         self.system_instruction = PROMPT_MACRO_ROTEIRISTA
 

@@ -76,7 +76,7 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
     """
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-    client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
+    client = genai.Client(vertexai=True, location="us-central1")
     
     prompt = PROMPT_ENGENHEIRO_SIMULACAO.format(
         tema_aula=tema_aula,

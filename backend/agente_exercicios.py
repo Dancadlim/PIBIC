@@ -31,7 +31,7 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
     """
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-    client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
+    client = genai.Client(vertexai=True, location="us-central1")
     
     # Reduzindo o conteúdo apenas para os textos essenciais para economizar tokens
     resumo_aula = f"Tema: {conteudo_aula_json.get('tema_global', 'Aula')}\n"
