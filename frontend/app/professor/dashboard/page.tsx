@@ -155,20 +155,36 @@ export default function ProfessorDashboard() {
                     <p className="text-sm text-slate-500 flex-1">{sala.nome_disciplina}</p>
                     
                     <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-3">
-                      {sala.status === "gerando_aulas" && (
-                        <div>
-                          <div className="flex justify-between text-xs text-blue-600 mb-1 font-semibold">
-                            <span>Gerando Aulas...</span>
-                            <span>{sala.aulas_geradas || 0} / {sala.total_aulas || '?'}</span>
+                      {(sala.status === "gerando_aulas" || sala.status === "fatiando_ementa" || sala.status.startsWith("erro")) && (
+                        <div className="flex flex-col gap-2">
+                          <div className={`flex justify-between text-xs font-semibold ${sala.status.startsWith("erro") ? 'text-red-600' : 'text-blue-600'}`}>
+                            <span>{sala.status === "fatiando_ementa" ? "Planejando Semestre..." : sala.status.startsWith("erro") ? "Erro na Geração" : "Gerando Aulas..."}</span>
+                            {sala.status === "gerando_aulas" && <span>{sala.aulas_geradas || 0} / {sala.total_aulas || '?'}</span>}
                           </div>
-                          <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
-                            <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, ((sala.aulas_geradas || 0) / (sala.total_aulas || 1)) * 100)}%` }}></div>
-                          </div>
-                          {sala.detalhe_progresso && (
-                            <div className="text-[10px] text-slate-500 italic animate-pulse">
-                              {sala.detalhe_progresso}
+                          {sala.status === "gerando_aulas" && (
+                            <div className="w-full bg-slate-200 rounded-full h-2">
+                              <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, ((sala.aulas_geradas || 0) / (sala.total_aulas || 1)) * 100)}%` }}></div>
                             </div>
                           )}
+                          
+                          {/* Janelinha de Debug */}
+                          <div className={`mt-2 rounded border p-2 overflow-hidden flex flex-col ${sala.status.startsWith("erro") ? 'bg-red-950 border-red-900' : 'bg-slate-900 border-slate-700'}`}>
+                            <div className="text-[10px] text-slate-400 font-mono mb-1 border-b border-slate-700 pb-1 flex justify-between">
+                              <span>Terminal do Agente</span>
+                              <span className={`animate-pulse ${sala.status.startsWith("erro") ? 'text-red-500' : 'text-green-400'}`}>
+                                {sala.status.startsWith("erro") ? '● falha crítica' : '● rodando'}
+                              </span>
+                            </div>
+                            <div className="h-24 overflow-y-auto font-mono text-[10px] text-slate-300 space-y-1 flex flex-col-reverse">
+                              {sala.debug_logs && sala.debug_logs.length > 0 ? (
+                                sala.debug_logs.slice().reverse().map((log: string, i: number) => (
+                                  <div key={i}>{log}</div>
+                                ))
+                              ) : (
+                                <div className="text-slate-500 italic">Aguardando logs...</div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                       
