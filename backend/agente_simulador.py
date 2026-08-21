@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 def carregar_chave_api():
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY não encontrada no .env")
 
 PROMPT_ENGENHEIRO_SIMULACAO = """
 Você é um Engenheiro de Frontend Sênior especializado em Data Visualization e interatividade educacional.

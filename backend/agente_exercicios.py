@@ -8,8 +8,6 @@ from schemas import CadernoExerciciosValidado
 def carregar_chave_api():
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY não encontrada no .env")
 
 PROMPT_CRIADOR_EXERCICIOS = """
 Você é um Professor Titular e elaborador chefe de exames (Banca Examinadora) em uma universidade de ponta.

@@ -68,10 +68,7 @@ class DecisaoRevisao(BaseModel):
 # ==============================================================================
 def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> DecisaoRevisao:
     # Garante que temos a chave configurada
-    if not os.environ.get("GEMINI_API_KEY"):
-        print("[ERRO] Erro no Revisor: Chave de API 'GEMINI_API_KEY' não configurada.")
-        return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))
-
+    
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
         client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")

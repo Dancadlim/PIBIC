@@ -7,8 +7,6 @@ from prompts import PROMPT_MACRO_ROTEIRISTA
 class MacroRoteirista:
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY não configurada no ambiente.")
         
         # Novo cliente do google-genai
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
