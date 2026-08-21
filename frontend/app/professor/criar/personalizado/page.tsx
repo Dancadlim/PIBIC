@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function CriarSalaPersonalizada() {
   const router = useRouter();
@@ -46,7 +47,11 @@ export default function CriarSalaPersonalizada() {
   const fileInputRefs = useRef<any>({});
 
   useEffect(() => {
-    const fetchData = async () => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
       try {
         const discSnapshot = await getDocs(collection(db, "disciplinas"));
         const discList = discSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
@@ -57,9 +62,9 @@ export default function CriarSalaPersonalizada() {
       } finally {
         setLoading(false);
       }
-    };
-    fetchData();
-  }, []);
+    });
+    return () => unsubscribeAuth();
+  }, [router]);
 
   const handleGlobalFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

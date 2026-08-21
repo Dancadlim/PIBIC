@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function CriarSalaInteligente() {
   const router = useRouter();
@@ -20,7 +21,11 @@ export default function CriarSalaInteligente() {
   const [aulasComplementares, setAulasComplementares] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
       try {
         const discSnapshot = await getDocs(collection(db, "disciplinas"));
         const discList = discSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
@@ -31,9 +36,9 @@ export default function CriarSalaInteligente() {
       } finally {
         setLoading(false);
       }
-    };
-    fetchData();
-  }, []);
+    });
+    return () => unsubscribeAuth();
+  }, [router]);
 
   const handleSubmit = async () => {
     if (!selectedDisciplina) return alert("Selecione uma disciplina.");
