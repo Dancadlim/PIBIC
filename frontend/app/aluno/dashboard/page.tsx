@@ -32,7 +32,7 @@ export default function AlunoDashboard() {
 
       try {
         // 1. Busca perfil do aluno
-        const userDoc = await getDoc(doc(db, "users", mockUser.uid));
+        const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           setAlunoName(userDoc.data().nome);
           setAlunoCurso(userDoc.data().curso);
