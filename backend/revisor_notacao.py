@@ -73,7 +73,7 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> De
         return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))
 
     try:
-        client = genai.Client(vertexai=True, api_key=os.environ.get("GEMINI_API_KEY"))
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
     except Exception as e:
         print(f"[ERRO] Erro ao inicializar o cliente GenAI no Revisor: {e}")
         return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))

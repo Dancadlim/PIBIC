@@ -29,12 +29,10 @@ export default function ProfessorDashboard() {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push("/login");
-    setLoading(false);
+        setLoading(false);
         return;
       }
     
-    const loadData = async (user: any) => {
-
       try {
         // 1. Buscar Perfil do Professor
         const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -62,7 +60,6 @@ export default function ProfessorDashboard() {
           const discSnapshot = await getDocs(collection(db, "disciplinas"));
           const discList = discSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
           setDisciplinas(discList);
-          // if (discList.length > 0) setSelectedDisciplina(discList[0].id_disciplina);
         } catch (error) {
           console.error("Erro ao carregar disciplinas:", error);
         }
@@ -72,9 +69,6 @@ export default function ProfessorDashboard() {
       } finally {
         setLoading(false);
       }
-    };
-    
-    loadData(user);
     });
 
     return () => {

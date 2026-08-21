@@ -32,7 +32,7 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
     garantindo a saída como um dicionário JSON compatível com o schema CadernoExerciciosValidado.
     """
     carregar_chave_api()
-    client = genai.Client(vertexai=True, api_key=os.environ.get("GEMINI_API_KEY"))
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
     
     # Reduzindo o conteúdo apenas para os textos essenciais para economizar tokens
     resumo_aula = f"Tema: {conteudo_aula_json.get('tema_global', 'Aula')}\n"

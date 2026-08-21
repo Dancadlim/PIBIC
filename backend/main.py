@@ -300,10 +300,11 @@ def api_editar_aula_bloco(req: EditarBlocoRequest):
         
         # Se mandou prompt_ia, passa pela IA para reescrever o bloco
         if req.prompt_ia:
-            import google.generativeai as genai
-            model = genai.GenerativeModel('gemini-1.5-pro')
-            resp = model.generate_content(
-                f"Reescreva o seguinte texto baseando-se nestas instruções do professor: '{req.prompt_ia}'.\n\nTexto atual:\n{req.novo_conteudo}"
+            from google import genai
+            client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+            resp = client.models.generate_content(
+                model='gemini-2.5-pro',
+                contents=f"Reescreva o seguinte texto baseando-se nestas instruções do professor: '{req.prompt_ia}'.\n\nTexto atual:\n{req.novo_conteudo}"
             )
             if resp.text:
                 conteudo_final = resp.text

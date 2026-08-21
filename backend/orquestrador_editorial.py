@@ -42,7 +42,7 @@ def carregar_chave_api():
 def lapidar_conteudo_global(payload_bruto: dict):
     # Garante a inicialização da chave
     carregar_chave_api()
-    client = genai.Client(vertexai=True, api_key=os.environ.get("GEMINI_API_KEY"))
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
     dados_entrada_str = json.dumps(payload_bruto, ensure_ascii=False)
 
@@ -114,7 +114,7 @@ def formatar_latex_final(aula_json: dict, client) -> dict:
 
 def expandir_subtopico_para_prosa_livro(dados_subtopico: dict) -> str:
     carregar_chave_api()
-    client = genai.Client(vertexai=True, api_key=os.environ.get("GEMINI_API_KEY"))
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
     
     from prompts import PROMPT_PROFESSOR_EXPANSOR, DICIONARIO_LATEX
     prompt = PROMPT_PROFESSOR_EXPANSOR.replace("{dicionario_latex}", DICIONARIO_LATEX)

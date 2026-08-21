@@ -11,7 +11,7 @@ class MacroRoteirista:
             raise ValueError("GEMINI_API_KEY não configurada no ambiente.")
         
         # Novo cliente do google-genai
-        self.client = genai.Client(vertexai=True, api_key=self.api_key)
+        self.client = genai.Client(api_key=self.api_key)
         
         self.system_instruction = PROMPT_MACRO_ROTEIRISTA
 

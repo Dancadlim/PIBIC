@@ -79,7 +79,7 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
         raise ValueError("Chave de API 'GEMINI_API_KEY' não configurada. Configure a chave nos Secrets do Streamlit ou no ambiente.")
 
     try:
-        client = genai.Client(vertexai=True, api_key=os.environ.get("GEMINI_API_KEY"))
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
     except Exception as e:
         print(f"[ERRO] Erro ao inicializar o cliente do Google GenAI: {e}")
         return None

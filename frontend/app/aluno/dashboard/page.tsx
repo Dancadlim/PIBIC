@@ -26,9 +26,12 @@ export default function AlunoDashboard() {
   const [errorJoin, setErrorJoin] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      // MOCK USER PARA TESTES:
-        // if (!auth.currentUser) return;
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/login");
+        setLoadingTurmas(false);
+        return;
+      }
 
       try {
         // 1. Busca perfil do aluno
@@ -39,7 +42,7 @@ export default function AlunoDashboard() {
         }
 
         // 2. Busca matriculas do aluno
-        const qEnrollments = query(collection(db, "enrollments"), where("studentId", "==", mockUser.uid));
+        const qEnrollments = query(collection(db, "enrollments"), where("studentId", "==", user.uid));
         const enrollSnapshot = await getDocs(qEnrollments);
         
         const turmas: any[] = [];
@@ -58,10 +61,10 @@ export default function AlunoDashboard() {
       } finally {
         setLoadingTurmas(false);
       }
-    };
+    });
 
-    fetchData();
-  }, [view]); // Recarrega sempre que mudar de view (ex: apos entrar em sala)
+    return () => unsubscribeAuth();
+  }, [view, router]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -92,9 +95,16 @@ export default function AlunoDashboard() {
       const classId = snapshot.docs[0].id;
 
       // 2. Verifica se já está matriculado
+      const studentId = auth.currentUser?.uid;
+      if (!studentId) {
+        setErrorJoin("Erro de autenticação: usuário não identificado.");
+        setLoadingJoin(false);
+        return;
+      }
+
       const qCheck = query(
         collection(db, "enrollments"), 
-        where("studentId", "==", "TEST_ALUNO_123"),
+        where("studentId", "==", studentId),
         where("classroomId", "==", classId)
       );
       const checkSnap = await getDocs(qCheck);
@@ -108,7 +118,7 @@ export default function AlunoDashboard() {
 
       // 3. Cria a matricula
       await addDoc(collection(db, "enrollments"), {
-        studentId: "TEST_ALUNO_123",
+        studentId: studentId,
         classroomId: classId,
         joinedAt: serverTimestamp()
       });
