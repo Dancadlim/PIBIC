@@ -73,8 +73,7 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> De
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
         client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
     except Exception as e:
-        print(f"[ERRO] Erro ao inicializar o cliente GenAI no Revisor: {e}")
-        return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))
+        raise e
     
     bloco_bruto_str = json.dumps(bloco_bruto_dict, ensure_ascii=False, indent=2)
 

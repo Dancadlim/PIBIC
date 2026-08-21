@@ -80,8 +80,7 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
         client = genai.Client(vertexai=True, project="plataformas-aulas-ufba", location="us-central1")
     except Exception as e:
-        print(f"[ERRO] Erro ao inicializar o cliente do Google GenAI: {e}")
-        return None
+        raise e
     
     # 1. Recupera as Stores do professor e de livros globais para busca híbrida simultânea
     NOME_STORE = f"store-{nome_professor.lower().strip()}-{codigo_disciplina.lower().strip()}"
@@ -192,8 +191,7 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         t_fim_roteirista = time.time()
         print(f"[OK] Roteiro gerado com sucesso! {len(roteiro_pedagogico.esquema_paginas)} subtópicos mapeados.")
     except Exception as e:
-        print(f"[ERRO] Erro crítico ao gerar roteiro pedagógico: {e}")
-        return None
+        raise e
 
     # ==============================================================================
     # FASE 2: AGENTE 2 + 2.5 - O ESCRITOR COM LOOP DE REVISÃO ATIVA
