@@ -14,6 +14,7 @@ import orquestrador_editorial
 from macro_roteirista import MacroRoteirista
 
 import json
+from logger_agentes import AgentLogger
 
 # Inicialização do Firebase Admin
 try:
@@ -185,20 +186,23 @@ def processar_semestre_background(req: SemestreRequest):
             if material_apoio:
                 diretrizes += f"\nATENÇÃO ESTRITA - MATERIAL DE APOIO DO PROFESSOR: Baseie toda a estrutura desta aula, os exemplos, as explicações e o contexto exclusivamente ou prioritariamente no material a seguir fornecido pelo professor:\n\n{material_apoio}\n\n[FIM DO MATERIAL DO PROFESSOR]."
             
+                        logger = AgentLogger(db, req.id_sala, numero)
+            logger.log(f"Iniciando geracao da Aula {numero}", "info")
+            
             conteudo_bruto = gerador_conteudo.gerar_conteudo_aula(
                 nome_professor="Professor UFBA",
                 codigo_disciplina=req.id_disciplina,
                 tema_solicitado=tema_montado,
                 ementa_texto=ementa_texto,
-                diretrizes_texto=diretrizes
+                diretrizes_texto=diretrizes,
+                logger=logger
             )
             
             if conteudo_bruto:
-                conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto)
+                conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, logger=logger)
                 if conteudo_final:
-                    # --- NOVO: GERAR EXERCÍCIOS PARA MÉTRICAS ---
                     import agente_exercicios
-                    caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final)
+                    caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final, logger=logger)
                     if caderno:
                         conteudo_final["exercicios_da_aula"] = caderno
 

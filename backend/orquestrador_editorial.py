@@ -39,7 +39,7 @@ def carregar_chave_api():
             print(f"[ALERTA] Erro ao tentar ler {path}: {e}")
     return False
 
-def lapidar_conteudo_global(payload_bruto: dict):
+def lapidar_conteudo_global(payload_bruto: dict, logger=None):
     # Garante a inicialização da chave
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
@@ -59,11 +59,19 @@ def lapidar_conteudo_global(payload_bruto: dict):
     )
 
     try:
+        if logger:
+            logger.update_agent("orquestrador", "rodando", prompt=prompt_editorial)
+            logger.log("Orquestrador Editorial: Revisando coer?ncia de ponta a ponta...", "info")
+            
         resposta = client.models.generate_content(
             model="gemini-2.5-pro",
             contents=[dados_entrada_str, prompt_editorial],
             config=config_editorial
         )
+        
+        if logger:
+            logger.update_agent("orquestrador", "concluido", resposta=resposta.text)
+            logger.log("Orquestrador Editorial: Lapida??o conclu?da.", "success")
 
         print(" [OK] Aula unificada, referências compiladas no rodapé e livre de repetições!")
         
@@ -81,7 +89,7 @@ def lapidar_conteudo_global(payload_bruto: dict):
                 nome = sim.get("nome_simulador")
                 if nome:
                     print(f" [Orquestrador] Requisitando código do simulador: {nome}")
-                    html_code = agente_simulador.gerar_simulador_html(tema, nome)
+                    html_code = agente_simulador.gerar_simulador_html(tema, nome, logger=logger)
                     sim["codigo_html_gerado"] = html_code
         
         return aula_formatada

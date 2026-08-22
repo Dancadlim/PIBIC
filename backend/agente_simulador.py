@@ -98,7 +98,7 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
         codigo_html = resposta.text.strip()
         
         # Limpar crases de markdown se o modelo desobedecer
-        if codigo_html.startswith("```html"):
+        if codigo_html.startswith("```html", logger=None):
             codigo_html = codigo_html[7:]
         if codigo_html.startswith("```"):
             codigo_html = codigo_html[3:]

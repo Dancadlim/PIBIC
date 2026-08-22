@@ -20,6 +20,7 @@ export default function ProfessorDashboard() {
   
   // Data
   const [minhasSalas, setMinhasSalas] = useState<any[]>([]);
+  const [debuggerState, setDebuggerState] = useState<{salaId: string, aulaNum: number} | null>(null);
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
 
   useEffect(() => {
@@ -167,24 +168,12 @@ export default function ProfessorDashboard() {
                             </div>
                           )}
                           
-                          {/* Janelinha de Debug */}
-                          <div className={`mt-2 rounded border p-2 overflow-hidden flex flex-col ${sala.status.startsWith("erro") ? 'bg-red-950 border-red-900' : 'bg-slate-900 border-slate-700'}`}>
-                            <div className="text-[10px] text-slate-400 font-mono mb-1 border-b border-slate-700 pb-1 flex justify-between">
-                              <span>Terminal do Agente</span>
-                              <span className={`animate-pulse ${sala.status.startsWith("erro") ? 'text-red-500' : 'text-green-400'}`}>
-                                {sala.status.startsWith("erro") ? '● falha crítica' : '● rodando'}
-                              </span>
-                            </div>
-                            <div className="h-24 overflow-y-auto font-mono text-[10px] text-slate-300 space-y-1 flex flex-col-reverse">
-                              {sala.debug_logs && sala.debug_logs.length > 0 ? (
-                                sala.debug_logs.slice().reverse().map((log: string, i: number) => (
-                                  <div key={i}>{log}</div>
-                                ))
-                              ) : (
-                                <div className="text-slate-500 italic">Aguardando logs...</div>
-                              )}
-                            </div>
-                          </div>
+                          <button 
+                            onClick={() => setDebuggerState({salaId: sala.id, aulaNum: (sala.aulas_geradas || 0) + 1})}
+                            className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-4 rounded flex items-center justify-center gap-2 shadow-sm transition"
+                          >
+                            <span>??</span> Acompanhar Agentes (Aula {(sala.aulas_geradas || 0) + 1})
+                          </button>
                         </div>
                       )}
                       
@@ -244,7 +233,15 @@ export default function ProfessorDashboard() {
             </div>
           </div>
         )}
-      </main>
+      
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
+</main>
     </div>
   );
 }

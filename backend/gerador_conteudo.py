@@ -67,7 +67,7 @@ class RoteiroCompletoAula(BaseModel):
 # ==============================================================================
 # FUNÇÃO PRINCIPAL DE ORQUESTRAÇÃO DE CONTEÚDO
 # ==============================================================================
-def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None):
+def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None):
     t_inicio_roteirista = 0.0
     t_fim_roteirista = 0.0
     t_inicio_escrita = 0.0
@@ -80,6 +80,9 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
         client = genai.Client(vertexai=True, location="us-central1")
     except Exception as e:
+        if logger:
+            logger.update_agent("gerador_bruto", "erro")
+            logger.log(f"Gerador de Conte?do: Erro cr?tico - {str(e)}", "error")
         raise e
     
     # 1. Recupera as Stores do professor e de livros globais para busca híbrida simultânea
@@ -191,6 +194,9 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         t_fim_roteirista = time.time()
         print(f"[OK] Roteiro gerado com sucesso! {len(roteiro_pedagogico.esquema_paginas)} subtópicos mapeados.")
     except Exception as e:
+        if logger:
+            logger.update_agent("gerador_bruto", "erro")
+            logger.log(f"Gerador de Conte?do: Erro cr?tico - {str(e)}", "error")
         raise e
 
     # ==============================================================================
@@ -312,7 +318,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                 dados_escritor_dict = json.loads(resposta_escritor.text)
                 
                 print(f"      [REVISOR] Analisando tópico {idx+1}...")
-                laudo_revisao = auditar_subtopico_local(dados_escritor_dict, diretrizes_texto)
+                laudo_revisao = auditar_subtopico_local(dados_escritor_dict, diretrizes_texto, logger=logger)
                 
                 if laudo_revisao.aprovado:
                     print(f"      [OK] Bloco {idx+1} APROVADO pelo revisor!")

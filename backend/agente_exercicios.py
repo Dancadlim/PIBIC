@@ -35,7 +35,7 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
     
     # Reduzindo o conteúdo apenas para os textos essenciais para economizar tokens
     resumo_aula = f"Tema: {conteudo_aula_json.get('tema_global', 'Aula')}\n"
-    for idx, pag in enumerate(conteudo_aula_json.get("paginas_conteudo", [])):
+    for idx, pag in enumerate(conteudo_aula_json.get("paginas_conteudo", []), logger=None):
         resumo_aula += f"\n--- Tópico {idx+1}: {pag.get('titulo_subtopico')} ---\n"
         resumo_aula += f"{pag.get('discussao_teorica_prosa', '')[:1000]}...\n" # pega um pedaço do conceito para balizar o modelo
         resumo_aula += f"Fórmula principal: {pag.get('formalismo_latex', 'N/A')}\n"
