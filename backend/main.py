@@ -186,7 +186,7 @@ def processar_semestre_background(req: SemestreRequest):
             if material_apoio:
                 diretrizes += f"\nATENÇÃO ESTRITA - MATERIAL DE APOIO DO PROFESSOR: Baseie toda a estrutura desta aula, os exemplos, as explicações e o contexto exclusivamente ou prioritariamente no material a seguir fornecido pelo professor:\n\n{material_apoio}\n\n[FIM DO MATERIAL DO PROFESSOR]."
             
-                        logger = AgentLogger(db, req.id_sala, numero)
+            logger = AgentLogger(db, req.id_sala, numero)
             logger.log(f"Iniciando geracao da Aula {numero}", "info")
             
             conteudo_bruto = gerador_conteudo.gerar_conteudo_aula(
