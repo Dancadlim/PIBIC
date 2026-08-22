@@ -24,7 +24,7 @@ Sua missão é ler o conteúdo de uma aula recém-criada e elaborar um caderno d
 5. Assegure que não há ambiguidades nas alternativas e que a alternativa correta seja matematicamente inquestionável.
 """
 
-def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
+def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None) -> dict:
     """
     Recebe a aula unificada e lapidada e gera o Caderno de Exercícios correspondente,
     garantindo a saída como um dicionário JSON compatível com o schema CadernoExerciciosValidado.
@@ -35,7 +35,7 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
     
     # Reduzindo o conteúdo apenas para os textos essenciais para economizar tokens
     resumo_aula = f"Tema: {conteudo_aula_json.get('tema_global', 'Aula')}\n"
-    for idx, pag in enumerate(conteudo_aula_json.get("paginas_conteudo", []), logger=None):
+    for idx, pag in enumerate(conteudo_aula_json.get("paginas_conteudo", [])):
         resumo_aula += f"\n--- Tópico {idx+1}: {pag.get('titulo_subtopico')} ---\n"
         resumo_aula += f"{pag.get('discussao_teorica_prosa', '')[:1000]}...\n" # pega um pedaço do conceito para balizar o modelo
         resumo_aula += f"Fórmula principal: {pag.get('formalismo_latex', 'N/A')}\n"
@@ -45,6 +45,10 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
     print(f"\n[Agente de Exercícios] Elaborando caderno de exercícios para '{conteudo_aula_json.get('tema_global', 'Aula')}'...")
     
     try:
+        if logger:
+            logger.update_agent("exercicios", "rodando", prompt=prompt)
+            logger.log("Agente de Exerc?cios: Elaborando caderno rigoroso...", "info")
+            
         resposta = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
@@ -56,11 +60,18 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict) -> dict:
         )
         
         caderno_dict = json.loads(resposta.text)
-        print(" [OK] Caderno de Exercícios gerado com sucesso!")
+        if logger:
+            logger.update_agent("exercicios", "concluido", resposta=resposta.text)
+            logger.log("Agente de Exerc?cios: Caderno gerado com sucesso.", "success")
+            
+        print(" [OK] Caderno de Exerc?cios gerado com sucesso!")
         return caderno_dict
         
     except Exception as e:
-        print(f" [ERRO] Falha ao gerar caderno de exercícios: {e}")
+        if logger:
+            logger.update_agent("exercicios", "erro")
+            logger.log(f"Agente de Exerc?cios: Erro - {str(e)}", "error")
+        print(f" [ERRO] Falha ao gerar caderno de exerc?cios: {e}")
         return None
 
 if __name__ == "__main__":

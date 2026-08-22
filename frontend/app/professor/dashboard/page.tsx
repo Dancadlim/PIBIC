@@ -168,13 +168,7 @@ export default function ProfessorDashboard() {
                             </div>
                           )}
                           
-                          <button 
-                            onClick={() => setDebuggerState({salaId: sala.id, aulaNum: (sala.aulas_geradas || 0) + 1})}
-                            className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-4 rounded flex items-center justify-center gap-2 shadow-sm transition"
-                          >
-                            <span>??</span> Acompanhar Agentes (Aula {(sala.aulas_geradas || 0) + 1})
-                          </button>
-                        </div>
+                          </div>
                       )}
                       
                       {sala.status === "pronto" && (
