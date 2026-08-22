@@ -10,6 +10,7 @@ import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Menu, X, Play, RefreshCw } from 'lucide-react';
+import AgentDebuggerModal from '@/components/AgentDebuggerModal';
 
 function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: string, nomeSimulador: string, htmlCode?: string }) {
   const [html, setHtml] = useState<string | null>(htmlCode || null);
@@ -113,7 +114,16 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         scrolling="no"
         title="Simulador Interativo"
       />
+    
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
     </div>
+
   );
 }
 
@@ -185,7 +195,16 @@ function BlockEditor({
           {saving ? "Salvando..." : "💾 Salvar Alterações"}
         </button>
       </div>
+    
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
     </div>
+
   );
 }
 
@@ -386,10 +405,18 @@ export default function ProfessorSemesterViewer() {
           <div className="p-4 border-b border-slate-100 bg-slate-50">
             <h2 className="font-bold text-slate-800">Plano de Ensino</h2>
             {isGenerating && (
-              <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100 animate-pulse flex items-center gap-2">
-                <span>🤖</span> IA gerando aulas ({classroom?.aulas_geradas || 0} de {classroom?.total_aulas || '?'})
-              </div>
-            )}
+                <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200 shadow-sm flex flex-col gap-2">
+                  <div className="flex items-center gap-2 animate-pulse font-semibold">
+                    <span>??</span> IA gerando aulas ({classroom?.aulas_geradas || 0} de {classroom?.total_aulas || '?'})
+                  </div>
+                  <button 
+                    onClick={() => setDebuggerState({salaId: params.id as string, aulaNum: (classroom?.aulas_geradas || 0) + 1})}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded shadow-sm transition"
+                  >
+                    Acompanhar Agentes
+                  </button>
+                </div>
+              )}
           </div>
           
           <div className="p-4 space-y-2">
@@ -880,6 +907,15 @@ export default function ProfessorSemesterViewer() {
             </div>
           </div>
         )}
+    
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
     </div>
+
   );
 }
