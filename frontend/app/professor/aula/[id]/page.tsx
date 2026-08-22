@@ -64,7 +64,15 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         >
           <span>✨</span> Gerar e Abrir Simulador
         </button>
-      </div>
+      
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
+    </div>
     );
   }
 
@@ -74,7 +82,15 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         <RefreshCw className="animate-spin text-indigo-500 mx-auto mb-4" size={32} />
         <p className="text-slate-600 font-medium animate-pulse">Engenheiro de IA programando o simulador...</p>
         <p className="text-slate-400 text-sm mt-2">Isso pode levar até 20 segundos (código sendo escrito do zero)</p>
-      </div>
+      
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
+    </div>
     );
   }
 
@@ -83,7 +99,15 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
       <div className="my-8 bg-red-50 text-red-600 p-6 rounded-xl border border-red-200 text-center">
         <p>Ocorreu um erro ao gerar a simulação.</p>
         <button onClick={carregarSimulador} className="mt-4 underline text-red-800">Tentar Novamente</button>
-      </div>
+      
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
+    </div>
     );
   }
 
@@ -246,6 +270,7 @@ export default function ProfessorSemesterViewer() {
   const [aulasGeradas, setAulasGeradas] = useState<any[]>([]);
   const [selectedAula, setSelectedAula] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debuggerState, setDebuggerState] = useState<{salaId: string, aulaNum: number} | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'teoria' | 'exercicios' | 'referencias'>('teoria');
   
@@ -369,7 +394,15 @@ export default function ProfessorSemesterViewer() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-slate-600">Carregando cronograma do semestre...</p>
         </div>
-      </div>
+      
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
+    </div>
     );
   }
 
@@ -455,7 +488,15 @@ export default function ProfessorSemesterViewer() {
                     <p className={`font-medium line-clamp-2 ${aulaCompleta ? 'text-slate-800' : 'text-slate-500'}`}>
                       {aulaMeta.titulo}
                     </p>
-                  </div>
+                  
+      {debuggerState && (
+        <AgentDebuggerModal 
+          salaId={debuggerState.salaId} 
+          numeroAula={debuggerState.aulaNum} 
+          onClose={() => setDebuggerState(null)} 
+        />
+      )}
+    </div>
                 );
               })
             ) : (
