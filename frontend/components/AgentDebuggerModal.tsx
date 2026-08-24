@@ -34,6 +34,7 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
     if (status === "rodando") return "border-yellow-400 bg-yellow-50 text-yellow-700 animate-pulse";
     if (status === "concluido") return "border-green-500 bg-green-50 text-green-700";
     if (status === "erro") return "border-red-500 bg-red-50 text-red-700";
+    if (status === "ignorado") return "border-slate-300 bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed";
     return "border-gray-200 bg-white text-gray-400";
   };
 

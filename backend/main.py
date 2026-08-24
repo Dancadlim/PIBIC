@@ -201,10 +201,17 @@ def processar_semestre_background(req: SemestreRequest):
             if conteudo_bruto:
                 conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, logger=logger)
                 if conteudo_final:
-                    import agente_exercicios
-                    caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final, logger=logger)
-                    if caderno:
-                        conteudo_final["exercicios_da_aula"] = caderno
+                    # Simulador n?o ? gerado em lote (background)
+                    logger.update_agent("simulador", "ignorado")
+                    
+                    flag_exercicios = aula.get("gerar_exercicios", True)
+                    if flag_exercicios:
+                        import agente_exercicios
+                        caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final, logger=logger)
+                        if caderno:
+                            conteudo_final["exercicios_da_aula"] = caderno
+                    else:
+                        logger.update_agent("exercicios", "ignorado")
 
                     # Salva a aula na subcoleção do Firestore
                     db.collection("classrooms").document(req.id_sala).collection("aulas").document(str(numero)).set({
@@ -276,15 +283,15 @@ class EditarBlocoRequest(BaseModel):
     prompt_ia: str = "" # Se vier preenchido, usa IA para editar
 
 
-def rodar_agentes_paralelos(conteudo_final, titulo_aula):
+def rodar_agentes_paralelos(conteudo_final, titulo_aula, logger=None):
     import agente_exercicios
     import agente_simulador
     
     def task_exercicios():
-        return agente_exercicios.gerar_caderno_exercicios(conteudo_final)
+        return agente_exercicios.gerar_caderno_exercicios(conteudo_final, logger=logger)
         
     def task_simulador(idx, nome_sim):
-        html = agente_simulador.gerar_simulador_html(titulo_aula, nome_sim)
+        html = agente_simulador.gerar_simulador_html(titulo_aula, nome_sim, logger=logger)
         if html:
             return {"indice_pagina": idx + 1, "nome_simulador": nome_sim, "codigo_html_gerado": html}
         return None
@@ -399,7 +406,7 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
             conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto)
             if conteudo_final:
                 db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agentes Paralelos (Simulador/Exercícios) (Fase 3/3)..."})
-                conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo)
+                conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo, logger=logger)
 
                 db.collection("classrooms").document(req.sala_id).collection("aulas").document(str(req.numero_aula)).set({
                     "numero_aula": req.numero_aula,

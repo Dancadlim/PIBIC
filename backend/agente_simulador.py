@@ -70,7 +70,7 @@ def sanitizar_layout_grafico(html_code: str) -> str:
         html_code = re.sub(r'title\s*:\s*["\'][^"\']+["\']', 'title: ""', html_code)
     return html_code
 
-def gerar_simulador_html(tema_aula: str, nome_simulador: str) -> str:
+def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> str:
     """
     Gera um código HTML/JS completo para uma simulação interativa usando Gemini Pro.
     """
