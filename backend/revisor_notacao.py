@@ -88,12 +88,18 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logge
         response_schema=DecisaoRevisao
     )
 
+    if logger:
+        logger.update_agent("revisor", "rodando", prompt=prompt_revisor)
+        logger.log("Revisor (Crítico): Analisando conteúdo gerado...", "info")
+
     try:
         resposta = client.models.generate_content(
             model="gemini-2.5-pro",
             contents=[bloco_bruto_str, prompt_revisor],
             config=config_revisor
         )
+        if logger:
+            logger.update_agent("revisor", "rodando", resposta=resposta.text)
         return DecisaoRevisao.model_validate_json(resposta.text)
     except Exception as e:
         # Em caso de pane na chamada do revisor, força aprovação preventiva para não quebrar o script de lote

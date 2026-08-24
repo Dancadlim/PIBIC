@@ -312,11 +312,23 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
             )
 
             try:
+                if logger:
+                    logger.update_agent("gerador_bruto", "rodando", prompt=prompt_escritor)
+                    logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
+                    
+                if logger:
+                    logger.update_agent("gerador_bruto", "rodando", prompt=prompt_escritor)
+                    logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
                 resposta_escritor = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=[query_rag, prompt_escritor],
                     config=config_escritor
                 )
+                if logger:
+                    logger.update_agent("gerador_bruto", "rodando", resposta=resposta_escritor.text)
+                
+                if logger:
+                    logger.update_agent("gerador_bruto", "rodando", resposta=resposta_escritor.text)
                 
                 dados_escritor_dict = json.loads(resposta_escritor.text)
                 
@@ -325,6 +337,8 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                 
                 if laudo_revisao.aprovado:
                     print(f"      [OK] Bloco {idx+1} APROVADO pelo revisor!")
+                    if logger:
+                        logger.log(f"Revisor (Crítico): Tópico {idx+1} aprovado!", "success")
                     bloco_aprovado = True
                     
                     if laudo_revisao.conteudo_corrigido:
@@ -359,6 +373,8 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                         subtopico_atual_dados.fontes_rag = fontes_unicas
                 else:
                     print(f"      [REPROVADO] Bloco {idx+1} REPROVADO! Motivo: {laudo_revisao.comentario_correcao}")
+                    if logger:
+                        logger.log(f"Revisor (Crítico): Tópico {idx+1} reprovado. Devolvendo ao gerador...", "warning")
                     comentario_feedback_llm = f"ALERTA DE ERRO NA TENTATIVA ANTERIOR: Seu bloco foi reprovado pelo revisor com o seguinte comentário: {laudo_revisao.comentario_correcao}. Por favor, refaça o trabalho corrigindo este problema."
                     feedbacks.append(laudo_revisao.comentario_correcao)
                     
