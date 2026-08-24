@@ -23,11 +23,11 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
   }, [salaId, numeroAula]);
 
   const agentNodes = [
-    { id: "gerador_bruto", label: "Gerador de Conteúdo" },
-    { id: "revisor", label: "Revisor (Crítico)" },
+    { id: "gerador_bruto", label: "Gerador de Conte?do" },
+    { id: "revisor", label: "Revisor (Cr?tico)" },
     { id: "orquestrador", label: "Orquestrador Editorial" },
     { id: "simulador", label: "Agente Simulador" },
-    { id: "exercicios", label: "Agente de Exercícios" },
+    { id: "exercicios", label: "Agente de Exerc?cios" },
   ];
 
   const getBorderColor = (status: string) => {

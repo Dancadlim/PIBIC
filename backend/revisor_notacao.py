@@ -66,7 +66,7 @@ class DecisaoRevisao(BaseModel):
 # ==============================================================================
 # FUNÇÃO DE AUDITORIA DO SUBTÓPICO
 # ==============================================================================
-def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str) -> DecisaoRevisao:
+def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logger=None) -> DecisaoRevisao:
     # Garante que temos a chave configurada
     
     try:

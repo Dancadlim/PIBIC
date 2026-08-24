@@ -73,6 +73,9 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     t_inicio_escrita = 0.0
     t_fim_escrita = 0.0
     log_subtopicos = []
+    if logger:
+        logger.update_agent("gerador_bruto", "rodando")
+        logger.log("Gerador de Conte?do: Iniciando elabora??o do macro roteiro...", "info")
     
     # Garante que temos a chave configurada
     
@@ -466,6 +469,10 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
     aulas_conteudo_final = [x for x in aulas_conteudo_final if x is not None and x != "FALHA"]
     
     t_fim_escrita = time.time()
+    if logger:
+        logger.update_agent("gerador_bruto", "concluido")
+        logger.update_agent("revisor", "concluido")
+        logger.log("Conte?do bruto e revis?o finalizados.", "success")
 
     return {
         "tema": tema_solicitado,
