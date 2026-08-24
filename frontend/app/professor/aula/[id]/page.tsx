@@ -437,10 +437,10 @@ export default function ProfessorSemesterViewer() {
         <aside className={`bg-white border-r border-slate-200 overflow-y-auto flex flex-col shrink-0 transition-all duration-300 ${isSidebarOpen ? 'w-80' : 'w-0 hidden'}`}>
           <div className="p-4 border-b border-slate-100 bg-slate-50">
             <h2 className="font-bold text-slate-800">Plano de Ensino</h2>
-            {isGenerating && (
-                <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200 shadow-sm flex flex-col gap-2">
-                  <div className="flex items-center gap-2 animate-pulse font-semibold">
-                    <span>??</span> IA gerando aulas ({classroom?.aulas_geradas || 0} de {classroom?.total_aulas || '?'})
+            {(isGenerating || status.startsWith("erro")) && (
+                <div className={`mt-2 text-xs p-3 rounded-lg border shadow-sm flex flex-col gap-2 ${status.startsWith("erro") ? "bg-red-50 border-red-200 text-red-600" : "bg-blue-50 border-blue-200 text-blue-600"}`}>
+                  <div className={`flex items-center gap-2 font-semibold ${!status.startsWith("erro") && "animate-pulse"}`}>
+                    <span>??</span> {status.startsWith("erro") ? "Erro ao gerar aulas" : `IA gerando aulas (${classroom?.aulas_geradas || 0} de ${classroom?.total_aulas || '?'})`}
                   </div>
                   <button 
                     onClick={() => setDebuggerState({salaId: params.id as string, aulaNum: (classroom?.aulas_geradas || 0) + 1})}
