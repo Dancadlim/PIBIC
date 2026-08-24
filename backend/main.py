@@ -173,7 +173,7 @@ def processar_semestre_background(req: SemestreRequest):
             topicos_proibidos = ", ".join(topicos_proibidos_lista)
             
             # Constrói o "Tema Global" para a Fábrica
-            tema_montado = f"{titulo}. Objetivo: {objetivo}. Tópicos: {topicos}"
+            tema_montado = f"Disciplina: {nome_disciplina}. Aula: {titulo}. Objetivo: {objetivo}. T?picos: {topicos}"
             log_debug(req.id_sala, f"Gerando Aula {numero}: {titulo}...")
             
             # Pipeline de Redação
@@ -383,27 +383,31 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
     try:
         disc_ref = db.collection("disciplinas").document(req.id_disciplina).get()
         ementa_texto = disc_ref.to_dict().get("ementa_texto", "") if disc_ref.exists else ""
+        nome_disciplina = disc_ref.to_dict().get("nome", req.id_disciplina) if disc_ref.exists else req.id_disciplina
         
         topicos = req.aula_manual.descricao
         objetivo = req.aula_manual.descricao
         titulo = req.aula_manual.titulo
-        tema_montado = f"{titulo}. Objetivo: {objetivo}. Tópicos: {topicos}"
+        tema_montado = f"Disciplina: {nome_disciplina}. Aula: {titulo}. Objetivo: {objetivo}. T?picos: {topicos}"
         
         diretrizes = f"Foque nestes tópicos: {topicos}. Adapte a profundidade para atingir este objetivo: {objetivo}. Use notação matemática rigorosa e seja didático."
         if req.aula_manual.texto_base_pdf:
             diretrizes += f"\nATENÇÃO ESTRITA - MATERIAL DE APOIO DO PROFESSOR: Baseie toda a estrutura desta aula, os exemplos, as explicações e o contexto exclusivamente ou prioritariamente no material a seguir fornecido pelo professor:\n\n{req.aula_manual.texto_base_pdf}\n\n[FIM DO MATERIAL DO PROFESSOR]."
             
         db.collection("classrooms").document(req.sala_id).update({"status": "gerando_aulas", "detalhe_progresso": f"Aula Avulsa: Agente Escritor (Fase 1/3)..."})
+        
+        from logger_agentes import AgentLogger
+        logger = AgentLogger(db, req.sala_id, req.numero_aula)
+        logger.log(f"Iniciando geracao da Aula Avulsa {req.numero_aula}", "info")
         conteudo_bruto = gerador_conteudo.gerar_conteudo_aula(
             nome_professor="Professor UFBA",
             codigo_disciplina=req.id_disciplina,
             tema_solicitado=tema_montado,
             ementa_texto=ementa_texto,
-            diretrizes_texto=diretrizes
-        )
+            diretrizes_texto=diretrizes, logger=logger)
         if conteudo_bruto:
             db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agente Orquestrador (Fase 2/3)..."})
-            conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto)
+            conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, logger=logger)
             if conteudo_final:
                 db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agentes Paralelos (Simulador/Exercícios) (Fase 3/3)..."})
                 conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo, logger=logger)
