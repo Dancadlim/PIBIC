@@ -228,13 +228,7 @@ export default function ProfessorDashboard() {
           </div>
         )}
       
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
 </main>
     </div>
   );
