@@ -38,6 +38,23 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
     return "border-gray-200 bg-white text-gray-400";
   };
 
+  const renderNode = (id: string, label: string) => {
+    const state = agentes[id] || { status: "esperando" };
+    const isSelected = selectedAgent === id;
+    return (
+      <button
+        key={id}
+        onClick={() => setSelectedAgent(id)}
+        className={`w-full max-w-sm p-4 rounded-lg border-2 shadow-sm transition-all duration-200 flex flex-col items-center gap-1 ${getBorderColor(state.status)} ${isSelected ? 'ring-4 ring-indigo-200 scale-105' : 'hover:scale-105'} relative z-10`}
+      >
+        <span className="font-bold text-center text-sm">{label}</span>
+        <span className="text-xs font-mono uppercase px-2 py-1 bg-white/50 rounded-full">
+          {state.status}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-7xl h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
@@ -79,33 +96,42 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
           <div className={`${selectedAgent ? 'w-1/3' : 'w-2/3'} p-6 bg-slate-50 flex flex-col items-center overflow-y-auto transition-all duration-300 relative`}>
             <h3 className="text-sm font-bold text-gray-400 mb-8 uppercase tracking-widest">Pipeline de Geração</h3>
             
-            <div className="flex flex-col items-center gap-6 relative w-full max-w-sm">
-              {agentNodes.map((node, i) => {
-                const state = agentes[node.id] || { status: "esperando" };
-                const isSelected = selectedAgent === node.id;
-                
-                return (
-                  <div key={node.id} className="w-full flex flex-col items-center relative z-10">
-                    <button
-                      onClick={() => setSelectedAgent(node.id)}
-                      className={`w-full p-4 rounded-lg border-2 shadow-sm transition-all duration-200 flex flex-col items-center gap-1 ${getBorderColor(state.status)} ${isSelected ? 'ring-4 ring-indigo-200 scale-105' : 'hover:scale-105'}`}
-                    >
-                      <span className="font-bold">{node.label}</span>
-                      <span className="text-xs font-mono uppercase px-2 py-1 bg-white/50 rounded-full">
-                        {state.status}
-                      </span>
-                    </button>
-                    {/* Arrow to next node */}
-                    {i < agentNodes.length - 1 && (
-                      <div className="h-6 border-l-2 border-dashed border-gray-300 my-1"></div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                        <div className="flex flex-col items-center relative w-full max-w-lg">
+              
+              
+              
+              {renderNode("gerador_bruto", "Gerador de Conte?do")}
+              <div className="h-6 border-l-2 border-dashed border-gray-300 my-1"></div>
+              
+              {renderNode("revisor", "Revisor (Cr?tico)")}
+              <div className="h-6 border-l-2 border-dashed border-gray-300 my-1"></div>
+              
+              {renderNode("orquestrador", "Orquestrador Editorial")}
+              
+              {/* Branching paths for Parallel Agents */}
+              <div className="flex w-full mt-1 relative h-6">
+                 {/* Horizontal connecting line */}
+                 <div className="absolute top-1/2 left-[25%] right-[25%] border-t-2 border-dashed border-gray-300"></div>
+                 {/* Vertical line connecting from Orquestrador to horizontal line */}
+                 <div className="absolute top-0 left-1/2 bottom-1/2 border-l-2 border-dashed border-gray-300"></div>
+                 {/* Downward connecting lines to left and right nodes */}
+                 <div className="absolute top-1/2 left-[25%] bottom-0 border-l-2 border-dashed border-gray-300"></div>
+                 <div className="absolute top-1/2 right-[25%] bottom-0 border-r-2 border-dashed border-gray-300"></div>
+              </div>
+              
+              <div className="flex w-full justify-between gap-4 mt-1">
+                 <div className="flex-1 flex flex-col items-center">
+                    {renderNode("simulador", "Agente Simulador")}
+                 </div>
+                 <div className="flex-1 flex flex-col items-center">
+                    {renderNode("exercicios", "Agente de Exerc?cios")}
+                 </div>
+              </div>
 
-          {/* RIGHT PANE: Prompt/Response Inspector */}
+            </div>
+            </div>
+
+            {/* RIGHT PANE: Prompt/Response Inspector */}
           {selectedAgent && (
             <div className="w-1/3 bg-white border-l shadow-xl flex flex-col animate-in slide-in-from-right-8">
               <div className="p-4 border-b bg-indigo-50 flex justify-between items-center">

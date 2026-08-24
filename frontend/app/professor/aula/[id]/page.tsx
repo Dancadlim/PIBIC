@@ -65,13 +65,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
           <span>✨</span> Gerar e Abrir Simulador
         </button>
       
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
     </div>
     );
   }
@@ -83,13 +77,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         <p className="text-slate-600 font-medium animate-pulse">Engenheiro de IA programando o simulador...</p>
         <p className="text-slate-400 text-sm mt-2">Isso pode levar até 20 segundos (código sendo escrito do zero)</p>
       
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
     </div>
     );
   }
@@ -100,13 +88,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         <p>Ocorreu um erro ao gerar a simulação.</p>
         <button onClick={carregarSimulador} className="mt-4 underline text-red-800">Tentar Novamente</button>
       
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
     </div>
     );
   }
@@ -139,13 +121,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         title="Simulador Interativo"
       />
     
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
     </div>
 
   );
@@ -220,13 +196,7 @@ function BlockEditor({
         </button>
       </div>
     
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
     </div>
 
   );
@@ -395,13 +365,7 @@ export default function ProfessorSemesterViewer() {
           <p className="text-slate-600">Carregando cronograma do semestre...</p>
         </div>
       
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
     </div>
     );
   }
@@ -489,13 +453,7 @@ export default function ProfessorSemesterViewer() {
                       {aulaMeta.titulo}
                     </p>
                   
-      {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
+      
     </div>
                 );
               })
@@ -949,14 +907,35 @@ export default function ProfessorSemesterViewer() {
           </div>
         )}
     
+      
       {debuggerState && (
-        <AgentDebuggerModal 
-          salaId={debuggerState.salaId} 
-          numeroAula={debuggerState.aulaNum} 
-          onClose={() => setDebuggerState(null)} 
-        />
-      )}
-    </div>
 
+    
+      
+        <AgentDebuggerModal 
+
+    
+      
+          salaId={debuggerState.salaId} 
+
+    
+      
+          numeroAula={debuggerState.aulaNum} 
+
+    
+      
+          onClose={() => setDebuggerState(null)} 
+
+    
+      
+        />
+
+    
+      
+      )}
+
+    
+      
+    </div>
   );
 }
