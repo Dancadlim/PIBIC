@@ -86,6 +86,10 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
     print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini Pro...")
     
     try:
+        if logger:
+            logger.update_agent("simulador", "rodando", prompt=prompt)
+            logger.log("Agente Simulador: Programando a interface...", "info")
+        
         resposta = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
@@ -106,10 +110,16 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
             codigo_html = codigo_html[:-3]
             
         codigo_html = sanitizar_layout_grafico(codigo_html.strip())
+        if logger:
+            logger.update_agent("simulador", "concluido", resposta=codigo_html)
+            logger.log("Agente Simulador: Conclu?do com sucesso!", "success")
         print(" [OK] Simulador gerado e higienizado com sucesso!")
         return codigo_html
         
     except Exception as e:
+        if logger:
+            logger.update_agent("simulador", "erro")
+            logger.log(f"Agente Simulador: Erro crítico - {str(e)}", "error")
         print(f" [ERRO] Falha ao gerar simulador: {e}")
         return f"<div class='p-4 text-red-500'>Erro ao gerar a simulação: {e}</div>"
 

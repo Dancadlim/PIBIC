@@ -422,7 +422,13 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
                     "aulas_geradas": firestore.Increment(1),
                     "total_aulas": firestore.Increment(1),
                     "status": "pronto",
-                    "detalhe_progresso": "Aula concluída com sucesso!"
+                    "detalhe_progresso": "Aula conclu?da com sucesso!",
+                    "cronograma_oficial": firestore.ArrayUnion([{
+                        "numero_aula": req.numero_aula,
+                        "titulo": titulo,
+                        "objetivo_principal": objetivo,
+                        "topicos_abordados": [topicos]
+                    }])
                 })
     except Exception as e:
         print(f"[ERRO] Erro ao gerar aula avulsa: {e}")
