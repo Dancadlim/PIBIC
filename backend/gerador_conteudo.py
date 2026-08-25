@@ -67,15 +67,18 @@ class RoteiroCompletoAula(BaseModel):
 # ==============================================================================
 # FUNÇÃO PRINCIPAL DE ORQUESTRAÇÃO DE CONTEÚDO
 # ==============================================================================
-def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None):
+def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None, modelo_llm: str = "flash_lite"):
     t_inicio_roteirista = 0.0
     t_fim_roteirista = 0.0
     t_inicio_escrita = 0.0
     t_fim_escrita = 0.0
     log_subtopicos = []
+    
+    target_model_escritor = "gemini-3.5-flash-lite" if modelo_llm in ["flash_lite", "turbo", "flash"] else "gemini-3.5-flash"
+    
     if logger:
         logger.update_agent("gerador_bruto", "rodando")
-        logger.log("Gerador de Conte?do: Iniciando elabora??o do macro roteiro...", "info")
+        logger.log(f"Gerador de Conteúdo ({target_model_escritor}): Iniciando elaboração do macro roteiro...", "info")
     
     # Garante que temos a chave configurada
     
@@ -181,9 +184,10 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
     contents_roteirista.append(prompt_roteirista)
 
     try:
+        target_model_escritor = "gemini-3.5-flash-lite"
         # Usando gemini-3.1-flash-lite com capacidade máxima de raciocínio profundo
         resposta_roteiro = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=target_model_escritor,
             contents=contents_roteirista,
             config=types.GenerateContentConfig(
                 temperature=1.0,

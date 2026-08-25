@@ -44,16 +44,17 @@ def lapidar_conteudo_global(payload_bruto: dict, logger=None):
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
     client = genai.Client(vertexai=True, location="us-central1")
-
+    target_model = "gemini-3.5-flash-lite"
+    
     dados_entrada_str = json.dumps(payload_bruto, ensure_ascii=False)
 
-    print("\n[Agente 3.5] Assumindo o controle editorial. Unificando e eliminando repetições da aula...")
+    print(f"\n[Agente 3.5] Assumindo o controle editorial com o modelo {target_model}. Unificando e eliminando repetições da aula...")
 
     from prompts import PROMPT_ORQUESTRADOR
     prompt_editorial = PROMPT_ORQUESTRADOR.replace("[CAPÍTULO_BRUTO_AULA]", dados_entrada_str)
 
     config_editorial = types.GenerateContentConfig(
-        temperature=1.0,
+        temperature=0.7,
         response_mime_type="application/json",
         response_schema=AulaUnificadaELapidada
     )
@@ -61,10 +62,10 @@ def lapidar_conteudo_global(payload_bruto: dict, logger=None):
     try:
         if logger:
             logger.update_agent("orquestrador", "rodando", prompt=prompt_editorial)
-            logger.log("Orquestrador Editorial: Revisando coer?ncia de ponta a ponta...", "info")
+            logger.log(f"Orquestrador Editorial ({target_model}): Revisando coerência de ponta a ponta...", "info")
             
         resposta = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model=target_model,
             contents=[dados_entrada_str, prompt_editorial],
             config=config_editorial
         )

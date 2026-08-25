@@ -77,21 +77,22 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
     client = genai.Client(vertexai=True, location="us-central1")
+    target_model = "gemini-3.5-flash-lite"
     
     prompt = PROMPT_ENGENHEIRO_SIMULACAO.format(
         tema_aula=tema_aula,
         nome_simulador=nome_simulador
     )
     
-    print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini Pro...")
+    print(f"\n[Agente Simulador ({target_model})] Gerando simulação interativa para '{nome_simulador}'...")
     
     try:
         if logger:
             logger.update_agent("simulador", "rodando", prompt=prompt)
-            logger.log("Agente Simulador: Programando a interface...", "info")
+            logger.log(f"Agente Simulador ({target_model}): Programando a interface...", "info")
         
         resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=target_model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,
