@@ -421,6 +421,9 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
             "aprovado": bloco_aprovado
         }
         
+        if logger:
+            logger.update_agent(f"gerador_bruto_{idx+1}", "concluido")
+            logger.update_agent(f"revisor_{idx+1}", "concluido")
         return (idx, subtopico_atual_dados, log_data)
 
 
@@ -489,7 +492,10 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
     
     t_fim_escrita = time.time()
     if logger:
-        logger.update_agent(f"gerador_bruto_{idx+1}", "concluido")
+        logger.update_agent("gerador_bruto", "concluido")
+        for i in range(1, len(roteiro_pedagogico.esquema_paginas) + 1):
+            logger.update_agent(f"gerador_bruto_{i}", "concluido")
+            logger.update_agent(f"revisor_{i}", "concluido")
         logger.update_agent("revisor", "concluido")
         logger.log("Conte?do bruto e revis?o finalizados.", "success")
 
