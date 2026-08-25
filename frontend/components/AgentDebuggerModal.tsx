@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { X } from 'lucide-react';
@@ -25,11 +25,11 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
   }, [salaId, numeroAula]);
 
   const agentNodes = [
-    { id: "gerador_bruto", label: "Gerador de Conte?do" },
-    { id: "revisor", label: "Revisor (Cr?tico)" },
+    { id: "gerador_bruto", label: "Gerador de Conteúdo" },
+    { id: "revisor", label: "Revisor (Crítico)" },
     { id: "orquestrador", label: "Orquestrador Editorial" },
     { id: "simulador", label: "Agente Simulador" },
-    { id: "exercicios", label: "Agente de Exerc?cios" },
+    { id: "exercicios", label: "Agente de Exercícios" },
   ];
 
   const getBorderColor = (status: string) => {
@@ -108,7 +108,7 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
                 <div className="w-full my-6 flex gap-4 overflow-x-auto pb-4 justify-center">
                   {Array.from({ length: numSubtopics }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center min-w-[200px] border border-slate-200 bg-white p-4 rounded-xl shadow-sm relative">
-                      <div className="text-xs font-bold text-slate-400 absolute -top-3 bg-white px-2">SUBT?PICO {i + 1}</div>
+                      <div className="text-xs font-bold text-slate-400 absolute -top-3 bg-white px-2">SUBTÓPICO {i + 1}</div>
                       
                       {renderNode(`gerador_bruto_${i + 1}`, `Gerador ${i + 1}`)}
                       <div className="flex items-center justify-center my-2 h-8">
@@ -145,7 +145,7 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
                     {renderNode("simulador", "Agente Simulador")}
                  </div>
                  <div className="flex-1 flex flex-col items-center">
-                    {renderNode("exercicios", "Agente de Exerc?cios")}
+                    {renderNode("exercicios", "Agente de Exercícios")}
                  </div>
               </div>
 
