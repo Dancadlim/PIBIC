@@ -64,6 +64,7 @@ class AulaManual(BaseModel):
 class SemestreRequest(BaseModel):
     id_sala: str
     id_disciplina: str
+    modelo_llm: str = "3.5"
     modo: str = "inteligente" # "inteligente" ou "manual"
     instrucoes_personalizadas: str = ""
     max_aulas: int = 30 # Usado apenas se tipo_carga_horaria == padrao_30

@@ -196,6 +196,8 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         
         # O Pydantic realiza o parsing nativo garantindo o objeto tipado
         roteiro_pedagogico = RoteiroCompletoAula.model_validate_json(resposta_roteiro.text)
+        if logger:
+            logger.init_subtopics(len(roteiro_pedagogico.esquema_paginas))
         t_fim_roteirista = time.time()
         print(f"[OK] Roteiro gerado com sucesso! {len(roteiro_pedagogico.esquema_paginas)} subtópicos mapeados.")
     except Exception as e:
