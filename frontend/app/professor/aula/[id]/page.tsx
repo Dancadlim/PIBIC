@@ -248,6 +248,7 @@ export default function ProfessorSemesterViewer() {
   const [novaAulaTitulo, setNovaAulaTitulo] = useState("");
   const [novaAulaFormato, setNovaAulaFormato] = useState<"ia_decide" | "so_temas" | "desenhar_aula">("ia_decide");
   const [novaAulaDescricao, setNovaAulaDescricao] = useState("");
+  const [novaAulaModeloLlm, setNovaAulaModeloLlm] = useState<"2.5" | "3.5">("3.5");
   const [novaAulaPdf, setNovaAulaPdf] = useState("");
   const [novaAulaGerarExercicios, setNovaAulaGerarExercicios] = useState(true);
   const [novaAulaSugestoesExercicios, setNovaAulaSugestoesExercicios] = useState("");
@@ -298,7 +299,8 @@ export default function ProfessorSemesterViewer() {
             texto_base_pdf: novaAulaPdf,
             gerar_exercicios: novaAulaGerarExercicios,
             gerar_simulador: novaAulaGerarSimulador
-          }
+          },
+          modelo_llm: novaAulaModeloLlm
         })
       });
       setModalNovaAulaOpen(false);
@@ -487,6 +489,29 @@ export default function ProfessorSemesterViewer() {
                 <div>
                   <label className="block text-sm font-bold text-slate-800 mb-1">Título / Tema da Aula <span className="text-red-500">*</span></label>
                   <input className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 text-slate-900" value={novaAulaTitulo} onChange={e => setNovaAulaTitulo(e.target.value)} placeholder="Ex: Exercícios Avançados de Dinâmica" />
+                </div>
+
+                {/* Motor IA */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-800 mb-1">Motor de Inteligência Artificial</label>
+                  <div className="flex gap-2">
+                    <label className={`flex-1 flex items-center p-3 rounded-lg border cursor-pointer transition-all ${novaAulaModeloLlm === "2.5" ? "border-indigo-600 bg-indigo-50" : "border-slate-300 bg-white"}`}>
+                      <input type="radio" name="avulsa_llm" value="2.5" checked={novaAulaModeloLlm === "2.5"} onChange={() => setNovaAulaModeloLlm("2.5")} className="hidden" />
+                      <span className="text-lg mr-2">🟢</span>
+                      <div>
+                        <div className="font-bold text-slate-800 text-sm">Alta Precisão</div>
+                        <div className="text-[10px] text-slate-500 leading-tight">Família 2.5 (Pro). Melhor raciocínio.</div>
+                      </div>
+                    </label>
+                    <label className={`flex-1 flex items-center p-3 rounded-lg border cursor-pointer transition-all ${novaAulaModeloLlm === "3.5" ? "border-indigo-600 bg-indigo-50" : "border-slate-300 bg-white"}`}>
+                      <input type="radio" name="avulsa_llm" value="3.5" checked={novaAulaModeloLlm === "3.5"} onChange={() => setNovaAulaModeloLlm("3.5")} className="hidden" />
+                      <span className="text-lg mr-2">⚡</span>
+                      <div>
+                        <div className="font-bold text-slate-800 text-sm">Nova Geração</div>
+                        <div className="text-[10px] text-slate-500 leading-tight">Família 3.5 (Flash). Econômico e Rápido.</div>
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 {/* PDF */}

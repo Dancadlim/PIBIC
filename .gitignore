@@ -8,3 +8,9 @@ serviceAccountKey.json
 !package.json
 !tsconfig.json
 !package-lock.json
+
+vertex-key.json
+
+
+backend/vertex-key.json
+

@@ -20,6 +20,8 @@ export default function CriarSalaPersonalizada() {
   
   // Logic Tree State
   const [modoCriacao, setModoCriacao] = useState<"magico" | "artesao">("magico");
+  const [modeloLlm, setModeloLlm] = useState<"2.5" | "3.5">("3.5");
+
   
   // Magic Mode Settings
   const [modoAulas, setModoAulas] = useState<"padrao" | "auto" | "manual">("padrao");
@@ -221,7 +223,8 @@ export default function CriarSalaPersonalizada() {
         permitir_aprofundamento: false, // Default desativado
         tipo_crie_seu_jeito: isBlocoABloco ? "bloco_a_bloco" : "automatico",
         arquivo_global_pdf: isBlocoABloco ? "" : arquivoGlobalPdf,
-        aulas_manuais: formattedBlocos
+        aulas_manuais: formattedBlocos,
+        modelo_llm: modeloLlm
       };
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -276,6 +279,28 @@ export default function CriarSalaPersonalizada() {
                     </option>
                 ))}
                 </select>
+            </div>
+
+            <div className="mb-8">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Motor de Inteligência Artificial</label>
+                <div className="flex gap-4">
+                    <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "2.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
+                        <input type="radio" name="llm_model" value="2.5" checked={modeloLlm === "2.5"} onChange={() => setModeloLlm("2.5")} className="hidden" />
+                        <span className="text-2xl mr-3">🟢</span>
+                        <div>
+                            <div className="font-bold text-slate-800">Alta Precisão (Família 2.5)</div>
+                            <div className="text-xs text-slate-500">Gemini 2.5 Pro. Maior capacidade de raciocínio lógico, custo maior e mais lento.</div>
+                        </div>
+                    </label>
+                    <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "3.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
+                        <input type="radio" name="llm_model" value="3.5" checked={modeloLlm === "3.5"} onChange={() => setModeloLlm("3.5")} className="hidden" />
+                        <span className="text-2xl mr-3">⚡</span>
+                        <div>
+                            <div className="font-bold text-slate-800">Nova Geração (Família 3.5)</div>
+                            <div className="text-xs text-slate-500">Gemini 3.5 Flash-Lite. Focado em velocidade e economia, ideal para conteúdos diretos.</div>
+                        </div>
+                    </label>
+                </div>
             </div>
 
             <div className="mb-8">

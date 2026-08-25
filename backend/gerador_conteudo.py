@@ -67,7 +67,7 @@ class RoteiroCompletoAula(BaseModel):
 # ==============================================================================
 # FUNÇÃO PRINCIPAL DE ORQUESTRAÇÃO DE CONTEÚDO
 # ==============================================================================
-def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None):
+def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None, modelo_llm: str = "3.5"):
     t_inicio_roteirista = 0.0
     t_fim_roteirista = 0.0
     t_inicio_escrita = 0.0
@@ -82,6 +82,8 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
         client = genai.Client(vertexai=True, location="us-central1")
+        modelo_nome = "gemini-3.5-flash-lite" if modelo_llm == "3.5" else "gemini-2.5-flash"
+
     except Exception as e:
         if logger:
             logger.update_agent("gerador_bruto", "erro")
@@ -183,7 +185,7 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
     try:
         # Usando gemini-3.1-flash-lite com capacidade máxima de raciocínio profundo
         resposta_roteiro = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=modelo_nome,
             contents=contents_roteirista,
             config=types.GenerateContentConfig(
                 temperature=1.0,
@@ -313,27 +315,28 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
             try:
                 if logger:
-                    logger.update_agent("gerador_bruto", "rodando", prompt=prompt_escritor)
+                    logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", prompt=prompt_escritor)
                     logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
                     
                 if logger:
-                    logger.update_agent("gerador_bruto", "rodando", prompt=prompt_escritor)
+                    logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", prompt=prompt_escritor)
                     logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
                 resposta_escritor = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model=modelo_nome,
                     contents=[query_rag, prompt_escritor],
                     config=config_escritor
                 )
                 if logger:
-                    logger.update_agent("gerador_bruto", "rodando", resposta=resposta_escritor.text)
-                
+                    logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", resposta=resposta_escritor.text)
                 if logger:
-                    logger.update_agent("gerador_bruto", "rodando", resposta=resposta_escritor.text)
+                    logger.log(f"gerador_{idx+1}_{tentativa} terminou", "info")
+                
+                
                 
                 dados_escritor_dict = json.loads(resposta_escritor.text)
                 
                 print(f"      [REVISOR] Analisando tópico {idx+1}...")
-                laudo_revisao = auditar_subtopico_local(dados_escritor_dict, diretrizes_texto, logger=logger)
+                laudo_revisao = auditar_subtopico_local(dados_escritor_dict, diretrizes_texto, logger=logger, sub_idx=idx+1, sub_tentativa=tentativa)
                 
                 if laudo_revisao.aprovado:
                     print(f"      [OK] Bloco {idx+1} APROVADO pelo revisor!")
@@ -486,7 +489,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
     
     t_fim_escrita = time.time()
     if logger:
-        logger.update_agent("gerador_bruto", "concluido")
+        logger.update_agent(f"gerador_bruto_{idx+1}", "concluido")
         logger.update_agent("revisor", "concluido")
         logger.log("Conte?do bruto e revis?o finalizados.", "success")
 

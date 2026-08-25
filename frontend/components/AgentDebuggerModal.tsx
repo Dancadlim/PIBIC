@@ -7,6 +7,7 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
   const [agentes, setAgentes] = useState<any>({});
   const [logs, setLogs] = useState<{time: string, msg: string, type: string}[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [numSubtopics, setNumSubtopics] = useState<number>(0);
 
   useEffect(() => {
     if (!salaId || !numeroAula) return;
@@ -17,6 +18,7 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
         const data = docSnap.data();
         setAgentes(data.agentes || {});
         setLogs(data.logs || []);
+        setNumSubtopics(data.num_subtopics || 0);
       }
     });
     return () => unsubscribe();
@@ -100,13 +102,32 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
               
               
               
-              {renderNode("gerador_bruto", "Gerador de Conte?do")}
-              <div className="h-6 border-l-2 border-dashed border-gray-300 my-1"></div>
+              {renderNode("gerador_bruto", "Roteirista de Aula (Macro)")}
               
-              {renderNode("revisor", "Revisor (Cr?tico)")}
-              <div className="h-6 border-l-2 border-dashed border-gray-300 my-1"></div>
+              {numSubtopics > 0 && (
+                <div className="w-full my-6 flex gap-4 overflow-x-auto pb-4 justify-center">
+                  {Array.from({ length: numSubtopics }).map((_, i) => (
+                    <div key={i} className="flex flex-col items-center min-w-[200px] border border-slate-200 bg-white p-4 rounded-xl shadow-sm relative">
+                      <div className="text-xs font-bold text-slate-400 absolute -top-3 bg-white px-2">SUBT?PICO {i + 1}</div>
+                      
+                      {renderNode(`gerador_bruto_${i + 1}`, `Gerador ${i + 1}`)}
+                      <div className="flex items-center justify-center my-2 h-8">
+                         <div className="border-l-2 border-indigo-300 h-full border-dashed flex flex-col items-center justify-center">
+                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1 rounded-full relative z-10 ">?</span>
+                         </div>
+                      </div>
+                      {renderNode(`revisor_${i + 1}`, `Revisor ${i + 1}`)}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {numSubtopics === 0 && <div className="h-6 border-l-2 border-dashed border-gray-300 my-1"></div>}
               
               {renderNode("orquestrador", "Orquestrador Editorial")}
+              
+              <div className="h-6 border-l-2 border-dashed border-gray-300 my-1"></div>
+              {renderNode("validador_latex", "Validador LaTeX")}
               
               {/* Branching paths for Parallel Agents */}
               <div className="flex w-full mt-1 relative h-6">
@@ -136,7 +157,7 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
             <div className="w-1/3 bg-white border-l shadow-xl flex flex-col animate-in slide-in-from-right-8">
               <div className="p-4 border-b bg-indigo-50 flex justify-between items-center">
                 <h3 className="font-bold text-indigo-900">
-                  Inspetor: {agentNodes.find(n => n.id === selectedAgent)?.label}
+                  Inspetor: {selectedAgent}
                 </h3>
                 <button onClick={() => setSelectedAgent(null)} className="text-indigo-400 hover:text-indigo-700">
                   <X size={18} />

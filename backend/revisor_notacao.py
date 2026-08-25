@@ -66,7 +66,7 @@ class DecisaoRevisao(BaseModel):
 # ==============================================================================
 # FUNÇÃO DE AUDITORIA DO SUBTÓPICO
 # ==============================================================================
-def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logger=None) -> DecisaoRevisao:
+def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logger=None, sub_idx=None, sub_tentativa=None) -> DecisaoRevisao:
     # Garante que temos a chave configurada
     
     try:
@@ -89,7 +89,8 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logge
     )
 
     if logger:
-        logger.update_agent("revisor", "rodando", prompt=prompt_revisor)
+        if sub_idx: logger.update_agent(f"revisor_{sub_idx}", "rodando", prompt=prompt_revisor)
+        else: logger.update_agent("revisor", "rodando", prompt=prompt_revisor)
         logger.log("Revisor (Crítico): Analisando conteúdo gerado...", "info")
 
     try:
@@ -99,7 +100,8 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logge
             config=config_revisor
         )
         if logger:
-            logger.update_agent("revisor", "rodando", resposta=resposta.text)
+            if sub_idx: logger.update_agent(f"revisor_{sub_idx}", "rodando", resposta=resposta.text)
+        else: logger.update_agent("revisor", "rodando", resposta=resposta.text)
         return DecisaoRevisao.model_validate_json(resposta.text)
     except Exception as e:
         # Em caso de pane na chamada do revisor, força aprovação preventiva para não quebrar o script de lote

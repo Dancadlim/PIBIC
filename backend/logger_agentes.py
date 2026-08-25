@@ -17,10 +17,19 @@ class AgentLogger:
                 "orquestrador": {"status": "esperando", "prompt": "", "resposta": "", "loops": []},
                 "revisor": {"status": "esperando", "prompt_base": "", "loops": []},
                 "exercicios": {"status": "esperando", "prompt": "", "resposta": ""},
-                "simulador": {"status": "esperando", "prompt": "", "resposta": ""}
+                "simulador": {"status": "esperando", "prompt": "", "resposta": ""},
+                "validador_latex": {"status": "esperando", "prompt": "", "resposta": ""}
             }
         })
         
+
+    def init_subtopics(self, count):
+        updates = {"num_subtopics": count}
+        for i in range(1, count + 1):
+            updates[f"agentes.gerador_bruto_{i}"] = {"status": "esperando", "prompt": "", "resposta": ""}
+            updates[f"agentes.revisor_{i}"] = {"status": "esperando", "prompt": "", "resposta": ""}
+        self.doc_ref.update(updates)
+
     def log(self, message, msg_type="info"):
         """Adiciona um log na lista de logs da interface do debugger."""
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")

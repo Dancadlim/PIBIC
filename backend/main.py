@@ -11,6 +11,7 @@ from firebase_admin import credentials, firestore
 from pydantic import BaseModel
 import gerador_conteudo
 import orquestrador_editorial
+import agente_validador_latex
 from macro_roteirista import MacroRoteirista
 
 import json
@@ -195,7 +196,8 @@ def processar_semestre_background(req: SemestreRequest):
                 tema_solicitado=tema_montado,
                 ementa_texto=ementa_texto,
                 diretrizes_texto=diretrizes,
-                logger=logger
+                logger=logger,
+                modelo_llm=req.modelo_llm
             )
             
             if conteudo_bruto:
@@ -212,6 +214,10 @@ def processar_semestre_background(req: SemestreRequest):
                             conteudo_final["exercicios_da_aula"] = caderno
                     else:
                         logger.update_agent("exercicios", "ignorado")
+
+                    # Valida LaTeX antes de salvar
+                    db.collection("classrooms").document(req.id_sala).update({"detalhe_progresso": f"Aula {numero}: Agente Validador LaTeX (Fase Final)..."})
+                    conteudo_final = agente_validador_latex.validar_e_corrigir_aula_completa(conteudo_final, logger=logger, modelo_llm=req.modelo_llm)
 
                     # Salva a aula na subcoleção do Firestore
                     db.collection("classrooms").document(req.id_sala).collection("aulas").document(str(numero)).set({
@@ -369,6 +375,7 @@ class AulaAvulsaRequest(BaseModel):
     id_disciplina: str
     numero_aula: int
     aula_manual: AulaManual
+    modelo_llm: str = "3.5"
 
 @app.post("/api/toggle_visibilidade")
 def toggle_visibilidade(req: VisibilidadeRequest):
@@ -404,13 +411,16 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
             codigo_disciplina=req.id_disciplina,
             tema_solicitado=tema_montado,
             ementa_texto=ementa_texto,
-            diretrizes_texto=diretrizes, logger=logger)
+            diretrizes_texto=diretrizes, logger=logger, modelo_llm=req.modelo_llm)
         if conteudo_bruto:
             db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agente Orquestrador (Fase 2/3)..."})
             conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, logger=logger)
             if conteudo_final:
                 db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agentes Paralelos (Simulador/Exercícios) (Fase 3/3)..."})
                 conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo, logger=logger)
+
+                db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": "Aula Avulsa: Agente Validador LaTeX (Fase Final)..."})
+                conteudo_final = agente_validador_latex.validar_e_corrigir_aula_completa(conteudo_final, logger=logger, modelo_llm=req.modelo_llm)
 
                 db.collection("classrooms").document(req.sala_id).collection("aulas").document(str(req.numero_aula)).set({
                     "numero_aula": req.numero_aula,
