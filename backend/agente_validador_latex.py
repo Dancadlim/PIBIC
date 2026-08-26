@@ -14,7 +14,8 @@ def carregar_chave_api():
 
 def detectar_anomalias_estruturais_katex(texto: str) -> list:
     """
-    Verifica se uma string possui anomalias de sintaxe que o KaTeX não consegue compilar.
+    Realiza uma varredura completa por anomalias de sintaxe que o KaTeX / ReactMarkdown não consegue compilar.
+    Retorna uma lista de strings descrevendo cada erro encontrado.
     """
     if not isinstance(texto, str) or not texto.strip():
         return []
@@ -27,12 +28,12 @@ def detectar_anomalias_estruturais_katex(texto: str) -> list:
     if sorted(begins) != sorted(ends):
         erros.append(f"Ambientes de matriz/equação desalinhados: \\begin{{{begins}}} vs \\end{{{ends}}}")
 
-    # 2. Checa ambientes LaTeX não suportados em inline/display mode sem o modo 'aligned'
+    # 2. Checa ambientes LaTeX não suportados em inline/display mode no KaTeX
     bad_envs = re.findall(r'\\begin\{(align\*?|equation\*?|gather\*?)\}', texto)
     if bad_envs:
-        erros.append(f"Ambiente de equação incompatível com KaTeX: \\begin{{{bad_envs[0]}}}")
+        erros.append(f"Ambiente incompatível com KaTeX: \\begin{{{bad_envs[0]}}} (usar 'aligned')")
         
-    # 3. Checa comandos não suportados pelo KaTeX
+    # 3. Checa comandos/macros não suportados pelo KaTeX
     if r'\bm{' in texto:
         erros.append(r"Comando \bm{ não suportado pelo KaTeX (usar \boldsymbol{)")
     if r'\bold{' in texto:
@@ -44,25 +45,198 @@ def detectar_anomalias_estruturais_katex(texto: str) -> list:
     if r'\nginxed' in texto:
         erros.append(r"Comando inválido \nginxed (usar \in)")
 
-    # 4. Checa cifrões soltos desbalanceados
+    # 4. Checa % não escapado dentro de ambiente de matemática ($...$ ou $$...$$)
+    for bloco in re.findall(r'\$(.*?)\$', texto, flags=re.DOTALL):
+        if re.search(r'(?<!\\)%', bloco):
+            erros.append("Caractere de porcentagem (%) não escapado dentro de ambiente matemático")
+            break
+
+    # 5. Checa cifrões soltos desbalanceados
     if texto.count("$") % 2 != 0:
         erros.append("Cifrões ($) desbalanceados na string")
         
-    # 5. Checa chaves desbalanceadas em ambiente de bloco $$
+    # 6. Checa chaves desbalanceadas em ambiente de bloco $$
     for bloco in re.findall(r'\$\$(.*?)\$\$', texto, flags=re.DOTALL):
         chaves_abertas = bloco.count("{") - bloco.count("\\{")
         chaves_fechadas = bloco.count("}") - bloco.count("\\}")
         if chaves_abertas != chaves_fechadas:
             erros.append(f"Chaves desbalanceadas no bloco KaTeX ({chaves_abertas} abertas vs {chaves_fechadas} fechadas)")
-            
+
+    # 7. Checa \left e \right desbalanceados
+    for bloco in re.findall(r'\$(.*?)\$', texto, flags=re.DOTALL):
+        left_count = len(re.findall(r'\\left[\(\[\{\|\.]', bloco))
+        right_count = len(re.findall(r'\\right[\)\]\}\|\.]', bloco))
+        if left_count != right_count:
+            erros.append(f"Delimitadores \\left e \\right desbalanceados ({left_count} \\left vs {right_count} \\right)")
+            break
+
+    # 8. Símbolos gregos e matemáticos soltos em texto (sem delimitadores $)
+    symbols_soltos = re.findall(r'(?<!\$)(?<!\\)\b(\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)\b(?!\$)', texto)
+    if symbols_soltos:
+        erros.append(f"Comandos matemáticos soltos na prosa sem delimitadores $: {set(symbols_soltos)}")
+
     return erros
+
+
+def mapear_todas_anomalias_json(aula_json: dict) -> list:
+    """
+    Percorre recursivamente um JSON de aula e retorna um relatório estruturado
+    contendo todas as anomalias de KaTeX identificadas.
+    """
+    anomalias = []
+    anomalia_counter = 1
+
+    def auditar_recursivo(obj, caminho="root"):
+        nonlocal anomalia_counter
+        if isinstance(obj, str):
+            errs = detectar_anomalias_estruturais_katex(obj)
+            if errs:
+                anomalias.append({
+                    "id": anomalia_counter,
+                    "caminho_campo": caminho,
+                    "erro_detectado": " | ".join(errs),
+                    "trecho_original": obj[:300] + ("..." if len(obj) > 300 else "")
+                })
+                anomalia_counter += 1
+        elif isinstance(obj, dict):
+            for k, v in obj.items():
+                auditar_recursivo(v, f"{caminho}.{k}")
+        elif isinstance(obj, list):
+            for i, elem in enumerate(obj):
+                auditar_recursivo(elem, f"{caminho}[{i}]")
+
+    auditar_recursivo(aula_json)
+    return anomalias
+
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+class ItemCorrecaoLatex(BaseModel):
+    id: int = Field(description="ID numérico da anomalia a ser corrigida")
+    caminho_campo: str = Field(description="Caminho exato do campo no JSON (ex: 'paginas_conteudo[0].formalismo_latex')")
+    trecho_original_quebrado: str = Field(description="O trecho original de texto ou fórmula que continha a anomalia KaTeX")
+    trecho_corrigido_limpo: str = Field(description="A versão totalmente corrigida e válida no KaTeX, sem alterar o sentido ou palavras da prosa")
+    explicacao_tecnica: str = Field(description="Breve explicação técnica da correção efetuada (ex: 'Substituído \\begin{align} por \\begin{aligned}')")
+
+class RelatorioCorrecaoLatex(BaseModel):
+    correcoes: List[ItemCorrecaoLatex] = Field(description="Lista contendo cada uma das correções cirúrgicas efetuadas")
+
+def substituir_no_caminho(obj, caminho: str, novo_valor: str) -> bool:
+    """
+    Substitui cirurgicamente um valor dentro de um dicionário/lista navegando pela string de caminho.
+    Ex: 'root.conteudo_json.paginas_conteudo[0].formalismo_latex'
+    """
+    caminho_limpo = re.sub(r'^(root|aula|\.conteudo_json|\.conteudo)\.?', '', caminho)
+    caminho_limpo = re.sub(r'^\.', '', caminho_limpo)
+    if not caminho_limpo:
+        return False
+
+    # Quebra o caminho em chaves ou índices usando divisão por pontos e colchetes
+    tokens = [t for t in re.split(r'[\.\[\]]+', caminho_limpo) if t]
+    
+    atual = obj
+    for i in range(len(tokens) - 1):
+        token = tokens[i]
+        if token.isdigit():
+            idx = int(token)
+            if isinstance(atual, list) and idx < len(atual):
+                atual = atual[idx]
+            else:
+                return False
+        else:
+            if isinstance(atual, dict) and token in atual:
+                atual = atual[token]
+            else:
+                return False
+
+    ultimo_token = tokens[-1]
+    if ultimo_token.isdigit():
+        idx = int(ultimo_token)
+        if isinstance(atual, list) and idx < len(atual):
+            atual[idx] = novo_valor
+            return True
+    else:
+        if isinstance(atual, dict):
+            atual[ultimo_token] = novo_valor
+            return True
+
+    return False
+
+def reparar_anomalias_cirurgico(aula_sanitizada: dict, anomalias: list, logger=None, target_model="gemini-2.5-pro") -> dict:
+    """
+    Envia APENAS as anomalias capturadas no Passo 1 para o LLM e aplica as correções cirurgicamente
+    no JSON original sem tocar no resto da aula.
+    """
+    carregar_chave_api()
+    os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
+    client = genai.Client(vertexai=True, location="us-central1")
+    
+    from prompts import DICIONARIO_LATEX
+    
+    prompt_cirurgico = f"""
+Você é o Revisor de Elite de Tipografia KaTeX e LaTeX de uma editora acadêmica de exatas.
+Sua tarefa é REPARAR CIRURGICAMENTE uma lista de anomalias de compilação KaTeX encontradas em um capítulo de livro didático.
+
+[DIRETRIZES DA EDITORA PARA A CORREÇÃO]
+{DICIONARIO_LATEX}
+
+REGRAS RÍGIDAS DE CORREÇÃO:
+1. Mantenha 100% das palavras de prosa, significados e termos em português intactos.
+2. Corrija APENAS os erros de sintaxe KaTeX apontados (ex: troque `\\begin{{align}}` por `\\begin{{aligned}}`, troque `\\bm` por `\\boldsymbol`, fixe chaves desbalanceadas, etc).
+3. Garanta que todas as equações em bloco tenham delimitadores `$$` duplos isolados e equações em linha tenham `$` simples com espaços antes e depois.
+4. Preencha rigorosamente a estrutura 'RelatorioCorrecaoLatex'.
+
+[ANOMALIAS CAPTURADAS PARA CORREÇÃO]
+{json.dumps(anomalias, ensure_ascii=False, indent=2)}
+"""
+
+    print("   -> [LLM] Solicitando reparo cirúrgico ao Gemini 2.5 Pro...", flush=True)
+    try:
+        resposta = client.models.generate_content(
+            model=target_model,
+            contents=prompt_cirurgico,
+            config=types.GenerateContentConfig(
+                temperature=0.1,
+                response_mime_type="application/json",
+                response_schema=RelatorioCorrecaoLatex
+            )
+        )
+        
+        relatorio = RelatorioCorrecaoLatex.model_validate_json(resposta.text)
+        
+        correcoes_aplicadas = 0
+        for item in relatorio.correcoes:
+            sucesso = substituir_no_caminho(aula_sanitizada, item.caminho_campo, item.trecho_corrigido_limpo)
+            if sucesso:
+                correcoes_aplicadas += 1
+                msg = f"Correção [{item.id}] em {item.caminho_campo}: {item.explicacao_tecnica}"
+                print(f"   -> [REPARO CIRÚRGICO APLICADO] {msg}")
+                if logger:
+                    logger.log(f"Validador LaTeX: {msg}", "info")
+            else:
+                print(f"   -> [AVISO] Não foi possível encontrar o caminho '{item.caminho_campo}'. Mantida versão sanitizada.")
+                
+        print(f" [OK] Reparo cirúrgico concluído! ({correcoes_aplicadas}/{len(anomalias)} anomalias corrigidas pontualmente)")
+        
+        if logger:
+            logger.update_agent("validador_latex", "concluido", resposta=resposta.text)
+            logger.log("Auditor de Compilação LaTeX: Reparo cirúrgico concluído com sucesso.", "success")
+
+        return latex_sanitizer.sanitize_json_recursively(aula_sanitizada)
+
+    except Exception as e:
+        print(f" [ERRO] Falha no reparo cirúrgico do LLM ({e}). Mantendo aula sanitizada determinística.")
+        if logger:
+            logger.update_agent("validador_latex", "concluido")
+            logger.log(f"Auditor de Compilação LaTeX: Mantido fallback determinístico ({str(e)[:150]}).", "warning")
+        return aula_sanitizada
 
 def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: str = "2.5") -> dict:
     """
     Agente Validador e Auditor Final de Compilação LaTeX.
     Passo 1: Aplica a sanitização determinística instantânea em Python (< 1ms).
-    Passo 2: Inspeciona todo o JSON em busca de anomalias estruturais de KaTeX.
-    Passo 3: Se (e somente se) houver anomalias graves, aciona o Agente LLM (gemini-3.5-flash-lite) para reparo cirúrgico.
+    Passo 2: Mapeia todas as anomalias estruturais de KaTeX no JSON.
+    Passo 3: Se houver anomalias, executa o Reparo Cirúrgico Estruturado via Gemini 2.5 Pro.
     """
     if not aula_json or not isinstance(aula_json, dict):
         return aula_json
@@ -78,22 +252,8 @@ def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: s
     # 1. Sanitização determinística automática em Python
     aula_sanitizada = latex_sanitizer.sanitize_json_recursively(aula_json)
     
-    # 2. Auditoria de anomalias estruturais
-    anomalias_encontradas = []
-    
-    def auditar_recursivo(obj, caminho=""):
-        if isinstance(obj, str):
-            errs = detectar_anomalias_estruturais_katex(obj)
-            if errs:
-                anomalias_encontradas.append((caminho, errs, obj[:150]))
-        elif isinstance(obj, dict):
-            for k, v in obj.items():
-                auditar_recursivo(v, f"{caminho}.{k}")
-        elif isinstance(obj, list):
-            for i, elem in enumerate(obj):
-                auditar_recursivo(elem, f"{caminho}[{i}]")
-                
-    auditar_recursivo(aula_sanitizada, "aula")
+    # 2. Mapeamento estruturado de anomalias (Passo 1)
+    anomalias_encontradas = mapear_todas_anomalias_json(aula_sanitizada)
     
     # Se nenhuma anomalia grave foi encontrada, retorna imediatamente (0ms latência extra!)
     if not anomalias_encontradas:
@@ -103,47 +263,9 @@ def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: s
             logger.log("Auditor de Compilação LaTeX: 100% Aprovado (Zero erros de compilação).", "success")
         return aula_sanitizada
 
-    # 3. Caso haja anomalias estruturais graves, aciona o LLM para reparo cirúrgico
-    print(f" ⚠️ [AVISO] {len(anomalias_encontradas)} anomalia(s) estrutural(is) detectada(s). Acionando LLM para reparo cirúrgico...")
+    # 3. Caso haja anomalias estruturais, aciona o Reparo Cirúrgico Estruturado (Passo 2)
+    print(f" ⚠️ [AVISO] {len(anomalias_encontradas)} anomalia(s) estrutural(is) detectada(s). Acionando Reparo Cirúrgico via {target_model}...")
     if logger:
-        logger.log(f"Auditor de Compilação LaTeX: Acionando {target_model} para reparar {len(anomalias_encontradas)} anomalias...", "warning")
+        logger.log(f"Auditor de Compilação LaTeX: Acionando {target_model} para reparo cirúrgico de {len(anomalias_encontradas)} anomalias...", "warning")
         
-    try:
-        carregar_chave_api()
-        os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-        client = genai.Client(vertexai=True, location="us-central1")
-        
-        from prompts import PROMPT_FORMATADOR_LATEX
-        payload_str = json.dumps(aula_sanitizada, ensure_ascii=False)
-        prompt_reparo = f"{PROMPT_FORMATADOR_LATEX}\n\n[ANOMALIAS DETECTADAS]\n{json.dumps(anomalias_encontradas, ensure_ascii=False)}\n\n[CONTEUDO_PARA_CORRIGIR]\n{payload_str}"
-        
-        resposta = client.models.generate_content(
-            model=target_model,
-            contents=prompt_reparo,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                response_mime_type="application/json"
-            )
-        )
-        
-        cleaned_resp = resposta.text.strip()
-        if "```" in cleaned_resp:
-            cleaned_resp = re.sub(r"^```(?:json)?\n?", "", cleaned_resp, flags=re.MULTILINE)
-            cleaned_resp = re.sub(r"\n?```$", "", cleaned_resp, flags=re.MULTILINE).strip()
-            
-        aula_reparada = json.loads(cleaned_resp)
-        aula_reparada_sanitizada = latex_sanitizer.sanitize_json_recursively(aula_reparada)
-        
-        print(" [OK] Reparo de compilação pelo LLM concluído com sucesso!")
-        if logger:
-            logger.update_agent("validador_latex", "concluido", resposta=resposta.text)
-            logger.log("Auditor de Compilação LaTeX: Reparo concluído com sucesso.", "success")
-            
-        return aula_reparada_sanitizada
-
-    except Exception as e:
-        print(f" [ERRO] Falha no reparo do LLM ({e}). Mantendo aula sanitizada determinística.")
-        if logger:
-            logger.update_agent("validador_latex", "concluido")
-            logger.log(f"Auditor de Compilação LaTeX: Mantido fallback determinístico ({str(e)}).", "warning")
-        return aula_sanitizada
+    return reparar_anomalias_cirurgico(aula_sanitizada, anomalias_encontradas, logger=logger, target_model=target_model)

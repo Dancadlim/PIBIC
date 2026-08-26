@@ -6,10 +6,13 @@ REGRAS ESTABELECIDAS PARA A FORMATAÇÃO MATEMÁTICA E LATEX (SIGA ESTRITAMENTE)
 1. EQUAÇÕES DE BLOCO (Display Math): Você DEVE OBRIGATORIAMENTE usar `$$` duplo para abrir e fechar QUALQUER bloco de equação que deva ficar centralizado em uma linha própria ou que contenha múltiplas linhas (como matrizes, alinhamentos, demonstrações passo-a-passo).
    - ERRADO: `\\[ ... \\]`, `$ ... $`, `$$ ... $`
    - CERTO: `$$ \\begin{pmatrix} X_1 \\\\ X_2 \\end{pmatrix} $$`
-2. EQUAÇÕES NA MESMA LINHA DO TEXTO (Inline Math): Use `$` simples apenas para equações pequenas que dividem a linha com o texto comum (ex: "Seja a variável $X_i$"). NUNCA coloque quebras de linha dentro de blocos `$ ... $`.
-3. ESPAÇAMENTO OBRIGATÓRIO EM INLINE MATH: É MANDATÓRIO colocar UM ESPAÇO em branco ANTES do `$` de abertura e DEPOIS do `$` de fechamento (ex: escreva "o espaço $\\Omega$ possui" e NUNCA "o$\\Omega$possui" ou "o $\\Omega$possui"). Símbolos e letras gregas nunca devem colar nas palavras em português.
-4. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
-5. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa não devem ficar dentro de delimitadores matemáticos, e símbolos matemáticos devem sempre estar dentro de `$`.
+2. AMBIENTES COMPATÍVEIS COM KATEX: É ESTRITAMENTE PROIBIDO usar `\\begin{align}`, `\\begin{equation}` ou `\\begin{gather}` soltos. Para equações multilinhas ou alinhadas, use OBRIGATORIAMENTE `$$ \\begin{aligned} ... \\end{aligned} $$`.
+3. MACROS COMPATÍVEIS: É PROIBIDO usar `\\bm{}` ou `\\bold{}`. Use OBRIGATORIAMENTE `\\boldsymbol{}` para vetores/matrizes e `\\mathbf{}` para texto em negrito matemático.
+4. CARACTERE DE PORCENTAGEM (%): É MANDATÓRIO escapar com barra invertida `\\%` qualquer símbolo de porcentagem que apareça dentro de delimitadores matemáticos (ex: `$50\\%$` ou `$$ 100\\% $$`). NUNCA use `%` solto em ambiente matemático pois ele comenta o restante da linha.
+5. SUBSCRITOS E SOBRECRITOS: Sempre use chaves em subscritos ou sobrescritos de múltiplos caracteres (ex: `$X_{i1}$`, `$Y_{ij}$`, `$\\sigma^2_X$`).
+6. ESPAÇAMENTO OBRIGATÓRIO EM INLINE MATH: É MANDATÓRIO colocar UM ESPAÇO em branco ANTES do `$` de abertura e DEPOIS do `$` de fechamento (ex: escreva "o espaço $\\Omega$ possui" e NUNCA "o$\\Omega$possui" ou "o $\\Omega$possui"). Símbolos e letras gregas nunca devem colar nas palavras em português.
+7. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
+8. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa não devem ficar dentro de delimitadores matemáticos, e símbolos matemáticos devem sempre estar dentro de `$`.
 """
 
 # ==============================================================================

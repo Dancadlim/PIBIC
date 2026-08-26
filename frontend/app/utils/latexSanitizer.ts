@@ -1,84 +1,90 @@
 /**
  * Sanitizador Universal de LaTeX para a Interface Frontend (Next.js)
- * Enforces 100% valid KaTeX / ReactMarkdown parsing across titles, boxes, and prose.
+ * Enforces 100% valid KaTeX / ReactMarkdown parsing across titles, boxes, and prose
+ * using Context-Aware Block Tokenization.
  */
+
+function sanitizeDisplayMath(content: string): string {
+  let c = content;
+  // 1. Converte ambientes incompatíveis com o rehype-katex
+  c = c.replace(/\\begin\{(align\*?|equation\*?|gather\*?)\}/g, '\\begin{aligned}');
+  c = c.replace(/\\end\{(align\*?|equation\*?|gather\*?)\}/g, '\\end{aligned}');
+
+  // 2. Converte macros incompatíveis e limpa chaves escapadas
+  c = c.replace(/\\bm\{/g, '\\boldsymbol{');
+  c = c.replace(/\\bold\{/g, '\\mathbf{');
+  c = c.replace(/\\+boldsymbol\\+\{([^}]+)\}/g, '\\boldsymbol{$1}');
+  c = c.replace(/\\+boldsymbol\\+\{/g, '\\boldsymbol{');
+  c = c.replace(/\\+mathbf\\+\{/g, '\\mathbf{');
+  c = c.replace(/(\t|\\+)hicksim/g, '\\sim');
+  c = c.replace(/\\+nginxed/g, '\\in');
+
+  // 3. Escapa porcentagem solta dentro do math
+  c = c.replace(/(?<!\\)%/g, '\\%');
+
+  // 4. Trunca falhas em \right
+  c = c.replace(/[\s\r\n\t]+ight([\)\}\]|\\])/g, ' \\right$1');
+  c = c.replace(/[\s\r\n\t]+ight/g, ' \\right');
+
+  return c.trim();
+}
+
+function sanitizeInlineMath(content: string): string {
+  let c = content;
+  c = c.replace(/\\bm\{/g, '\\boldsymbol{');
+  c = c.replace(/\\bold\{/g, '\\mathbf{');
+  c = c.replace(/\\+boldsymbol\\+\{([^}]+)\}/g, '\\boldsymbol{$1}');
+  c = c.replace(/\\+boldsymbol\\+\{/g, '\\boldsymbol{');
+  c = c.replace(/\\+nginxed/g, '\\in');
+  c = c.replace(/(?<!\\)%/g, '\\%');
+  return c.trim();
+}
 
 export function sanitizeLatex(text: string): string {
   if (!text) return "";
   let processed = text;
 
-  // 0a. Substituir ambientes LaTeX que o KaTeX não suporta diretamente no rehype-katex
-  processed = processed.replace(/\\begin\{(align\*?|equation\*?|gather\*?)\}/g, '\\begin{aligned}');
-  processed = processed.replace(/\\end\{(align\*?|equation\*?|gather\*?)\}/g, '\\end{aligned}');
-
-  // 0b. Substituir comandos não suportados pelo KaTeX
-  processed = processed.replace(/\\bm\{/g, '\\boldsymbol{');
-  processed = processed.replace(/\\bold\{/g, '\\mathbf{');
-  processed = processed.replace(/\\+boldsymbol\\+\{([^}]+)\}/g, '\\boldsymbol{$1}');
-  processed = processed.replace(/\\+boldsymbol\\+\{/g, '\\boldsymbol{');
-  processed = processed.replace(/(\t|\\+)hicksim/g, '\\sim');
-  processed = processed.replace(/\\+nginxed/g, '\\in');
-
-  // 0c. Limpar comandos de equação dentro de \text{...}
-  processed = processed.replace(/\\+text\{\s*\\+?(hat|bar|tilde|beta|alpha|sigma|theta|nu|mu|lambda|pi|gamma|delta|epsilon|phi)\{?([^}]*)\}?\s*\}/g, '\\$1{$2}');
-  processed = processed.replace(/\\+boldsymbol\{\s*\\+text\{([^}]*)\}\s*\}/g, '\\boldsymbol{$1}');
-  processed = processed.replace(/\\+text\{\s*\\+textsigma\s*\}/g, '\\sigma').replace(/\\+text\{\s*\\+textellipsis\s*\}/g, '\\dots');
-  processed = processed.replace(/\\+textsigma/g, '\\sigma').replace(/\\+textellipsis/g, '\\dots');
-
-  // 1. Corrigir quebras ou truncamentos de '\right' (ex: ' ight' ou '\r' + 'ight')
-  processed = processed.replace(/[\s\r\n\t]+ight([\)\}\]|\\])/g, ' \\right$1');
-  processed = processed.replace(/[\s\r\n\t]+ight/g, ' \\right');
-
-  // 2. Corrigir bloco de múltiplas linhas iniciado por '$' único quebrando linha antes de fechar '$'
-  processed = processed.replace(/(?<!\$)\$([^$\n]+?\n[^$]+?)\$(?!\$)/g, (match, inner) => {
-    return `\n$$\n${inner.trim()}\n$$\n`;
-  });
-
-  // 3. Converter delimitadores clássicos LaTeX \[ \] e \( \) para $$ e $
+  // 1. Normaliza delimitadores clássicos LaTeX
   processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
   processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
-  // 4. Auto-encapsular linhas soltas que contêm expressões LaTeX matemáticas cruas sem $ ou $$
+  // 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($...$) e Prosa
+  const pattern = /(\$\$.*?\$\$|\$[^\$\n]+?\$)/gs;
+  const parts = processed.split(pattern);
+
+  const resultParts: string[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+
+    if (part.startsWith('$$') && part.endsWith('$$') && part.length >= 4) {
+      const inner = part.slice(2, -2);
+      const sanitizedInner = sanitizeDisplayMath(inner);
+      resultParts.push(`\n$$\n${sanitizedInner}\n$$\n`);
+    } else if (part.startsWith('$') && part.endsWith('$') && part.length >= 2 && !part.includes('\n')) {
+      const inner = part.slice(1, -1);
+      const sanitizedInner = sanitizeInlineMath(inner);
+      resultParts.push(`$${sanitizedInner}$`);
+    } else {
+      // É prosa comum (fora de cifrões)
+      let prose = part;
+      const symbolsToWrap = /(?<!\$)(?<!\\)\b(\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)\b(?!\$)/g;
+      prose = prose.replace(symbolsToWrap, ' $$1$ ');
+      resultParts.push(prose);
+    }
+  }
+
+  processed = resultParts.join('');
+
+  // 3. Ajusta o espaçamento ao redor de inline math colado em palavras em português
+  processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$2$');
+  processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$1$ $2');
+
+  // 4. Remove espaços em branco no início de cada linha (evita bloco <pre> identado no Markdown)
   const lines = processed.split('\n');
-  const processedLines = lines.map(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return line;
-
-    if (trimmed.startsWith('$$') || trimmed.startsWith('#') || trimmed.startsWith('|-') || trimmed.startsWith('|')) {
-      return line;
-    }
-
-    const hasLatexCmd = /\\[a-zA-Z]+|\^\{|_\{/.test(trimmed);
-    const hasDollar = trimmed.includes('$');
-
-    if (hasLatexCmd && !hasDollar) {
-      if (trimmed.startsWith('\\') || (trimmed.includes('=') && (trimmed.includes('\\') || trimmed.includes('^') || trimmed.includes('_')))) {
-        return `\n$$\n${trimmed}\n$$\n`;
-      }
-    }
-    return line;
-  });
+  const processedLines = lines.map(line => line.replace(/^[ \t]+/, ''));
   processed = processedLines.join('\n');
 
-  // 5. Envolver comandos matemáticos LaTeX soltos em prosa que não estão dentro de $...$
-  const symbolsToWrap = /(?<!\$)(?<!\\)\b(\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)\b(?!\$)/g;
-  processed = processed.replace(symbolsToWrap, '$$1$');
-
-  // 6. Garantir que delimitadores $$ fiquem em suas próprias linhas para o remark-math
-  processed = processed.replace(/([^\n])\$\$/g, '$1\n$$');
-  processed = processed.replace(/\$\$([^\n])/g, '$$\n$1');
-
-  // 7. Remove espaços em branco no INÍCIO de qualquer linha (impede <pre> identado no Markdown)
-  processed = processed.replace(/^[ \t]+/gm, '');
-
-  // 8. Arruma espaços acidentais em math inline gerados pela IA (ex: $ k $ -> $k$)
-  processed = processed.replace(/\$\s+([^$\n]+?)\s+\$/g, '$$$1$$');
-
-  // 9. Garantir espaço em branco antes e depois de inline math $...$ quando colado em palavras
-  processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, (m, p1, p2) => `${p1} $${p2}$`);
-  processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, (m, p1, p2) => `$${p1}$ ${p2}`);
-
-  // 10. Remove quebras de linha excessivas
+  // 5. Remove quebras de linha quadruplas
   return processed.replace(/\n{4,}/g, '\n\n\n');
 }
 
