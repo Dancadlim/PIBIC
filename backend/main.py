@@ -216,22 +216,17 @@ def processar_semestre_background(req: SemestreRequest):
             if conteudo_bruto:
                 conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, logger=logger)
                 if conteudo_final:
-                    # Simulador n?o ? gerado em lote (background)
-                    logger.update_agent("simulador", "ignorado")
-                    
                     flag_exercicios = aula.get("gerar_exercicios", True)
-                    if flag_exercicios:
-                        import agente_exercicios
-                        caderno = agente_exercicios.gerar_caderno_exercicios(
-                            conteudo_final, 
-                            logger=logger, 
-                            modelo_llm=req.modelo_llm, 
-                            diretrizes_override=override_prompt_block
-                        )
-                        if caderno:
-                            conteudo_final["exercicios_da_aula"] = caderno
-                    else:
-                        logger.update_agent("exercicios", "ignorado")
+                    flag_simulador = aula.get("gerar_simulador", True)
+                    conteudo_final = rodar_agentes_paralelos(
+                        conteudo_final,
+                        titulo,
+                        modelo_llm=req.modelo_llm,
+                        diretrizes_override=override_prompt_block,
+                        logger=logger,
+                        flag_exercicios=flag_exercicios,
+                        flag_simulador=flag_simulador
+                    )
 
                     # Valida LaTeX antes de salvar
                     db.collection("classrooms").document(req.id_sala).update({"detalhe_progresso": f"Aula {numero}: Agente Validador LaTeX (Fase Final)..."})
@@ -307,7 +302,7 @@ class EditarBlocoRequest(BaseModel):
     prompt_ia: str = "" # Se vier preenchido, usa IA para editar
 
 
-def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diretrizes_override=None, logger=None):
+def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diretrizes_override=None, logger=None, flag_exercicios=True, flag_simulador=True):
     import agente_exercicios
     import agente_simulador
     
@@ -319,34 +314,54 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
             diretrizes_override=diretrizes_override
         )
         
-    def task_simulador(idx, nome_sim):
+    def task_simulador(idx_pag, nome_sim):
         html = agente_simulador.gerar_simulador_html(titulo_aula, nome_sim, logger=logger)
         if html:
-            return {"indice_pagina": idx + 1, "nome_simulador": nome_sim, "codigo_html_gerado": html}
+            return {"indice_pagina": str(idx_pag), "nome_simulador": nome_sim, "codigo_html_gerado": html}
         return None
 
     tasks_simuladores = []
-    for i, pag in enumerate(conteudo_final.get("paginas_conteudo", [])):
-        rec = pag.get("simulador_interativo_recomendado")
-        if rec and str(rec).lower() != "none" and str(rec).strip() != "":
-            tasks_simuladores.append((i, str(rec)))
+    if flag_simulador:
+        # 1. Tenta obter do campo simuladores_da_aula (gerado pelo Orquestrador)
+        sims_orquestrador = conteudo_final.get("simuladores_da_aula", [])
+        if sims_orquestrador:
+            for s in sims_orquestrador:
+                if isinstance(s, dict):
+                    idx = s.get("indice_pagina", "1")
+                    nome = s.get("nome_simulador")
+                    if nome and str(nome).strip():
+                        tasks_simuladores.append((idx, str(nome)))
+                        
+        # 2. Fallback: Se não encontrou no Orquestrador, busca em paginas_conteudo
+        if not tasks_simuladores:
+            for i, pag in enumerate(conteudo_final.get("paginas_conteudo", [])):
+                if isinstance(pag, dict):
+                    rec = pag.get("simulador_interativo_recomendado")
+                    if rec and str(rec).lower() != "none" and str(rec).strip() != "":
+                        tasks_simuladores.append((str(i + 1), str(rec)))
 
-    simuladores_resultado = []
-    
     executor = ThreadPoolExecutor(max_workers=5)
-    future_exercicios = executor.submit(task_exercicios)
+    future_exercicios = executor.submit(task_exercicios) if flag_exercicios else None
     futures_sim = [executor.submit(task_simulador, idx, rec) for idx, rec in tasks_simuladores]
     
-    try:
-        caderno = future_exercicios.result(timeout=300)
-        if caderno:
-            conteudo_final["exercicios_da_aula"] = caderno
-    except Exception as e:
-        print(f"[ERRO] Agente de Exercícios falhou: {e}")
-        if logger:
-            logger.update_agent("exercicios", "erro")
-            logger.log(f"Agente de Exercícios: Falha - {str(e)[:200]}", "error")
+    if not flag_exercicios and logger:
+        logger.update_agent("exercicios", "ignorado")
+
+    if (not flag_simulador or not tasks_simuladores) and logger:
+        logger.update_agent("simulador", "ignorado")
         
+    if future_exercicios:
+        try:
+            caderno = future_exercicios.result(timeout=300)
+            if caderno:
+                conteudo_final["exercicios_da_aula"] = caderno
+        except Exception as e:
+            print(f"[ERRO] Agente de Exercícios falhou: {e}")
+            if logger:
+                logger.update_agent("exercicios", "erro")
+                logger.log(f"Agente de Exercícios: Falha - {str(e)[:200]}", "error")
+        
+    simuladores_resultado = []
     for f in futures_sim:
         try:
             res = f.result(timeout=300)
@@ -362,6 +377,7 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
         conteudo_final["simuladores_da_aula"] = simuladores_resultado
         
     executor.shutdown(wait=False)
+    return conteudo_final
             
     return conteudo_final
 
