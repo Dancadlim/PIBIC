@@ -4,6 +4,7 @@ import re
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+import latex_sanitizer
 
 def carregar_chave_api():
     load_dotenv()
@@ -58,7 +59,7 @@ def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: s
     print(f"\n[Agente Validador de LaTeX ({target_model})] Inspecionando compilação de toda a aula...")
     
     # 1. Sanitização determinística automática em Python
-    aula_sanitizada = aula_json
+    aula_sanitizada = latex_sanitizer.sanitize_json_recursively(aula_json)
     
     # 2. Auditoria de anomalias estruturais
     anomalias_encontradas = []
@@ -114,7 +115,7 @@ def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: s
             cleaned_resp = re.sub(r"\n?```$", "", cleaned_resp, flags=re.MULTILINE).strip()
             
         aula_reparada = json.loads(cleaned_resp)
-        aula_reparada_sanitizada = aula_reparada
+        aula_reparada_sanitizada = latex_sanitizer.sanitize_json_recursively(aula_reparada)
         
         print(" [OK] Reparo de compilação pelo LLM concluído com sucesso!")
         if logger:

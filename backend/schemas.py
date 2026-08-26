@@ -2,6 +2,28 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Literal
 
 # ==========================================
+# SCHEMA DE OVERRIDE DE DIRETRIZES
+# ==========================================
+
+class RegraOverride(BaseModel):
+    notacoes_estatisticas_especificas: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Mapeamento chave-valor de conceitos estatísticos/matemáticos para a notação exata exigida pelo professor. Ex: {'média populacional': '\\\\mu', 'desvio padrão': '\\\\sigma', 'independência': '\\\\perp'}."
+    )
+    topicos_obrigatorios: Optional[List[str]] = Field(
+        default=None,
+        description="Lista de tópicos ou subtópicos que não podem faltar no roteiro da aula."
+    )
+    estilo_exercicios: Optional[str] = Field(
+        default=None,
+        description="Instruções sobre o formato, dificuldade ou estilo dos exercícios gerados."
+    )
+    outras_diretrizes: Optional[str] = Field(
+        default=None,
+        description="Anotações gerais e contextuais extraídas do documento."
+    )
+
+# ==========================================
 # SUB-OBJETOS AUXILIARES
 # ==========================================
 

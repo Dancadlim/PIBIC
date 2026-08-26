@@ -24,7 +24,7 @@ Sua missão é ler o conteúdo de uma aula recém-criada e elaborar um caderno d
 5. Assegure que não há ambiguidades nas alternativas e que a alternativa correta seja matematicamente inquestionável.
 """
 
-def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None) -> dict:
+def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None, modelo_llm="3.5", diretrizes_override=None) -> dict:
     """
     Recebe a aula unificada e lapidada e gera o Caderno de Exercícios correspondente,
     garantindo a saída como um dicionário JSON compatível com o schema CadernoExerciciosValidado.
@@ -32,6 +32,7 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None) -> dict:
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
     client = genai.Client(vertexai=True, location="us-central1")
+    target_model = "gemini-3.5-flash-lite" if str(modelo_llm) == "3.5" else "gemini-2.5-flash"
     
     # Reduzindo o conteúdo apenas para os textos essenciais para economizar tokens
     resumo_aula = f"Tema: {conteudo_aula_json.get('tema_global', 'Aula')}\n"
@@ -41,16 +42,18 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None) -> dict:
         resumo_aula += f"Fórmula principal: {pag.get('formalismo_latex', 'N/A')}\n"
 
     prompt = PROMPT_CRIADOR_EXERCICIOS.format(conteudo_aula=resumo_aula)
+    if diretrizes_override:
+        prompt = f"{diretrizes_override}\n\n{prompt}"
     
-    print(f"\n[Agente de Exercícios] Elaborando caderno de exercícios para '{conteudo_aula_json.get('tema_global', 'Aula')}'...")
+    print(f"\n[Agente de Exercícios ({target_model})] Elaborando caderno de exercícios para '{conteudo_aula_json.get('tema_global', 'Aula')}'...")
     
     try:
         if logger:
             logger.update_agent("exercicios", "rodando", prompt=prompt)
-            logger.log("Agente de Exerc?cios: Elaborando caderno rigoroso...", "info")
+            logger.log(f"Agente de Exercícios ({target_model}): Elaborando caderno rigoroso...", "info")
             
         resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=target_model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.4,
@@ -59,12 +62,16 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None) -> dict:
             )
         )
         
+        # Sanitizar o JSON de exercícios antes de retornar
+        import latex_sanitizer
         caderno_dict = json.loads(resposta.text)
+        caderno_dict = latex_sanitizer.sanitize_json_recursively(caderno_dict)
+        
         if logger:
             logger.update_agent("exercicios", "concluido", resposta=resposta.text)
-            logger.log("Agente de Exerc?cios: Caderno gerado com sucesso.", "success")
+            logger.log("Agente de Exercícios: Caderno gerado com sucesso.", "success")
             
-        print(" [OK] Caderno de Exerc?cios gerado com sucesso!")
+        print(" [OK] Caderno de Exercícios gerado com sucesso!")
         return caderno_dict
         
     except Exception as e:

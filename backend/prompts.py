@@ -13,6 +13,17 @@ REGRAS ESTABELECIDAS PARA A FORMATAÇÃO MATEMÁTICA E LATEX (SIGA ESTRITAMENTE)
 """
 
 # ==============================================================================
+# BLOCO DE RESOLUÇÃO DE CONFLITOS (OVERRIDE DE DIRETRIZES)
+# ==============================================================================
+BLOCO_RESOLUCAO_CONFLITOS_OVERRIDE = """
+[DIRETRIZES DE RESOLUÇÃO DE CONFLITOS (OVERRIDE DE DIRETRIZES DO PROFESSOR)]
+Você deve basear sua geração nas "Diretrizes Padrão" do sistema e no Dicionário LaTeX.
+No entanto, se um bloco chamado "[OVERRIDE DE DIRETRIZES DO PROFESSOR - PRIORIDADE ABSOLUTA]" for fornecido nesta requisição, aplique a seguinte regra mestre:
+1. O bloco Override tem PRIORIDADE ABSOLUTA sobre as regras padrão da editora.
+2. Qualquer notação matemática (mapeamento conceito -> símbolo), tópico obrigatório ou estilo solicitado no Override deve substituir imediatamente qualquer comportamento ou convenção padrão do sistema.
+"""
+
+# ==============================================================================
 # AGENTE FORMATADOR LATEX
 # O Formatador atua como uma peneira de qualidade logo antes de salvar o conteúdo, 
 # garantindo que o Markdown com KaTeX da interface não quebre.
@@ -83,8 +94,6 @@ REGRAS DE CONSTRUÇÃO DE TEXTO:
 Retorne o texto limpo em Markdown contendo os parágrafos de prosa profundos.
 """
 
-# O PROMPT_ESCRITOR base (gerador_conteudo) será montado dentro do código com os dados do RAG e da ementa, 
-# mas podemos definir as regras mestre dele aqui:
 REGRAS_MESTRE_ESCRITOR = f"""
 ### REGRAS PEDAGÓGICAS E EDITORIAIS (MANDATÓRIO)
 1. Conexão com o RAG e Grounding: Se a base literária for fornecida (documentos RAG), aterre os conceitos nela, indicando os números de página ou capítulos, se possível. Se houver muitos arquivos, selecione a informação de forma inteligente. Não invente ou cite livros que não foram realmente usados. Se não houver fontes fornecidas, gere o conteúdo com seu próprio conhecimento.
@@ -92,6 +101,8 @@ REGRAS_MESTRE_ESCRITOR = f"""
 3. Exemplos Reais e Conectados com a Teoria: Ao introduzir um exemplo prático, faça uma transição suave a partir da teoria recém-explicada. O problema prático não deve parecer solto ou "caído do céu". Explique o motivo de usar aquele exemplo naquele momento. Fuja de dados triviais ("lançamento de moedas"), crie contextos robustos, mas garanta extrema conexão lógica com os conceitos ensinados.
 4. LIMITAÇÃO EXTREMA DE ESCOPO (PACING): Sob NENHUMA HIPÓTESE aborde tópicos que não foram solicitados para esta aula. Se você receber uma lista de "Tópicos Proibidos" (que serão ensinados nas próximas aulas), é ESTRITAMENTE PROIBIDO mencioná-los, explicá-los ou usá-los como exemplo. Mantenha o foco TOTAL apenas no que foi solicitado.
 5. ADAPTAÇÃO RIGOROSA AO TIPO DE CONTEÚDO (PROIBIÇÃO DE FÓRMULAS ARTIFICIAIS): Identifique a natureza do subtópico. Se for um assunto histórico, filosófico, introdutório ou qualitativo (como "História da Probabilidade", "Motivação Conceitual", "Aplicações de Dados na Sociedade"), priorize 100% a narrativa, a evolução científica e o contexto. É ESTRITAMENTE PROIBIDO forçar ou inventar fórmulas e demonstrações genéricas nesses tópicos qualitativos — retorne obrigatoriamente `null` nos campos `conceito_formal`, `formalismo_latex` e `deducao_analitica_linhas`.
+
+{BLOCO_RESOLUCAO_CONFLITOS_OVERRIDE}
 
 {DICIONARIO_LATEX}
 """
@@ -102,6 +113,8 @@ REGRAS_MESTRE_ESCRITOR = f"""
 # ==============================================================================
 PROMPT_REVISOR_CIENTIFICO = f"""
 Você é um Professor Titular e Revisor de Conteúdo Científico de Estatística e Matemática da UFBA.
+
+{BLOCO_RESOLUCAO_CONFLITOS_OVERRIDE}
 
 ### CONTEXTO E MISSÃO
 Você receberá o [CONTEÚDO_BRUTO] gerado pelo Agente Escritor (em JSON) e as [DIRETRIZES_DE_ESTILO] estritas de notação.
@@ -141,6 +154,8 @@ Sua missão é atuar como auditor científico: você deve avaliar rigorosamente 
 # ==============================================================================
 PROMPT_ORQUESTRADOR = f"""
 Você é o Editor-Chefe de uma prestigiada editora de livros de Estatística Matemática da UFBA.
+
+{BLOCO_RESOLUCAO_CONFLITOS_OVERRIDE}
 
 ### CONTEXTO E MISSÃO
 Você receberá o [CAPÍTULO_BRUTO_AULA] (em JSON), contendo as páginas geradas separadamente pelo Agente Escritor.

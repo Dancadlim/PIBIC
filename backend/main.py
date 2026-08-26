@@ -58,6 +58,7 @@ class AulaManual(BaseModel):
     titulo: str
     descricao: str
     texto_base_pdf: Optional[str] = ""
+    texto_base_notacoes: Optional[str] = ""
     gerar_exercicios: bool = True
     gerar_simulador: bool = False
 
@@ -113,6 +114,7 @@ def processar_semestre_background(req: SemestreRequest):
                         "objetivo_principal": aula_manual.descricao,
                         "topicos_abordados": [aula_manual.descricao],
                         "texto_base_pdf": aula_manual.texto_base_pdf,
+                        "texto_base_notacoes": aula_manual.texto_base_notacoes,
                         "gerar_exercicios": aula_manual.gerar_exercicios,
                         "gerar_simulador": aula_manual.gerar_simulador
                     })
@@ -191,6 +193,16 @@ def processar_semestre_background(req: SemestreRequest):
             logger = AgentLogger(db, req.id_sala, numero)
             logger.log(f"Iniciando geracao da Aula {numero}", "info")
             
+            notacoes_raw = aula.get("texto_base_notacoes", "")
+            override_prompt_block = ""
+            if notacoes_raw and notacoes_raw.strip():
+                import agente_extrator
+                log_debug(req.id_sala, f"Aula {numero}: Extraindo notações e diretrizes específicas com Agente Extrator...")
+                override_dict = agente_extrator.extrair_regras_override(notacoes_raw, logger=logger)
+                if override_dict:
+                    override_prompt_block = agente_extrator.formatar_override_para_prompt(override_dict)
+                    diretrizes = f"{override_prompt_block}\n\n{diretrizes}"
+            
             conteudo_bruto = gerador_conteudo.gerar_conteudo_aula(
                 nome_professor="Professor UFBA",
                 codigo_disciplina=req.id_disciplina,
@@ -210,7 +222,12 @@ def processar_semestre_background(req: SemestreRequest):
                     flag_exercicios = aula.get("gerar_exercicios", True)
                     if flag_exercicios:
                         import agente_exercicios
-                        caderno = agente_exercicios.gerar_caderno_exercicios(conteudo_final, logger=logger)
+                        caderno = agente_exercicios.gerar_caderno_exercicios(
+                            conteudo_final, 
+                            logger=logger, 
+                            modelo_llm=req.modelo_llm, 
+                            diretrizes_override=override_prompt_block
+                        )
                         if caderno:
                             conteudo_final["exercicios_da_aula"] = caderno
                     else:
@@ -290,12 +307,17 @@ class EditarBlocoRequest(BaseModel):
     prompt_ia: str = "" # Se vier preenchido, usa IA para editar
 
 
-def rodar_agentes_paralelos(conteudo_final, titulo_aula, logger=None):
+def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="3.5", diretrizes_override=None, logger=None):
     import agente_exercicios
     import agente_simulador
     
     def task_exercicios():
-        return agente_exercicios.gerar_caderno_exercicios(conteudo_final, logger=logger)
+        return agente_exercicios.gerar_caderno_exercicios(
+            conteudo_final, 
+            logger=logger, 
+            modelo_llm=modelo_llm, 
+            diretrizes_override=diretrizes_override
+        )
         
     def task_simulador(idx, nome_sim):
         html = agente_simulador.gerar_simulador_html(titulo_aula, nome_sim, logger=logger)
@@ -407,6 +429,17 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
         from logger_agentes import AgentLogger
         logger = AgentLogger(db, req.sala_id, req.numero_aula)
         logger.log(f"Iniciando geracao da Aula Avulsa {req.numero_aula}", "info")
+        
+        notacoes_raw = req.aula_manual.texto_base_notacoes
+        override_prompt_block = ""
+        if notacoes_raw and notacoes_raw.strip():
+            import agente_extrator
+            log_debug(req.sala_id, f"Aula Avulsa {req.numero_aula}: Extraindo notações e diretrizes específicas com Agente Extrator...")
+            override_dict = agente_extrator.extrair_regras_override(notacoes_raw, logger=logger)
+            if override_dict:
+                override_prompt_block = agente_extrator.formatar_override_para_prompt(override_dict)
+                diretrizes = f"{override_prompt_block}\n\n{diretrizes}"
+                
         conteudo_bruto = gerador_conteudo.gerar_conteudo_aula(
             nome_professor="Professor UFBA",
             codigo_disciplina=req.id_disciplina,
@@ -418,7 +451,13 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
             conteudo_final = orquestrador_editorial.lapidar_conteudo_global(conteudo_bruto, logger=logger)
             if conteudo_final:
                 db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": f"Aula Avulsa: Agentes Paralelos (Simulador/Exercícios) (Fase 3/3)..."})
-                conteudo_final = rodar_agentes_paralelos(conteudo_final, titulo, logger=logger)
+                conteudo_final = rodar_agentes_paralelos(
+                    conteudo_final, 
+                    titulo, 
+                    modelo_llm=req.modelo_llm, 
+                    diretrizes_override=override_prompt_block, 
+                    logger=logger
+                )
 
                 db.collection("classrooms").document(req.sala_id).update({"detalhe_progresso": "Aula Avulsa: Agente Validador LaTeX (Fase Final)..."})
                 conteudo_final = agente_validador_latex.validar_e_corrigir_aula_completa(conteudo_final, logger=logger, modelo_llm=req.modelo_llm)

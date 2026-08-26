@@ -39,6 +39,7 @@ export default function CriarSalaPersonalizada() {
     titulo: "",
     descricao: "",
     texto_base_pdf: "",
+    texto_base_notacoes: "",
     nome_arquivo: "",
     uploading: false,
     gerar_exercicios: true,
@@ -144,6 +145,7 @@ export default function CriarSalaPersonalizada() {
       titulo: "",
       descricao: "",
       texto_base_pdf: "",
+      texto_base_notacoes: "",
       nome_arquivo: "",
       uploading: false,
       gerar_exercicios: true,
@@ -208,6 +210,7 @@ export default function CriarSalaPersonalizada() {
           titulo: a.titulo || "Sem título",
           descricao: a.descricao + (a.gerar_exercicios && a.sugestoes_exercicios ? `\n(Dica p/ Exercícios: ${a.sugestoes_exercicios})` : "") + (a.gerar_simulador && a.sugestoes_simulador ? `\n(Dica p/ Simulador: ${a.sugestoes_simulador})` : ""),
           texto_base_pdf: a.texto_base_pdf || "",
+          texto_base_notacoes: a.texto_base_notacoes || "",
           gerar_exercicios: a.gerar_exercicios,
           gerar_simulador: a.gerar_simulador
       })) : [];
@@ -436,6 +439,17 @@ export default function CriarSalaPersonalizada() {
                                     placeholder="Ex: Explicar a segunda lei de Newton e dar exemplos do dia a dia..."
                                     value={bloco.descricao}
                                     onChange={(e) => { const n = [...aulasManuais]; n[idx].descricao = e.target.value; setAulasManuais(n); }}
+                                />
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Notações Matemáticas/Estatísticas Específicas (Opcional)</label>
+                                <textarea 
+                                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm" 
+                                    rows={2}
+                                    placeholder="Ex: Média populacional deve ser escrita como \mu. Independência como \perp..."
+                                    value={bloco.texto_base_notacoes}
+                                    onChange={(e) => { const n = [...aulasManuais]; n[idx].texto_base_notacoes = e.target.value; setAulasManuais(n); }}
                                 />
                             </div>
 

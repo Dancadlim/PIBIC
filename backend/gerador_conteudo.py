@@ -13,6 +13,7 @@ from typing import List
 from schemas import SubtopicoValidado, FonteRDetalhada
 # Importamos a função do revisor local para auditoria
 from revisor_notacao import auditar_subtopico_local
+import latex_sanitizer
 
 # ==============================================================================
 # FALLBACK DE SEGURANÇA PARA A CHAVE DE API (GEMINI_API_KEY)
@@ -336,6 +337,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                 
                 
                 dados_escritor_dict = json.loads(resposta_escritor.text)
+                dados_escritor_dict = latex_sanitizer.sanitize_json_recursively(dados_escritor_dict)
                 
                 print(f"      [REVISOR] Analisando tópico {idx+1}...")
                 laudo_revisao = auditar_subtopico_local(dados_escritor_dict, diretrizes_texto, logger=logger, sub_idx=idx+1, sub_tentativa=tentativa)
