@@ -40,7 +40,7 @@ def detectar_anomalias_estruturais_katex(texto: str) -> list:
             
     return erros
 
-def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: str = "flash_lite") -> dict:
+def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: str = "2.5") -> dict:
     """
     Agente Validador e Auditor Final de Compilação LaTeX.
     Passo 1: Aplica a sanitização determinística instantânea em Python (< 1ms).

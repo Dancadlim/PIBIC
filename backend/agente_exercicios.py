@@ -24,7 +24,7 @@ Sua missão é ler o conteúdo de uma aula recém-criada e elaborar um caderno d
 5. Assegure que não há ambiguidades nas alternativas e que a alternativa correta seja matematicamente inquestionável.
 """
 
-def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None, modelo_llm="3.5", diretrizes_override=None) -> dict:
+def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None, modelo_llm="2.5", diretrizes_override=None) -> dict:
     """
     Recebe a aula unificada e lapidada e gera o Caderno de Exercícios correspondente,
     garantindo a saída como um dicionário JSON compatível com o schema CadernoExerciciosValidado.

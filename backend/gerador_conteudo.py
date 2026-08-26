@@ -68,7 +68,7 @@ class RoteiroCompletoAula(BaseModel):
 # ==============================================================================
 # FUNÇÃO PRINCIPAL DE ORQUESTRAÇÃO DE CONTEÚDO
 # ==============================================================================
-def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None, modelo_llm: str = "3.5"):
+def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None, modelo_llm: str = "2.5"):
     t_inicio_roteirista = 0.0
     t_fim_roteirista = 0.0
     t_inicio_escrita = 0.0

@@ -65,7 +65,7 @@ class AulaManual(BaseModel):
 class SemestreRequest(BaseModel):
     id_sala: str
     id_disciplina: str
-    modelo_llm: str = "3.5"
+    modelo_llm: str = "2.5"
     modo: str = "inteligente" # "inteligente" ou "manual"
     instrucoes_personalizadas: str = ""
     max_aulas: int = 30 # Usado apenas se tipo_carga_horaria == padrao_30
@@ -307,7 +307,7 @@ class EditarBlocoRequest(BaseModel):
     prompt_ia: str = "" # Se vier preenchido, usa IA para editar
 
 
-def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="3.5", diretrizes_override=None, logger=None):
+def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diretrizes_override=None, logger=None):
     import agente_exercicios
     import agente_simulador
     
@@ -398,7 +398,7 @@ class AulaAvulsaRequest(BaseModel):
     id_disciplina: str
     numero_aula: int
     aula_manual: AulaManual
-    modelo_llm: str = "3.5"
+    modelo_llm: str = "2.5"
 
 @app.post("/api/toggle_visibilidade")
 def toggle_visibilidade(req: VisibilidadeRequest):
