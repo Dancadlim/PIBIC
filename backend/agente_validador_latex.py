@@ -191,45 +191,55 @@ REGRAS RÍGIDAS DE CORREÇÃO:
 """
 
     print("   -> [LLM] Solicitando reparo cirúrgico ao Gemini 2.5 Pro...", flush=True)
-    try:
-        resposta = client.models.generate_content(
-            model=target_model,
-            contents=prompt_cirurgico,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                response_mime_type="application/json",
-                response_schema=RelatorioCorrecaoLatex
+    
+    import time
+    max_retries = 10
+    
+    for tentativa in range(max_retries):
+        try:
+            resposta = client.models.generate_content(
+                model=target_model,
+                contents=prompt_cirurgico,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=RelatorioCorrecaoLatex
+                )
             )
-        )
-        
-        relatorio = RelatorioCorrecaoLatex.model_validate_json(resposta.text)
-        
-        correcoes_aplicadas = 0
-        for item in relatorio.correcoes:
-            sucesso = substituir_no_caminho(aula_sanitizada, item.caminho_campo, item.trecho_corrigido_limpo)
-            if sucesso:
-                correcoes_aplicadas += 1
-                msg = f"Correção [{item.id}] em {item.caminho_campo}: {item.explicacao_tecnica}"
-                print(f"   -> [REPARO CIRÚRGICO APLICADO] {msg}")
-                if logger:
-                    logger.log(f"Validador LaTeX: {msg}", "info")
-            else:
-                print(f"   -> [AVISO] Não foi possível encontrar o caminho '{item.caminho_campo}'. Mantida versão sanitizada.")
-                
-        print(f" [OK] Reparo cirúrgico concluído! ({correcoes_aplicadas}/{len(anomalias)} anomalias corrigidas pontualmente)")
-        
-        if logger:
-            logger.update_agent("validador_latex", "concluido", resposta=resposta.text)
-            logger.log("Auditor de Compilação LaTeX: Reparo cirúrgico concluído com sucesso.", "success")
-
-        return latex_sanitizer.sanitize_json_recursively(aula_sanitizada)
-
-    except Exception as e:
-        print(f" [ERRO] Falha no reparo cirúrgico do LLM ({e}). Mantendo aula sanitizada determinística.")
-        if logger:
-            logger.update_agent("validador_latex", "concluido")
-            logger.log(f"Auditor de Compilação LaTeX: Mantido fallback determinístico ({str(e)[:150]}).", "warning")
-        return aula_sanitizada
+            
+            relatorio = RelatorioCorrecaoLatex.model_validate_json(resposta.text)
+            
+            correcoes_aplicadas = 0
+            for item in relatorio.correcoes:
+                sucesso = substituir_no_caminho(aula_sanitizada, item.caminho_campo, item.trecho_corrigido_limpo)
+                if sucesso:
+                    correcoes_aplicadas += 1
+                    msg = f"Correção [{item.id}] em {item.caminho_campo}: {item.explicacao_tecnica}"
+                    print(f"   -> [REPARO CIRÚRGICO APLICADO] {msg}")
+                    if logger:
+                        logger.log(f"Validador LaTeX: {msg}", "info")
+                else:
+                    print(f"   -> [AVISO] Não foi possível encontrar o caminho '{item.caminho_campo}'. Mantida versão sanitizada.")
+                    
+            print(f" [OK] Reparo cirúrgico concluído! ({correcoes_aplicadas}/{len(anomalias)} anomalias corrigidas pontualmente)")
+            
+            if logger:
+                logger.update_agent("validador_latex", "concluido", resposta=resposta.text)
+                logger.log("Auditor de Compilação LaTeX: Reparo cirúrgico concluído com sucesso.", "success")
+    
+            return latex_sanitizer.sanitize_json_recursively(aula_sanitizada)
+    
+        except Exception as e:
+            msg_erro = f"Falha na tentativa {tentativa + 1} de reparo cirúrgico: {str(e)}"
+            print(f" [AVISO] {msg_erro}")
+            if logger:
+                logger.log(f"Validador LaTeX: Aviso - {msg_erro}", "warning")
+            time.sleep(5)
+            
+    print(" [ERRO] Falha definitiva no reparo cirúrgico após várias tentativas. Mantendo aula sanitizada.")
+    if logger:
+        logger.update_agent("validador_latex", "concluido")
+        logger.log("Auditor de Compilação LaTeX: Mantido fallback determinístico após falhas.", "warning")
+    return aula_sanitizada
 
 def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: str = "2.5") -> dict:
     """

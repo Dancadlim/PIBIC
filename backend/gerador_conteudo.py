@@ -82,7 +82,8 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-        client = genai.Client(vertexai=True, location="us-        modelo_roteirista = "gemini-2.5-pro"
+        client = genai.Client(vertexai=True, location="us-central1")
+        modelo_roteirista = "gemini-2.5-pro"
         modelo_escritor = "gemini-2.5-pro" if str(modelo_llm) == "pro" else "gemini-2.5-flash"
 
     except Exception as e:
@@ -188,11 +189,7 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
             model=modelo_roteirista,
             contents=contents_roteirista,
             config=types.GenerateContentConfig(
-                temperature=0.4,
                 response_mime_type="application/json",
-                response_schema=RoteiroCompletoAula
-            )
-        )nse_mime_type="application/json",
                 response_schema=RoteiroCompletoAula
             )
         )
@@ -315,7 +312,6 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
             config_escritor = types.GenerateContentConfig(
                 tools=tools_config,
-                temperature=1.0,
                 response_mime_type="application/json",
                 response_schema=SubtopicoValidado
             )

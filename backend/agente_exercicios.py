@@ -47,39 +47,49 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None, modelo_llm="
     
     print(f"\n[Agente de Exercícios ({target_model})] Elaborando caderno de exercícios para '{conteudo_aula_json.get('tema_global', 'Aula')}'...")
     
-    try:
-        if logger:
-            logger.update_agent("exercicios", "rodando", prompt=prompt)
-            logger.log(f"Agente de Exercícios ({target_model}): Elaborando caderno rigoroso...", "info")
-            
-        resposta = client.models.generate_content(
-            model=target_model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.4,
-                response_mime_type="application/json",
-                response_schema=CadernoExerciciosValidado
+    import time
+    max_retries = 10
+    
+    for tentativa in range(max_retries):
+        try:
+            if logger and tentativa == 0:
+                logger.update_agent("exercicios", "rodando", prompt=prompt)
+                logger.log(f"Agente de Exercícios ({target_model}): Elaborando caderno rigoroso...", "info")
+                
+            resposta = client.models.generate_content(
+                model=target_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=CadernoExerciciosValidado
+                )
             )
-        )
-        
-        # Sanitizar o JSON de exercícios antes de retornar
-        import latex_sanitizer
-        caderno_dict = json.loads(resposta.text)
-        caderno_dict = latex_sanitizer.sanitize_json_recursively(caderno_dict)
-        
-        if logger:
-            logger.update_agent("exercicios", "concluido", resposta=resposta.text)
-            logger.log("Agente de Exercícios: Caderno gerado com sucesso.", "success")
             
-        print(" [OK] Caderno de Exercícios gerado com sucesso!")
-        return caderno_dict
-        
-    except Exception as e:
-        if logger:
-            logger.update_agent("exercicios", "erro")
-            logger.log(f"Agente de Exerc?cios: Erro - {str(e)}", "error")
-        print(f" [ERRO] Falha ao gerar caderno de exerc?cios: {e}")
-        return None
+            # Sanitizar o JSON de exercícios antes de retornar
+            import latex_sanitizer
+            caderno_dict = json.loads(resposta.text)
+            caderno_dict = latex_sanitizer.sanitize_json_recursively(caderno_dict)
+            
+            if logger:
+                logger.update_agent("exercicios", "concluido", resposta=resposta.text)
+                logger.log("Agente de Exercícios: Caderno gerado com sucesso.", "success")
+                
+            print(" [OK] Caderno de Exercícios gerado com sucesso!")
+            return caderno_dict
+            
+        except Exception as e:
+            msg_erro = f"Falha na tentativa {tentativa + 1} de gerar exercícios: {str(e)}"
+            print(f" [AVISO] {msg_erro}")
+            if logger:
+                logger.log(f"Agente de Exercícios: Aviso - {msg_erro}", "warning")
+            time.sleep(5)
+            
+    # Se esgotar as tentativas
+    if logger:
+        logger.update_agent("exercicios", "erro")
+        logger.log("Agente de Exercícios: Falha definitiva após várias tentativas.", "error")
+    return None
+
 
 if __name__ == "__main__":
     # Teste rápido

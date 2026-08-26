@@ -85,43 +85,53 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
     
     print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini Pro...")
     
-    try:
-        if logger:
-            logger.update_agent("simulador", "rodando", prompt=prompt)
-            logger.log("Agente Simulador: Programando a interface...", "info")
-        
-        resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                response_mime_type="text/plain"
-            )
-        )
-        
-        codigo_html = resposta.text.strip()
-        
-        # Limpar crases de markdown se o modelo desobedecer
-        if codigo_html.startswith("```html"):
-            codigo_html = codigo_html[7:]
-        if codigo_html.startswith("```"):
-            codigo_html = codigo_html[3:]
-        if codigo_html.endswith("```"):
-            codigo_html = codigo_html[:-3]
+    import time
+    max_retries = 10
+    
+    for tentativa in range(max_retries):
+        try:
+            if logger and tentativa == 0:
+                logger.update_agent("simulador", "rodando", prompt=prompt)
+                logger.log("Agente Simulador: Programando a interface...", "info")
             
-        codigo_html = sanitizar_layout_grafico(codigo_html.strip())
-        if logger:
-            logger.update_agent("simulador", "concluido", resposta=codigo_html)
-            logger.log("Agente Simulador: Conclu?do com sucesso!", "success")
-        print(" [OK] Simulador gerado e higienizado com sucesso!")
-        return codigo_html
-        
-    except Exception as e:
-        if logger:
-            logger.update_agent("simulador", "erro")
-            logger.log(f"Agente Simulador: Erro crítico - {str(e)}", "error")
-        print(f" [ERRO] Falha ao gerar simulador: {e}")
-        return f"<div class='p-4 text-red-500'>Erro ao gerar a simulação: {e}</div>"
+            resposta = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="text/plain"
+                )
+            )
+            
+            codigo_html = resposta.text.strip()
+            
+            # Limpar crases de markdown se o modelo desobedecer
+            if codigo_html.startswith("```html"):
+                codigo_html = codigo_html[7:]
+            if codigo_html.startswith("```"):
+                codigo_html = codigo_html[3:]
+            if codigo_html.endswith("```"):
+                codigo_html = codigo_html[:-3]
+                
+            codigo_html = sanitizar_layout_grafico(codigo_html.strip())
+            if logger:
+                logger.update_agent("simulador", "concluido", resposta=codigo_html)
+                logger.log("Agente Simulador: Concluído com sucesso!", "success")
+            print(" [OK] Simulador gerado e higienizado com sucesso!")
+            return codigo_html
+            
+        except Exception as e:
+            msg_erro = f"Falha na tentativa {tentativa + 1} de gerar simulador: {str(e)}"
+            print(f" [AVISO] {msg_erro}")
+            if logger:
+                logger.log(f"Agente Simulador: Aviso - {msg_erro}", "warning")
+            time.sleep(5)
+            
+    # Se esgotar as tentativas
+    if logger:
+        logger.update_agent("simulador", "erro")
+        logger.log("Agente Simulador: Falha definitiva após várias tentativas.", "error")
+    return f"<div class='p-4 text-red-500'>Erro ao gerar a simulação após várias tentativas.</div>"
+
 
 if __name__ == "__main__":
     # Teste rápido

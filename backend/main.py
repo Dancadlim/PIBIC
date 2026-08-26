@@ -352,7 +352,7 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
         
     if future_exercicios:
         try:
-            caderno = future_exercicios.result(timeout=300)
+            caderno = future_exercicios.result()
             if caderno:
                 conteudo_final["exercicios_da_aula"] = caderno
         except Exception as e:
@@ -364,7 +364,7 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
     simuladores_resultado = []
     for f in futures_sim:
         try:
-            res = f.result(timeout=300)
+            res = f.result()
             if res:
                 simuladores_resultado.append(res)
         except Exception as e:
