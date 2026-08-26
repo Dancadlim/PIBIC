@@ -22,6 +22,14 @@ export default function CriarSalaPersonalizada() {
   const [modoCriacao, setModoCriacao] = useState<"magico" | "artesao">("magico");
   const [modeloLlm, setModeloLlm] = useState<"2.5" | "3.5">("3.5");
 
+  // Expander States
+  const [expandedBlocks, setExpandedBlocks] = useState<Record<number, boolean>>({});
+  const [showGlobalAdvanced, setShowGlobalAdvanced] = useState(false);
+
+  const toggleBlockExpand = (id: number) => {
+    setExpandedBlocks(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   
   // Magic Mode Settings
   const [modoAulas, setModoAulas] = useState<"padrao" | "auto" | "manual">("padrao");
@@ -41,13 +49,16 @@ export default function CriarSalaPersonalizada() {
     texto_base_pdf: "",
     texto_base_notacoes: "",
     nome_arquivo: "",
+    nome_arquivo_notacoes: "",
     uploading: false,
+    uploading_notacoes: false,
     gerar_exercicios: true,
     sugestoes_exercicios: "",
     gerar_simulador: true,
     sugestoes_simulador: ""
   }]);
   const fileInputRefs = useRef<any>({});
+  const fileInputRefsNotacoes = useRef<any>({});
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -139,6 +150,39 @@ export default function CriarSalaPersonalizada() {
     }
   };
 
+  const handleNotacoesFileUpload = async (index: number, file: File) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".pdf")) return alert("Somente arquivos PDF.");
+    
+    const updated = [...aulasManuais];
+    updated[index].uploading_notacoes = true;
+    setAulasManuais(updated);
+
+    const formData = new FormData();
+    formData.append("files", file);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/upload_pdf`, { method: "POST", body: formData });
+      const data = await res.json();
+      const nextUpdated = [...aulasManuais];
+      
+      if (res.ok) {
+        nextUpdated[index].texto_base_notacoes = data.texto_extraido;
+        nextUpdated[index].nome_arquivo_notacoes = file.name;
+      } else {
+        alert("Erro no upload: " + data.detail);
+      }
+      nextUpdated[index].uploading_notacoes = false;
+      setAulasManuais(nextUpdated);
+    } catch (e) {
+      alert("Erro na rede ao enviar PDF");
+      const nextUpdated = [...aulasManuais];
+      nextUpdated[index].uploading_notacoes = false;
+      setAulasManuais(nextUpdated);
+    }
+  };
+
   const addBloco = () => {
     setAulasManuais([...aulasManuais, {
       id: aulasManuais.length + 1,
@@ -147,7 +191,9 @@ export default function CriarSalaPersonalizada() {
       texto_base_pdf: "",
       texto_base_notacoes: "",
       nome_arquivo: "",
+      nome_arquivo_notacoes: "",
       uploading: false,
+      uploading_notacoes: false,
       gerar_exercicios: true,
       sugestoes_exercicios: "",
       gerar_simulador: true,
@@ -284,27 +330,6 @@ export default function CriarSalaPersonalizada() {
                 </select>
             </div>
 
-            <div className="mb-8">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Motor de Inteligência Artificial</label>
-                <div className="flex gap-4">
-                    <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "2.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
-                        <input type="radio" name="llm_model" value="2.5" checked={modeloLlm === "2.5"} onChange={() => setModeloLlm("2.5")} className="hidden" />
-                        <span className="text-2xl mr-3">🟢</span>
-                        <div>
-                            <div className="font-bold text-slate-800">Alta Precisão (Família 2.5)</div>
-                            <div className="text-xs text-slate-500">Gemini 2.5 Pro. Maior capacidade de raciocínio lógico, custo maior e mais lento.</div>
-                        </div>
-                    </label>
-                    <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "3.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
-                        <input type="radio" name="llm_model" value="3.5" checked={modeloLlm === "3.5"} onChange={() => setModeloLlm("3.5")} className="hidden" />
-                        <span className="text-2xl mr-3">⚡</span>
-                        <div>
-                            <div className="font-bold text-slate-800">Nova Geração (Família 3.5)</div>
-                            <div className="text-xs text-slate-500">Gemini 3.5 Flash-Lite. Focado em velocidade e economia, ideal para conteúdos diretos.</div>
-                        </div>
-                    </label>
-                </div>
-            </div>
 
             <div className="mb-8">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Diretrizes Gerais e Estilo (Opcional)</label>
@@ -442,49 +467,86 @@ export default function CriarSalaPersonalizada() {
                                 />
                             </div>
 
-                            <div className="mb-6">
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Notações Matemáticas/Estatísticas Específicas (Opcional)</label>
-                                <textarea 
-                                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm" 
-                                    rows={2}
-                                    placeholder="Ex: Média populacional deve ser escrita como \mu. Independência como \perp..."
-                                    value={bloco.texto_base_notacoes}
-                                    onChange={(e) => { const n = [...aulasManuais]; n[idx].texto_base_notacoes = e.target.value; setAulasManuais(n); }}
-                                />
-                            </div>
+                            {/* Expander de Configurações Avançadas da Aula */}
+                            <div className="mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleBlockExpand(bloco.id)}
+                                    className="flex items-center justify-between w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-sm"
+                                >
+                                    <span className="flex items-center gap-2">⚙️ Configurações Avançadas da Aula</span>
+                                    <span>{expandedBlocks[bloco.id] ? "▲" : "▼"}</span>
+                                </button>
+                                {expandedBlocks[bloco.id] && (
+                                    <div className="mt-4 p-5 border border-slate-200 bg-slate-50/50 rounded-2xl space-y-6">
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Arquivo de Notações Específicas (PDF)</label>
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="file" accept=".pdf" className="hidden"
+                                                    ref={el => { fileInputRefsNotacoes.current[bloco.id] = el; }}
+                                                    onChange={(e) => { if (e.target.files && e.target.files[0]) handleNotacoesFileUpload(idx, e.target.files[0]); }}
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => fileInputRefsNotacoes.current[bloco.id]?.click()}
+                                                    className="bg-white border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-bold hover:bg-slate-100 flex-1 flex justify-center items-center transition shadow-sm"
+                                                    disabled={bloco.uploading_notacoes}
+                                                >
+                                                    {bloco.uploading_notacoes ? "Lendo PDF..." : "📎 Carregar PDF de Notações"}
+                                                </button>
+                                            </div>
+                                            {bloco.nome_arquivo_notacoes && (
+                                                <p className="text-xs text-green-600 mt-2 font-bold px-2">✓ {bloco.nome_arquivo_notacoes}</p>
+                                            )}
+                                        </div>
 
-                            <div className="flex flex-col gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                                <div>
-                                    <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
-                                        <input type="checkbox" checked={bloco.gerar_exercicios} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_exercicios = e.target.checked; setAulasManuais(n); }} className="w-5 h-5 text-blue-600 rounded" />
-                                        Gerar Exercícios ao Final
-                                    </label>
-                                    {bloco.gerar_exercicios && (
-                                        <input 
-                                            type="text" 
-                                            placeholder="Sugestões? (Ex: 3 abertas, 2 de múltipla escolha sobre atrito). Deixe em branco p/ IA decidir."
-                                            className="w-full mt-3 p-3 border border-slate-300 rounded-lg text-sm shadow-sm"
-                                            value={bloco.sugestoes_exercicios}
-                                            onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_exercicios = e.target.value; setAulasManuais(n); }}
-                                        />
-                                    )}
-                                </div>
-                                <hr className="border-slate-200" />
-                                <div>
-                                    <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
-                                        <input type="checkbox" checked={bloco.gerar_simulador} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_simulador = e.target.checked; setAulasManuais(n); }} className="w-5 h-5 text-blue-600 rounded" />
-                                        Injetar Simulador Interativo
-                                    </label>
-                                    {bloco.gerar_simulador && (
-                                        <input 
-                                            type="text" 
-                                            placeholder="Sugestões? (Ex: Mostrar um bloco deslizando num plano inclinado). Deixe em branco p/ IA decidir."
-                                            className="w-full mt-3 p-3 border border-slate-300 rounded-lg text-sm shadow-sm"
-                                            value={bloco.sugestoes_simulador}
-                                            onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_simulador = e.target.value; setAulasManuais(n); }}
-                                        />
-                                    )}
-                                </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Notações Matemáticas/Estatísticas Específicas (Opcional)</label>
+                                            <textarea 
+                                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm bg-white" 
+                                                rows={2}
+                                                placeholder="Ex: Média populacional deve ser escrita como \mu. Independência como \perp... (Ou envie por PDF acima)"
+                                                value={bloco.texto_base_notacoes}
+                                                onChange={(e) => { const n = [...aulasManuais]; n[idx].texto_base_notacoes = e.target.value; setAulasManuais(n); }}
+                                            />
+                                        </div>
+
+                                        <div className="flex flex-col gap-4 p-4 bg-white border border-slate-200 rounded-xl">
+                                            <div>
+                                                <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                                                    <input type="checkbox" checked={bloco.gerar_exercicios} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_exercicios = e.target.checked; setAulasManuais(n); }} className="w-5 h-5 text-blue-600 rounded" />
+                                                    Gerar Exercícios ao Final
+                                                </label>
+                                                {bloco.gerar_exercicios && (
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Sugestões? (Ex: 3 abertas, 2 de múltipla escolha sobre atrito). Deixe em branco p/ IA decidir."
+                                                        className="w-full mt-3 p-3 border border-slate-300 rounded-lg text-sm shadow-sm"
+                                                        value={bloco.sugestoes_exercicios}
+                                                        onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_exercicios = e.target.value; setAulasManuais(n); }}
+                                                    />
+                                                )}
+                                            </div>
+                                            <hr className="border-slate-200" />
+                                            <div>
+                                                <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                                                    <input type="checkbox" checked={bloco.gerar_simulador} onChange={(e) => { const n = [...aulasManuais]; n[idx].gerar_simulador = e.target.checked; setAulasManuais(n); }} className="w-5 h-5 text-blue-600 rounded" />
+                                                    Injetar Simulador Interativo
+                                                </label>
+                                                {bloco.gerar_simulador && (
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Sugestões? (Ex: Mostrar um bloco deslizando num plano inclinado). Deixe em branco p/ IA decidir."
+                                                        className="w-full mt-3 p-3 border border-slate-300 rounded-lg text-sm shadow-sm"
+                                                        value={bloco.sugestoes_simulador}
+                                                        onChange={(e) => { const n = [...aulasManuais]; n[idx].sugestoes_simulador = e.target.value; setAulasManuais(n); }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             
                             {aulasManuais.length > 1 && (
@@ -507,7 +569,44 @@ export default function CriarSalaPersonalizada() {
                 </div>
             )}
 
-            <div className="pt-8 mt-12 border-t border-slate-200 flex justify-end gap-4">
+            {/* Expander de Configurações Avançadas do Semestre */}
+            <div className="mt-8 border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => setShowGlobalAdvanced(!showGlobalAdvanced)}
+                    className="w-full p-6 text-left font-bold text-slate-800 flex justify-between items-center bg-slate-50 hover:bg-slate-100/80 transition"
+                >
+                    <span className="flex items-center gap-2">⚙️ Configurações Avançadas do Semestre</span>
+                    <span>{showGlobalAdvanced ? "▲" : "▼"}</span>
+                </button>
+                {showGlobalAdvanced && (
+                    <div className="p-6 border-t border-slate-200 space-y-6 bg-white">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Motor de Inteligência Artificial</label>
+                            <div className="flex gap-4">
+                                <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "2.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
+                                    <input type="radio" name="llm_model" value="2.5" checked={modeloLlm === "2.5"} onChange={() => setModeloLlm("2.5")} className="hidden" />
+                                    <span className="text-2xl mr-3">🟢</span>
+                                    <div>
+                                        <div className="font-bold text-slate-800">Alta Precisão (Família 2.5)</div>
+                                        <div className="text-xs text-slate-500">Gemini 2.5 Pro. Maior capacidade de raciocínio lógico, custo maior e mais lento.</div>
+                                    </div>
+                                </label>
+                                <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "3.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
+                                    <input type="radio" name="llm_model" value="3.5" checked={modeloLlm === "3.5"} onChange={() => setModeloLlm("3.5")} className="hidden" />
+                                    <span className="text-2xl mr-3">⚡</span>
+                                    <div>
+                                        <div className="font-bold text-slate-800">Nova Geração (Família 3.5)</div>
+                                        <div className="text-xs text-slate-500">Gemini 3.5 Flash-Lite. Focado em velocidade e economia, ideal para conteúdos diretos.</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="pt-8 mt-6 border-t border-slate-200 flex justify-end gap-4">
                 <button 
                   onClick={() => router.push("/professor/dashboard")}
                   className="px-8 py-4 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"

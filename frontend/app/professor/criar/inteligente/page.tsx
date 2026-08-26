@@ -19,6 +19,8 @@ export default function CriarSalaInteligente() {
   const [modoDefinicao, setModoDefinicao] = useState<"padrao" | "auto" | "manual">("padrao");
   const [qtdManual, setQtdManual] = useState<number>(30);
   const [aulasComplementares, setAulasComplementares] = useState(false);
+  const [modeloLlm, setModeloLlm] = useState<"2.5" | "3.5">("3.5");
+  const [showGlobalAdvanced, setShowGlobalAdvanced] = useState(false);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -87,7 +89,8 @@ export default function CriarSalaInteligente() {
         permitir_aprofundamento: aulasComplementares,
         tipo_crie_seu_jeito: "bloco_a_bloco",
         arquivo_global_pdf: "",
-        aulas_manuais: []
+        aulas_manuais: [],
+        modelo_llm: modeloLlm
       };
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -176,19 +179,58 @@ export default function CriarSalaInteligente() {
                 )}
             </div>
 
-            <div className="mb-8">
-                <label className="flex items-center gap-3 p-4 border border-slate-300 rounded-xl bg-white cursor-pointer hover:bg-slate-50">
-                    <input 
-                    type="checkbox" 
-                    checked={aulasComplementares}
-                    onChange={(e) => setAulasComplementares(e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded"
-                    />
-                    <div>
-                    <span className="block font-bold text-slate-800">Permitir Aulas Complementares de Aprofundamento</span>
-                    <span className="text-sm text-slate-500">Autoriza a IA a ultrapassar o limite de aulas sugerindo tópicos de nivelamento/aprofundamento.</span>
+            {/* Expander de Configurações Avançadas do Semestre */}
+            <div className="mb-8 border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => setShowGlobalAdvanced(!showGlobalAdvanced)}
+                    className="w-full p-6 text-left font-bold text-slate-800 flex justify-between items-center bg-slate-50 hover:bg-slate-100/80 transition"
+                >
+                    <span className="flex items-center gap-2">⚙️ Configurações Avançadas do Semestre</span>
+                    <span>{showGlobalAdvanced ? "▲" : "▼"}</span>
+                </button>
+                {showGlobalAdvanced && (
+                    <div className="p-6 border-t border-slate-200 space-y-6 bg-white">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Motor de Inteligência Artificial</label>
+                            <div className="flex gap-4">
+                                <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "2.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
+                                    <input type="radio" name="llm_model" value="2.5" checked={modeloLlm === "2.5"} onChange={() => setModeloLlm("2.5")} className="hidden" />
+                                    <span className="text-2xl mr-3">🟢</span>
+                                    <div>
+                                        <div className="font-bold text-slate-800">Alta Precisão (Família 2.5)</div>
+                                        <div className="text-xs text-slate-500">Gemini 2.5 Pro. Maior capacidade de raciocínio lógico, custo maior e mais lento.</div>
+                                    </div>
+                                </label>
+                                <label className={`flex-1 flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${modeloLlm === "3.5" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"}`}>
+                                    <input type="radio" name="llm_model" value="3.5" checked={modeloLlm === "3.5"} onChange={() => setModeloLlm("3.5")} className="hidden" />
+                                    <span className="text-2xl mr-3">⚡</span>
+                                    <div>
+                                        <div className="font-bold text-slate-800">Nova Geração (Família 3.5)</div>
+                                        <div className="text-xs text-slate-500">Gemini 3.5 Flash-Lite. Focado em velocidade e economia, ideal para conteúdos diretos.</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr className="border-slate-200" />
+
+                        <div>
+                            <label className="flex items-center gap-3 p-4 border border-slate-300 rounded-xl bg-slate-50/50 cursor-pointer hover:bg-slate-50">
+                                <input 
+                                type="checkbox" 
+                                checked={aulasComplementares}
+                                onChange={(e) => setAulasComplementares(e.target.checked)}
+                                className="w-5 h-5 text-blue-600 rounded"
+                                />
+                                <div>
+                                <span className="block font-bold text-slate-800">Permitir Aulas Complementares de Aprofundamento</span>
+                                <span className="text-sm text-slate-500">Autoriza a IA a ultrapassar o limite de aulas sugerindo tópicos de nivelamento/aprofundamento.</span>
+                                </div>
+                            </label>
+                        </div>
                     </div>
-                </label>
+                )}
             </div>
 
             <div className="pt-6 border-t border-slate-200 flex justify-end gap-4">
