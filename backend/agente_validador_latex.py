@@ -26,12 +26,29 @@ def detectar_anomalias_estruturais_katex(texto: str) -> list:
     ends = re.findall(r'\\end\{([a-zA-Z*]+)\}', texto)
     if sorted(begins) != sorted(ends):
         erros.append(f"Ambientes de matriz/equação desalinhados: \\begin{{{begins}}} vs \\end{{{ends}}}")
+
+    # 2. Checa ambientes LaTeX não suportados em inline/display mode sem o modo 'aligned'
+    bad_envs = re.findall(r'\\begin\{(align\*?|equation\*?|gather\*?)\}', texto)
+    if bad_envs:
+        erros.append(f"Ambiente de equação incompatível com KaTeX: \\begin{{{bad_envs[0]}}}")
         
-    # 2. Checa cifrões soltos desbalanceados
+    # 3. Checa comandos não suportados pelo KaTeX
+    if r'\bm{' in texto:
+        erros.append(r"Comando \bm{ não suportado pelo KaTeX (usar \boldsymbol{)")
+    if r'\bold{' in texto:
+        erros.append(r"Comando \bold{ não suportado pelo KaTeX (usar \mathbf{)")
+    if re.search(r'\\+boldsymbol\\+\{', texto):
+        erros.append(r"Sintaxe de chave escapada incorretamente em \boldsymbol\{")
+    if r'\thicksim' in texto:
+        erros.append(r"Comando inválido \thicksim (usar \sim)")
+    if r'\nginxed' in texto:
+        erros.append(r"Comando inválido \nginxed (usar \in)")
+
+    # 4. Checa cifrões soltos desbalanceados
     if texto.count("$") % 2 != 0:
         erros.append("Cifrões ($) desbalanceados na string")
         
-    # 3. Checa chaves desbalanceadas em ambiente de bloco $$
+    # 5. Checa chaves desbalanceadas em ambiente de bloco $$
     for bloco in re.findall(r'\$\$(.*?)\$\$', texto, flags=re.DOTALL):
         chaves_abertas = bloco.count("{") - bloco.count("\\{")
         chaves_fechadas = bloco.count("}") - bloco.count("\\}")

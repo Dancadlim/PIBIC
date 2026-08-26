@@ -10,12 +10,20 @@ def sanitize_latex_string(text: str) -> str:
 
     processed = text
 
-    # 0. Limpeza determinística de erros de sintaxe do KaTeX gerados pelo LLM
+    # 0a. Substituir ambientes LaTeX que o KaTeX não suporta diretamente em rehype-katex inline
+    processed = re.sub(r'\\begin\{(align\*?|equation\*?|gather\*?)\}', r'\\begin{aligned}', processed)
+    processed = re.sub(r'\\end\{(align\*?|equation\*?|gather\*?)\}', r'\\end{aligned}', processed)
+
+    # 0b. Substituir comandos não suportados pelo KaTeX
+    processed = re.sub(r'\\bm\{', r'\\boldsymbol{', processed)
+    processed = re.sub(r'\\bold\{', r'\\mathbf{', processed)
     processed = re.sub(r'\\+boldsymbol\\+\{([^}]+)\}', r'\\boldsymbol{\1}', processed)
     processed = re.sub(r'\\+boldsymbol\\+\{', r'\\boldsymbol{', processed)
     processed = re.sub(r'(\t|\\+)hicksim', r'\\sim', processed)
     processed = re.sub(r'\\+nginxed', r'\\in', processed)
-    processed = re.sub(r'\\+text\{\s*\\+?(hat|bar|tilde|beta|alpha|sigma|theta|nu|mu)\{?([^}]*)\}?\s*\}', r'\\\1{\2}', processed)
+    
+    # 0c. Limpar comandos de equação dentro de \text{...}
+    processed = re.sub(r'\\+text\{\s*\\+?(hat|bar|tilde|beta|alpha|sigma|theta|nu|mu|lambda|pi|gamma|delta|epsilon|phi)\{?([^}]*)\}?\s*\}', r'\\\1{\2}', processed)
     processed = re.sub(r'\\+boldsymbol\{\s*\\+text\{([^}]*)\}\s*\}', r'\\boldsymbol{\1}', processed)
     processed = re.sub(r'\\+text\{\s*\\+textsigma\s*\}', r'\\sigma', processed)
     processed = re.sub(r'\\+text\{\s*\\+textellipsis\s*\}', r'\\dots', processed)
@@ -26,7 +34,7 @@ def sanitize_latex_string(text: str) -> str:
     processed = re.sub(r'[\s\r\n\t]+ight([\)\}\]|\\])', r' \\right\1', processed)
     processed = re.sub(r'[\s\r\n\t]+ight', r' \\right', processed)
 
-    # 2. Corrigir blocos multilinhas iniciados com cifrão único '$' (Cifrão único NÃO pode conter \n)
+    # 2. Corrigir blocos multilinhas iniciados com cifrão único '$' (Cifrão único NÃO pode conter \n ou \\)
     def fix_multiline_single_dollar(match):
         inner = match.group(1)
         if '\n' in inner or '\\\\' in inner or '\\quad' in inner:
@@ -86,11 +94,15 @@ def sanitize_latex_string(text: str) -> str:
 
     processed = '\n'.join(processed_lines)
 
-    # 6. Garantir espaço em branco ao redor de inline math $...$ quando colado em palavras
+    # 6. Envolver comandos matemáticos LaTeX soltos em prosa que não estão dentro de $...$
+    symbols_to_wrap = r'(?:\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)'
+    processed = re.sub(r'(?<!\$)(?<!\\)\b(' + symbols_to_wrap + r')\b(?!\$)', r'$\1$', processed)
+
+    # 7. Garantir espaço em branco ao redor de inline math $...$ quando colado em palavras
     processed = re.sub(r'([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$', r'\1 $\2$', processed)
     processed = re.sub(r'\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])', r'$\1$ \2', processed)
 
-    # 7. Remover quebras de linha quadruplas
+    # 8. Remover quebras de linha quadruplas
     processed = re.sub(r'\n{4,}', '\n\n\n', processed)
 
     return processed
