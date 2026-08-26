@@ -11,6 +11,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Menu, X, Play, RefreshCw } from 'lucide-react';
 import AgentDebuggerModal from '@/components/AgentDebuggerModal';
+import { sanitizeLatex } from '@/app/utils/latexSanitizer';
 
 function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: string, nomeSimulador: string, htmlCode?: string }) {
   const [html, setHtml] = useState<string | null>(htmlCode || null);
@@ -207,33 +208,7 @@ export default function ProfessorSemesterViewer() {
   const router = useRouter();
 
   // Agora que o Backend garante a formatação rigorosa via o Agente Formatador LaTeX,
-  // o Frontend precisa apenas isolar os blocos $$ em seus próprios parágrafos
-  // para que o remark-math consiga processá-los corretamente como 'display math'.
-    const processLatex = (text: string) => {
-    if (!text) return "";
-    let processed = text;
-
-    // 1. Converter delimitadores clássicos LaTeX \[ \] e \( \) para $$ e $
-    processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
-    processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
-
-    // 2. Garantir que delimitadores $$ fiquem em suas próprias linhas para o remark-math
-    processed = processed.replace(/([^\n])\$\$/g, '$1\n$$');
-    processed = processed.replace(/\$\$([^\n])/g, '$$\n$1');
-    
-    // 3. Remove espaços em branco no INÍCIO de qualquer linha (impede <pre> identado no Markdown)
-    processed = processed.replace(/^[ \t]+/gm, '');
-
-    // 4. Arruma espaços acidentais em math inline gerados pela IA (ex: $ k $ -> $k$)
-    processed = processed.replace(/\$\s+([^$\n]+?)\s+\$/g, '$$$1$$');
-
-    // 5. Garantir espaço em branco antes e depois de inline math $...$ quando colado em palavras
-    processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$$2$$');
-    processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$$1$$ $2');
-
-    // 6. Remove quebras de linha excessivas
-    return processed.replace(/\n{4,}/g, '\n\n\n');
-  };
+  const processLatex = (text: string) => sanitizeLatex(text);
   const id = params.id as string;
 
   const [classroom, setClassroom] = useState<any>(null);
