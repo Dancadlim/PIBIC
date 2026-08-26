@@ -98,23 +98,25 @@ export default function AgentDebuggerModal({ salaId, numeroAula, onClose }: { sa
           <div className={`${selectedAgent ? 'w-1/3' : 'w-2/3'} p-6 bg-slate-50 flex flex-col items-center overflow-y-auto transition-all duration-300 relative`}>
             <h3 className="text-sm font-bold text-gray-400 mb-8 uppercase tracking-widest">Pipeline de Geração</h3>
             
-                        <div className="flex flex-col items-center relative w-full max-w-lg">
+            <div className="flex flex-col items-center relative w-full max-w-4xl">
               
               
               
               {renderNode("gerador_bruto", "Roteirista de Aula (Macro)")}
               
               {numSubtopics > 0 && (
-                <div className="w-full my-6 flex gap-4 overflow-x-auto pb-4 justify-center">
+                <div className="w-full my-8 flex gap-6 overflow-x-auto py-6 px-4 justify-start md:justify-center scrollbar-thin">
                   {Array.from({ length: numSubtopics }).map((_, i) => (
-                    <div key={i} className="flex flex-col items-center min-w-[200px] border border-slate-200 bg-white p-4 rounded-xl shadow-sm relative">
-                      <div className="text-xs font-bold text-slate-400 absolute -top-3 bg-white px-2">SUBTÓPICO {i + 1}</div>
+                    <div key={i} className="flex flex-col items-center min-w-[220px] border border-slate-200 bg-white p-5 rounded-2xl shadow-md hover:shadow-lg transition-shadow relative">
+                      <div className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-3 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                        Subtópico {i + 1}
+                      </div>
                       
                       {renderNode(`gerador_bruto_${i + 1}`, `Gerador ${i + 1}`)}
-                      <div className="flex items-center justify-center my-2 h-8">
-                         <div className="border-l-2 border-indigo-300 h-full border-dashed flex flex-col items-center justify-center">
-                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1 rounded-full relative z-10 ">?</span>
-                         </div>
+                      <div className="flex items-center justify-center my-3 h-8 w-full">
+                         <div className="border-l-2 border-indigo-200 h-full border-dashed flex flex-col items-center justify-center">
+                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-200 relative z-10 shadow-sm">?</span>
+                          </div>
                       </div>
                       {renderNode(`revisor_${i + 1}`, `Revisor ${i + 1}`)}
                     </div>
