@@ -501,16 +501,7 @@ export default function CriarSalaPersonalizada() {
                                             )}
                                         </div>
 
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2">Notações Matemáticas/Estatísticas Específicas (Opcional)</label>
-                                            <textarea 
-                                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm bg-white" 
-                                                rows={2}
-                                                placeholder="Ex: Média populacional deve ser escrita como \mu. Independência como \perp... (Ou envie por PDF acima)"
-                                                value={bloco.texto_base_notacoes}
-                                                onChange={(e) => { const n = [...aulasManuais]; n[idx].texto_base_notacoes = e.target.value; setAulasManuais(n); }}
-                                            />
-                                        </div>
+
 
                                         <div className="flex flex-col gap-4 p-4 bg-white border border-slate-200 rounded-xl">
                                             <div>
