@@ -437,6 +437,8 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
     
     tarefas_pendentes = list(enumerate(roteiro_pedagogico.esquema_paginas))
     max_workers_atuais = 5
+    cooldowns_executados = 0
+    MAX_COOLDOWNS = 3
     
     while tarefas_pendentes:
         print(f"\n[POOL] Iniciando pool com {max_workers_atuais} workers para {len(tarefas_pendentes)} tópicos pendentes.")
@@ -486,7 +488,10 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                     tarefas_pendentes.append((i, sub))
         
         if ocorreu_429 and tarefas_pendentes:
-            print("[COOLDOWN] Aguardando 60 segundos antes de tentar novamente...")
+            cooldowns_executados += 1
+            if cooldowns_executados > MAX_COOLDOWNS:
+                raise Exception(f"Abortando após {MAX_COOLDOWNS} tentativas falhas de cooldown para erros 429. Verifique sua cota da API.")
+            print(f"[COOLDOWN {cooldowns_executados}/{MAX_COOLDOWNS}] Aguardando 60 segundos antes de tentar novamente...")
             time.sleep(60)
             max_workers_atuais = 3
             print("[COOLDOWN] Reduzindo paralelismo para 3 workers para evitar novos erros 429.")

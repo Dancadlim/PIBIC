@@ -71,31 +71,22 @@ def lapidar_conteudo_global(payload_bruto: dict, logger=None):
         
         if logger:
             logger.update_agent("orquestrador", "concluido", resposta=resposta.text)
-            logger.log("Orquestrador Editorial: Lapida??o conclu?da.", "success")
+            logger.log("Orquestrador Editorial: Lapidação concluída.", "success")
 
         print(" [OK] Aula unificada, referências compiladas no rodapé e livre de repetições!")
         
-        # --- PASSO ADICIONAL: FORMATADOR DE LATEX ---
-        # Garantir que nenhum LaTeX saiu quebrado do Orquestrador
-        aula_unificada_json = json.loads(resposta.text)
-        aula_formatada = formatar_latex_final(aula_unificada_json, client)
-        
-        # --- PASSO ADICIONAL: GERADOR DE SIMULADORES INTERATIVOS ---
-        import agente_simulador
-        simuladores = aula_formatada.get("simuladores_da_aula", [])
-        if simuladores:
-            tema = aula_formatada.get("tema_global", "Aula")
-            for sim in simuladores:
-                nome = sim.get("nome_simulador")
-                if nome:
-                    print(f" [Orquestrador] Requisitando código do simulador: {nome}")
-                    html_code = agente_simulador.gerar_simulador_html(tema, nome, logger=logger)
-                    sim["codigo_html_gerado"] = html_code
-        
-        return aula_formatada
+        return json.loads(resposta.text)
 
     except Exception as e:
         print(f" [ERRO] Erro crítico no processo editorial: {e}")
+        if logger:
+            logger.update_agent("orquestrador", "erro")
+            logger.log(f"Orquestrador Editorial: Falha ao gerar aula unificada - {str(e)}", "error")
+            
+        # Tenta salvar o progresso mapeando a chave antiga para a nova para não quebrar os agentes paralelos
+        if "conteudo_paginas" in payload_bruto:
+            payload_bruto["paginas_conteudo"] = payload_bruto.pop("conteudo_paginas")
+            
         return payload_bruto
 
 def formatar_latex_final(aula_json: dict, client) -> dict:

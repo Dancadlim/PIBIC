@@ -333,21 +333,35 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
 
     simuladores_resultado = []
     
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        future_exercicios = executor.submit(task_exercicios)
-        futures_sim = [executor.submit(task_simulador, idx, rec) for idx, rec in tasks_simuladores]
-        
-        caderno = future_exercicios.result()
+    executor = ThreadPoolExecutor(max_workers=5)
+    future_exercicios = executor.submit(task_exercicios)
+    futures_sim = [executor.submit(task_simulador, idx, rec) for idx, rec in tasks_simuladores]
+    
+    try:
+        caderno = future_exercicios.result(timeout=300)
         if caderno:
             conteudo_final["exercicios_da_aula"] = caderno
-            
-        for f in futures_sim:
-            res = f.result()
+    except Exception as e:
+        print(f"[ERRO] Agente de Exercícios falhou: {e}")
+        if logger:
+            logger.update_agent("exercicios", "erro")
+            logger.log(f"Agente de Exercícios: Falha - {str(e)[:200]}", "error")
+        
+    for f in futures_sim:
+        try:
+            res = f.result(timeout=300)
             if res:
                 simuladores_resultado.append(res)
-                
-        if simuladores_resultado:
-            conteudo_final["simuladores_da_aula"] = simuladores_resultado
+        except Exception as e:
+            print(f"[ERRO] Agente Simulador falhou: {e}")
+            if logger:
+                logger.update_agent("simulador", "erro")
+                logger.log(f"Agente Simulador: Falha - {str(e)[:200]}", "error")
+            
+    if simuladores_resultado:
+        conteudo_final["simuladores_da_aula"] = simuladores_resultado
+        
+    executor.shutdown(wait=False)
             
     return conteudo_final
 
