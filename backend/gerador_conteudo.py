@@ -199,12 +199,14 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         roteiro_pedagogico = RoteiroCompletoAula.model_validate_json(resposta_roteiro.text)
         if logger:
             logger.init_subtopics(len(roteiro_pedagogico.esquema_paginas))
+            logger.update_agent("gerador_bruto", "concluido", resposta=resposta_roteiro.text)
+            logger.log(f"Roteirista: Roteiro macro concluído com {len(roteiro_pedagogico.esquema_paginas)} subtópicos.", "success")
         t_fim_roteirista = time.time()
         print(f"[OK] Roteiro gerado com sucesso! {len(roteiro_pedagogico.esquema_paginas)} subtópicos mapeados.")
     except Exception as e:
         if logger:
             logger.update_agent("gerador_bruto", "erro")
-            logger.log(f"Gerador de Conte?do: Erro cr?tico - {str(e)}", "error")
+            logger.log(f"Gerador de Conteúdo: Erro crítico - {str(e)}", "error")
         raise e
 
     # ==============================================================================
@@ -317,10 +319,6 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
             )
 
             try:
-                if logger:
-                    logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", prompt=prompt_escritor)
-                    logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
-                    
                 if logger:
                     logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", prompt=prompt_escritor)
                     logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
@@ -501,12 +499,11 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
     
     t_fim_escrita = time.time()
     if logger:
-        logger.update_agent("gerador_bruto", "concluido")
         for i in range(1, len(roteiro_pedagogico.esquema_paginas) + 1):
             logger.update_agent(f"gerador_bruto_{i}", "concluido")
             logger.update_agent(f"revisor_{i}", "concluido")
         logger.update_agent("revisor", "concluido")
-        logger.log("Conte?do bruto e revis?o finalizados.", "success")
+        logger.log("Conteúdo bruto e revisão finalizados.", "success")
 
     return {
         "tema": tema_solicitado,
