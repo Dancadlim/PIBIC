@@ -32,7 +32,7 @@ def gerar_caderno_exercicios(conteudo_aula_json: dict, logger=None, modelo_llm="
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
     client = genai.Client(vertexai=True, location="us-central1")
-    target_model = "gemini-3.5-flash-lite" if str(modelo_llm) == "3.5" else "gemini-2.5-flash"
+    target_model = "gemini-2.5-pro" if str(modelo_llm) == "pro" else "gemini-2.5-flash"
     
     # Reduzindo o conteúdo apenas para os textos essenciais para economizar tokens
     resumo_aula = f"Tema: {conteudo_aula_json.get('tema_global', 'Aula')}\n"

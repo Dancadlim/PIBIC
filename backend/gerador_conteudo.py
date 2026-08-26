@@ -82,15 +82,15 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-        client = genai.Client(vertexai=True, location="us-central1")
-        modelo_nome = "gemini-3.5-flash-lite" if modelo_llm == "3.5" else "gemini-2.5-flash"
+        client = genai.Client(vertexai=True, location="us-        modelo_roteirista = "gemini-2.5-pro"
+        modelo_escritor = "gemini-2.5-pro" if str(modelo_llm) == "pro" else "gemini-2.5-flash"
 
     except Exception as e:
         if logger:
             logger.update_agent("gerador_bruto", "erro")
-            logger.log(f"Gerador de Conte?do: Erro cr?tico - {str(e)}", "error")
+            logger.log(f"Gerador de Conteúdo: Erro crítico - {str(e)}", "error")
         raise e
-    
+
     # 1. Recupera as Stores do professor e de livros globais para busca híbrida simultânea
     NOME_STORE = f"store-{nome_professor.lower().strip()}-{codigo_disciplina.lower().strip()}"
     NOME_STORE_FALLBACK = "plataforma-estatistica-db"
@@ -128,10 +128,10 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
         raise ValueError("As diretrizes de notação e estilo são obrigatórias e devem ser fornecidas pelo Streamlit.")
 
     # ==============================================================================
-    # FASE 1: AGENTE 1 - O ROTEIRISTA DA EMENTA
+    # FASE 1: AGENTE 1 - O ROTEIRISTA DA EMENTA (Gemini 2.5 Pro)
     # ==============================================================================
     t_inicio_roteirista = time.time()
-    print("\n[Agente 1] Analisando a ementa e estruturando a trilha pedagógica da aula...")
+    print("\n[Agente 1 - Roteirista (gemini-2.5-pro)] Analisando a ementa e estruturando a trilha pedagógica da aula...")
     
     prompt_roteirista = f"""
 Você é um Designer Instrucional Especialista em Ensino Superior de Matemática e Estatística, com foco em modelagem de currículos acadêmicos rigorosos.
@@ -184,13 +184,15 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
     contents_roteirista.append(prompt_roteirista)
 
     try:
-        # Usando gemini-3.1-flash-lite com capacidade máxima de raciocínio profundo
         resposta_roteiro = client.models.generate_content(
-            model=modelo_nome,
+            model=modelo_roteirista,
             contents=contents_roteirista,
             config=types.GenerateContentConfig(
-                temperature=1.0,
+                temperature=0.4,
                 response_mime_type="application/json",
+                response_schema=RoteiroCompletoAula
+            )
+        )nse_mime_type="application/json",
                 response_schema=RoteiroCompletoAula
             )
         )
@@ -323,7 +325,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                     logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", prompt=prompt_escritor)
                     logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
                 resposta_escritor = client.models.generate_content(
-                    model=modelo_nome,
+                    model=modelo_escritor,
                     contents=[query_rag, prompt_escritor],
                     config=config_escritor
                 )

@@ -67,7 +67,7 @@ def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: s
     if not aula_json or not isinstance(aula_json, dict):
         return aula_json
         
-    target_model = "gemini-3.5-flash-lite" if str(modelo_llm) == "3.5" else "gemini-2.5-flash"
+    target_model = "gemini-2.5-pro"
     
     if logger:
         logger.update_agent("validador_latex", "rodando")
