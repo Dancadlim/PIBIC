@@ -95,7 +95,7 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
                 logger.log("Agente Simulador: Programando a interface...", "info")
             
             resposta = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.5-pro",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="text/plain"

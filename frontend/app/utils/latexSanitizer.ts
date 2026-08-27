@@ -37,6 +37,10 @@ function sanitizeInlineMath(content: string): string {
   c = c.replace(/\\+boldsymbol\\+\{/g, '\\boldsymbol{');
   c = c.replace(/\\+nginxed/g, '\\in');
   c = c.replace(/(?<!\\)%/g, '\\%');
+  
+  // Resolve artefatos onde o LLM insere múltiplas barras antes de comandos gregos, ex: \\\\mu -> \\mu
+  c = c.replace(/\\\\+/g, '\\');
+  
   return c.trim();
 }
 
@@ -68,7 +72,7 @@ export function sanitizeLatex(text: string): string {
       // É prosa comum (fora de cifrões)
       let prose = part;
       const symbolsToWrap = /(?<!\$)(?<!\\)\b(\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)\b(?!\$)/g;
-      prose = prose.replace(symbolsToWrap, ' $$1$ ');
+      prose = prose.replace(symbolsToWrap, ' $$$1$$ ');
       resultParts.push(prose);
     }
   }
@@ -76,8 +80,8 @@ export function sanitizeLatex(text: string): string {
   processed = resultParts.join('');
 
   // 3. Ajusta o espaçamento ao redor de inline math colado em palavras em português
-  processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$2$');
-  processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$1$ $2');
+  processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$$2$$');
+  processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$$1$$ $2');
 
   // 4. Remove espaços em branco no início de cada linha (evita bloco <pre> identado no Markdown)
   const lines = processed.split('\n');
