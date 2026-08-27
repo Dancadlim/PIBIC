@@ -53,7 +53,6 @@ def lapidar_conteudo_global(payload_bruto: dict, logger=None):
     prompt_editorial = PROMPT_ORQUESTRADOR.replace("[CAPÍTULO_BRUTO_AULA]", dados_entrada_str)
 
     config_editorial = types.GenerateContentConfig(
-        temperature=1.0,
         response_mime_type="application/json",
         response_schema=AulaUnificadaELapidada
     )
@@ -94,7 +93,6 @@ def formatar_latex_final(aula_json: dict, client) -> dict:
     print("\n[Formatador LaTeX] Inspecionando e corrigindo delimitadores matemáticos...")
     
     config_formatador = types.GenerateContentConfig(
-        temperature=0.1, # Muito baixo para não alterar conteúdo, apenas formatar
         response_mime_type="application/json",
         response_schema=AulaUnificadaELapidada
     )
@@ -124,7 +122,6 @@ def expandir_subtopico_para_prosa_livro(dados_subtopico: dict) -> str:
         model="gemini-2.5-pro",
         contents=[json.dumps(dados_subtopico, ensure_ascii=False), prompt],
         config=types.GenerateContentConfig(
-            temperature=1.0,
             response_mime_type="text/plain"
         )
     )

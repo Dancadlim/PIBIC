@@ -55,8 +55,7 @@ Responda apenas com o Array JSON.
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=self.system_instruction,
-                    response_mime_type="application/json",
-                    temperature=0.4
+                    response_mime_type="application/json"
                 )
             )
             return json.loads(response.text)

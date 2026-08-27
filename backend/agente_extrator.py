@@ -42,7 +42,6 @@ def extrair_regras_override(texto_documento: str, logger=None) -> Optional[Dict]
             model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.1,
                 response_mime_type="application/json",
                 response_schema=RegraOverride
             )

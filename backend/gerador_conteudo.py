@@ -227,7 +227,6 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         comentario_feedback_llm = "Nenhum. Esta é a primeira tentativa de escrita do bloco."
         subtopico_atual_dados = None
         dados_escritor_dict = None
-        ultimo_laudo = None
         
         feedbacks = []
         erros_429 = 0
@@ -338,7 +337,6 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                 
                 print(f"      [REVISOR] Analisando tópico {idx+1}...")
                 laudo_revisao = auditar_subtopico_local(dados_escritor_dict, diretrizes_texto, logger=logger, sub_idx=idx+1, sub_tentativa=tentativa)
-                ultimo_laudo = laudo_revisao
                 
                 if laudo_revisao.aprovado:
                     print(f"      [OK] Bloco {idx+1} APROVADO pelo revisor!")
@@ -398,21 +396,15 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                     print(f"      [ERRO] Falha genérica no tópico {idx+1}. Retentando em 5s... Erro: {e}")
                     time.sleep(5)
                 
-        if not subtopico_atual_dados:
-            if ultimo_laudo and ultimo_laudo.conteudo_corrigido:
-                print(f"      [LIMITE ATINGIDO] Utilizando a versão corrigida do Revisor como fallback para o bloco {idx+1}.")
-                subtopico_atual_dados = ultimo_laudo.conteudo_corrigido
-                if not subtopico_atual_dados.fontes_rag:
-                    subtopico_atual_dados.fontes_rag = [
-                        FonteRDetalhada(livro_autor="Fonte mantida (Fallback Revisor)", capitulo="N/A", paginas_utilizadas="p. S/N")
-                    ]
-            elif dados_escritor_dict:
-                print(f"      [LIMITE ATINGIDO] Sem correção válida do Revisor. Usando versão original não aprovada para o bloco {idx+1}.")
-                subtopico_atual_dados = SubtopicoValidado(**dados_escritor_dict)
-                if not subtopico_atual_dados.fontes_rag:
-                    subtopico_atual_dados.fontes_rag = [
-                        FonteRDetalhada(livro_autor="Fonte nao mapeada (Fallback Original)", capitulo="Falhas na revisao", paginas_utilizadas="p. S/N")
-                    ]
+        if not subtopico_atual_dados and dados_escritor_dict:
+            subtopico_atual_dados = SubtopicoValidado(**dados_escritor_dict)
+            subtopico_atual_dados.fontes_rag = [
+                FonteRDetalhada(
+                    livro_autor="Fonte nao mapeada",
+                    capitulo="Falhas na revisao",
+                    paginas_utilizadas="p. S/N"
+                )
+            ]
             
         t_fim_sub = time.time()
         log_data = {

@@ -58,8 +58,9 @@ class DecisaoRevisao(BaseModel):
         default=None,
         description="Se aprovado for False, escreva um laudo detalhado apontando onde o conteúdo falhou (notação errada, falta de rigor, explicação rasa) e o que o Escritor deve refazer."
     )
-    conteudo_corrigido: SubtopicoValidado = Field(
-        description="OBRIGATÓRIO. SEMPRE retorne o objeto de conteúdo revisado. Se aprovado for True, retorne com pequenos ajustes. Se aprovado for False, aplique as correções necessárias e retorne a melhor versão possível."
+    conteudo_corrigido: Optional[SubtopicoValidado] = Field(
+        default=None,
+        description="Se aprovado for True, retorne o objeto de conteúdo revisado sem alterações estruturais."
     )
 
 # ==============================================================================
