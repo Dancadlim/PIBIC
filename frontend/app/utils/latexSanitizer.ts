@@ -49,7 +49,7 @@ export function sanitizeLatex(text: string): string {
   processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
   // 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($...$) e Prosa
-  const pattern = /(\$\$.*?\$\$|\$[^\$\n]+?\$)/gs;
+  const pattern = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g;
   const parts = processed.split(pattern);
 
   const resultParts: string[] = [];
