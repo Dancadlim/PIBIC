@@ -58,9 +58,8 @@ class DecisaoRevisao(BaseModel):
         default=None,
         description="Se aprovado for False, escreva um laudo detalhado apontando onde o conteúdo falhou (notação errada, falta de rigor, explicação rasa) e o que o Escritor deve refazer."
     )
-    conteudo_corrigido: Optional[SubtopicoValidado] = Field(
-        default=None,
-        description="Se aprovado for True, retorne o objeto de conteúdo revisado sem alterações estruturais."
+    conteudo_corrigido: SubtopicoValidado = Field(
+        description="OBRIGATÓRIO. SEMPRE retorne o objeto de conteúdo revisado. Se aprovado for True, retorne com pequenos ajustes. Se aprovado for False, aplique as correções necessárias e retorne a melhor versão possível."
     )
 
 # ==============================================================================
@@ -83,7 +82,6 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logge
     prompt_revisor = PROMPT_REVISOR_CIENTIFICO.replace("[CONTEÚDO_BRUTO]", bloco_bruto_str).replace("[DIRETRIZES_DE_ESTILO]", diretrizes_texto)
 
     config_revisor = types.GenerateContentConfig(
-        temperature=1.0, # Puramente analítico e focado nas regras
         response_mime_type="application/json",
         response_schema=DecisaoRevisao
     )
