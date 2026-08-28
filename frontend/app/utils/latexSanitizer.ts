@@ -56,8 +56,9 @@ export function sanitizeLatex(text: string): string {
   processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
   processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
-  // 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($$...$$) e Prosa
-  const pattern = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g;
+  // 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($...$) e Prosa
+  // O lookbehind (?<!\\) impede que um \$ (cifrão escapado) inicie ou termine um bloco matemático.
+  const pattern = /(?<!\\)(\$\$[\s\S]*?(?<!\\)\$\$|(?<!\\)\$(?:[^\$\n]|\\\$)+?(?<!\\)\$)/g;
   const parts = processed.split(pattern);
 
   const resultParts: string[] = [];

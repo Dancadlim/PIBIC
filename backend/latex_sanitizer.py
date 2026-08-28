@@ -56,7 +56,8 @@ def sanitize_latex_string(text: str) -> str:
     processed = processed.replace(r'\(', '$').replace(r'\)', '$')
 
     # 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($...$) e Prosa
-    pattern = r'(\$\$.*?\$\$|\$[^\$\n]+?\$)'
+    # O lookbehind (?<!\\) impede que um \$ inicie ou termine um bloco matemático.
+    pattern = r'(?<!\\)(\$\$[\s\S]*?(?<!\\)\$\$|(?<!\\)\$(?:[^\$\n]|\\\$)+?(?<!\\)\$)'
     parts = re.split(pattern, processed, flags=re.DOTALL)
     
     result_parts = []
