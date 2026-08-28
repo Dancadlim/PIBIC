@@ -104,13 +104,12 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
             
             codigo_html = resposta.text.strip()
             
-            # Limpar crases de markdown se o modelo desobedecer
-            if codigo_html.startswith("```html"):
-                codigo_html = codigo_html[7:]
-            if codigo_html.startswith("```"):
-                codigo_html = codigo_html[3:]
-            if codigo_html.endswith("```"):
-                codigo_html = codigo_html[:-3]
+            import re
+            
+            # Limpar crases de markdown se o modelo desobedecer e extrair apenas o código
+            match = re.search(r"```(?:html)?\s*(.*?)\s*```", codigo_html, re.DOTALL | re.IGNORECASE)
+            if match:
+                codigo_html = match.group(1)
                 
             codigo_html = sanitizar_layout_grafico(codigo_html.strip())
             if logger:

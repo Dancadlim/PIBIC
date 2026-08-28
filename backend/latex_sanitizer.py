@@ -46,6 +46,11 @@ def sanitize_latex_string(text: str) -> str:
 
     processed = text
 
+    # Protege valores monetários (R$ e US$)
+    import re
+    processed = re.sub(r'R\$(?!\$)', 'R__DOLLAR__', processed)
+    processed = re.sub(r'US\$(?!\$)', 'US__DOLLAR__', processed)
+
     # 1. Normaliza delimitadores clássicos LaTeX
     processed = processed.replace(r'\[', '\n$$\n').replace(r'\]', '\n$$\n')
     processed = processed.replace(r'\(', '$').replace(r'\)', '$')
@@ -88,6 +93,10 @@ def sanitize_latex_string(text: str) -> str:
 
     # 5. Remove quebras de linha quadruplas
     processed = re.sub(r'\n{4,}', '\n\n\n', processed)
+
+    # 6. Restaura símbolos monetários
+    processed = processed.replace('R__DOLLAR__', r'R\$')
+    processed = processed.replace('US__DOLLAR__', r'US\$')
 
     return processed
 

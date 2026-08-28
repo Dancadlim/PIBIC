@@ -48,11 +48,15 @@ export function sanitizeLatex(text: string): string {
   if (!text) return "";
   let processed = text;
 
+  // Protege valores monetários (R$ e US$) substituindo temporariamente para que o tokenizador não os engula
+  processed = processed.replace(/R\$(?!\$)/g, 'R__DOLLAR__');
+  processed = processed.replace(/US\$(?!\$)/g, 'US__DOLLAR__');
+
   // 1. Normaliza delimitadores clássicos LaTeX
   processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
   processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
-  // 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($...$) e Prosa
+  // 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($$...$$) e Prosa
   const pattern = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g;
   const parts = processed.split(pattern);
 
@@ -89,6 +93,11 @@ export function sanitizeLatex(text: string): string {
   processed = processedLines.join('\n');
 
   // 5. Remove quebras de linha quadruplas
-  return processed.replace(/\n{4,}/g, '\n\n\n');
-}
+  processed = processed.replace(/\n{4,}/g, '\n\n\n');
 
+  // 6. Restaura os símbolos monetários devidamente escapados
+  processed = processed.replace(/R__DOLLAR__/g, 'R\\$');
+  processed = processed.replace(/US__DOLLAR__/g, 'US\\$');
+
+  return processed;
+}
