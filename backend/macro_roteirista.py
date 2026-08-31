@@ -4,6 +4,18 @@ from google import genai
 from google.genai import types
 from prompts import PROMPT_MACRO_ROTEIRISTA
 
+from pydantic import BaseModel, Field
+
+class AulaCronograma(BaseModel):
+    numero_aula: int = Field(description="Número sequencial da aula no cronograma.")
+    titulo: str = Field(description="Título formal e descritivo da aula.")
+    objetivo_principal: str = Field(description="Objetivo pedagógico central da aula.")
+    topicos_abordados: list[str] = Field(description="Lista de tópicos/subtópicos abordados nesta aula.")
+    aula_complementar: bool = Field(default=False, description="Indica se é aula de aprofundamento complementar.")
+
+class CronogramaCompleto(BaseModel):
+    aulas: list[AulaCronograma] = Field(description="Lista completa e ordenada de aulas do cronograma.")
+
 class MacroRoteirista:
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
@@ -44,21 +56,31 @@ DIRETRIZ DE CARGA HORÁRIA (MANDATÓRIO):
 
 DIRETRIZ DE APROFUNDAMENTO (MANDATÓRIO):
 {instrucao_aprofundamento}
-
-Responda apenas com o Array JSON.
 """
-        print(f"[MacroRoteirista] Pensando e fatiando a ementa. (Carga={tipo_carga_horaria}, Aprofundamento={permitir_aprofundamento})...")
+        print(f"[MacroRoteirista] Pensando e fatiando a ementa via Structured Output. (Carga={tipo_carga_horaria}, Aprofundamento={permitir_aprofundamento})...")
         
         try:
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=self.system_instruction,
-                    response_mime_type="application/json"
+            from gemini_retry import executar_chamada_com_retry
+
+            def chamar_macro():
+                return self.client.models.generate_content(
+                    model="gemini-2.5-pro",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=self.system_instruction,
+                        response_mime_type="application/json",
+                        response_schema=CronogramaCompleto
+                    )
                 )
+
+            response = executar_chamada_com_retry(
+                chamar_macro,
+                max_retries=5,
+                nome_agente="MacroRoteirista",
+                descricao="fatiamento da ementa em cronograma"
             )
-            return json.loads(response.text)
+            cronograma = CronogramaCompleto.model_validate_json(response.text)
+            return [aula.model_dump() for aula in cronograma.aulas]
         except Exception as e:
             print(f"[Erro no MacroRoteirista JSON] {e}")
             return []
