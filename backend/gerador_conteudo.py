@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from typing import List
 
 # Importando os schemas estruturados que criamos no arquivo anterior
-from schemas import SubtopicoValidado, FonteRDetalhada
+from schemas import SubtopicoValidado, FonteRDetalhada, SubtopicoRoteiro, RoteiroCompletoAula
 # Importamos a função do revisor local para auditoria
 from revisor_notacao import auditar_subtopico_local
 import latex_sanitizer
@@ -55,17 +55,6 @@ def carregar_chave_api():
 carregar_chave_api()
 
 # ==============================================================================
-# SCHEMA AUXILIAR APENAS PARA O AGENTE 1 (ROTEIRISTA)
-# ==============================================================================
-class SubtopicoRoteiro(BaseModel):
-    titulo: str = Field(description="Título curto e direto do sub-tópico conceitual.")
-    conceitos_chave_rag: List[str] = Field(description="Lista de 3 a 5 termos estatísticos específicos e exatos para guiar a busca vetorial.")
-
-class RoteiroCompletoAula(BaseModel):
-    topico_principal: str
-    esquema_paginas: List[SubtopicoRoteiro]
-
-# ==============================================================================
 # FUNÇÃO PRINCIPAL DE ORQUESTRAÇÃO DE CONTEÚDO
 # ==============================================================================
 def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solicitado: str, ementa_texto: str = None, diretrizes_texto: str = None, logger=None, modelo_llm: str = "2.5"):
@@ -76,9 +65,7 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     log_subtopicos = []
     if logger:
         logger.update_agent("gerador_bruto", "rodando")
-        logger.log("Gerador de Conte?do: Iniciando elabora??o do macro roteiro...", "info")
-    
-    # Garante que temos a chave configurada
+        logger.log("Gerador de Conteúdo: Iniciando elaboração do macro roteiro...", "info")
     
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
@@ -98,16 +85,12 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     store_names = []
     
     try:
-        # Faz uma busca por ambas as stores
         stores_disponiveis = list(client.file_search_stores.list())
-        
-        # 1. Tenta achar a store específica do professor
         for store in stores_disponiveis:
             if store.display_name == NOME_STORE:
                 store_names.append(store.name)
                 print(f"[RAG] RAG especifico do professor ativado! Usando a Store: {store.display_name}")
                 
-        # 2. Tenta achar a store global plataforma-estatistica-db que contem os livros
         for store in stores_disponiveis:
             if store.display_name == NOME_STORE_FALLBACK:
                 store_names.append(store.name)
@@ -135,48 +118,47 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     print("\n[Agente 1 - Roteirista (gemini-2.5-pro)] Analisando a ementa e estruturando a trilha pedagógica da aula...")
     
     prompt_roteirista = f"""
-Você é um Designer Instrucional Especialista em Ensino Superior de Matemática e Estatística, com foco em modelagem de currículos acadêmicos rigorosos.
+Você é um Designer Instrucional Especialista em Ensino Superior Universitário de Matemática e Estatística, com foco em modelagem de currículos acadêmicos de graduação.
 
 ### CONTEXTO E MISSÃO
-Você receberá a [EMENTA] de uma disciplina universitária (anexada em PDF) e um [TÓPICO_SOLICITADO] (um recorte extraído dessa ementa). 
-Sua missão é atuar como um arquiteto de conteúdo: você deve quebrar o [TÓPICO_SOLICITADO] em uma sequência lógica, 
-linear e exaustiva de subtópicos teóricos, preenchendo rigorosamente a estrutura 'RoteiroCompletoAula'.
+Você receberá a [EMENTA] oficial completa de uma disciplina universitária e um [TÓPICO_SOLICITADO] (o tema de uma aula específica).
+Sua missão é atuar como arquiteto pedagógico: você deve analisar o contexto e a maturidade da disciplina a partir da ementa e estruturar uma sequência equilibrada e coesa de subtópicos conceituais para a aula, preenchendo a estrutura 'RoteiroCompletoAula'.
 
 ---
 
-### DIRETRIZES DE ESCOPO E COBERTURA (MANDATÓRIO)
-1. Delimitação Estrita da Ementa: Analise a [EMENTA] global para entender o nível de maturidade da disciplina. 
-Cubra o [TÓPICO_SOLICITADO] com profundidade matemática adequada, mas NUNCA antecipe ou invada tópicos que estão listados em outras partes da ementa.
-2. Granularidade Didática: Não economize subtópicos. Se o tema for complexo, 
-fracione-o de forma robusta (geralmente entre 5 a 8 subtópicos, ou mais se necessário). 
-Cada item da lista deve focar intensamente em um único conceito específico, garantindo uma progressão pedagógica fluida.
-3. Formalismo Teórico Exclusivo: O foco deve ser a intuição conceitual, o formalismo matemático e as deduções analíticas. 
-É TERMINANTEMENTE PROIBIDO incluir, sugerir ou criar componentes de programação, sintaxe de código ou laboratórios computacionais 
-(como R, Python, SAS ou Julia).
+### DIRETRIZES DE CALIBRAÇÃO PEDAGÓGICA (MANDATÓRIO)
+1. Calibração pelo Nível da Disciplina no Currículo Universitário:
+   - Analise a [EMENTA] global para inferir o momento da disciplina no curso (ex: Disciplina Introdutória de primeiros semestres vs Disciplina de Formação Profissionalizante ou Tópicos Avançados de Bacharelado).
+   - Ajuste a profundidade para ser didática e alinhada ao nível da disciplina. Não force teoremas puramente abstratos ou assintóticos em disciplinas introdutórias, e não simplifique em excesso em matérias de formação avançada.
+2. Delimitação Estrita da Ementa: Cubra o [TÓPICO_SOLICITADO] com rigor e clareza, mas NUNCA antecipe ou invada tópicos listados em outras aulas da ementa.
+3. Granularidade Equilibrada: Estruture uma sequência pedagógica fluida e natural (geralmente entre 4 a 6 subtópicos balanceados, sem divisões artificiais ou excesso desnecessário). Cada subtópico deve ter foco claro.
+4. Formalismo Teórico e Didática: O foco deve ser intuição conceitual, rigor matemático adequado ao nível da disciplina e aplicações ricas. É TERMINANTEMENTE PROIBIDO incluir sintaxe de código de programação (R, Python, SAS).
 
 ---
 
 ### INSTRUÇÕES PARA PREENCHIMENTO DO SCHEMA DE RETORNO
 
-1. 'topico_principal' (string): 
-   - Nomeie o tema da aula de forma fluida, clara e contextualizada. 
+1. 'nivel_estimado_disciplina' (string):
+   - Descreva o contexto universitário inferido da ementa (ex: "Graduação - Ciclo Introdutório (Primeiros Semestres)", "Graduação - Ciclo Profissionalizante", "Graduação - Formação Avançada / Bacharelado").
+
+2. 'topico_principal' (string): 
+   - Nomeie o tema da aula de forma fluida, elegante e contextualizada. 
    - Exemplo: "Fundamentos Teóricos e Aplicações da Regressão Linear Simples".
 
-2. 'esquema_paginas' (lista de SubtopicoRoteiro):
-   Cada item representa um subtópico que se tornará uma página teórica e deve conter:
+3. 'esquema_paginas' (lista de SubtopicoRoteiro):
+   Cada item representa um subtópico da aula e deve conter:
    
-   - 'titulo' (string): Título científico elegante, imersivo e de alta sonoridade acadêmica. Evite nomes curtos, genéricos ou informais.
-     * Exemplo Ruim: "Introdução ao Teste t"
-     * Exemplo Ideal: "A Engenharia Inferencial: Testes de Hipóteses e Distribuição t de Student"
+   - 'titulo' (string): Título científico claro, convidativo e de boa sonoridade acadêmica.
+     * Exemplo: "Interpretação Geométrica dos Mínimos Quadrados Ordinários e Decomposição da Variância"
      
-   - 'conceitos_chave_rag' (lista de strings): Forneça de 3 a 5 palavras-chave cirúrgicas e termos técnicos exatos associados ao conceito (em português ou inglês). 
-     * IMPORTANTE: Esses termos serão usados por um Agente Escritor para busca vetorial (RAG) em livros-texto. Use jargões estatísticos precisos, notações ou nomes de teoremas/estimadores (ex: ["estimadores de MQO", "resíduos ordinários", "mínimos quadrados ordinários", "Gauss-Markov theorem"]).
+   - 'conceitos_chave_rag' (lista de strings): 3 a 5 termos técnicos precisos associados ao conceito para busca vetorial em livros-texto (ex: ["estimadores de MQO", "resíduos ordinários", "mínimos quadrados ordinários", "Gauss-Markov"]).
 
 ---
 
 ### ENTRADAS DO USUÁRIO
 - [EMENTA]: {ementa_texto}
 - [TÓPICO_SOLICITADO]: {tema_solicitado}
+- [DIRETRIZES_DO_PROFESSOR]: {diretrizes_texto}
 """
     
     contents_roteirista = []
@@ -281,24 +263,24 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
 2. 'conteudo' (objeto ConteudoSubtopico):
    - 'tipo_bloco' (string): Deve ser preenchido estritamente como 'teorico'.
-   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \n\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
-   - 'conceito_formal' (string): Apresente o enunciado matemático definitivo do conceito ou teorema. Defina o espaço amostral, os parâmetros e as variáveis com rigor matemático absoluto utilizando LaTeX estruturado ($$ ou $).
-   - 'propriedades_do_conceito' (lista de strings): Mapeie de forma exaustiva e rigorosa todas as leis, teoremas e propriedades matemáticas deduzidas diretamente desse conceito.
-   - 'pre_requisitos_e_auxiliares' (lista de strings): Liste os pré-requisitos conceituais e ferramentas de cálculo necessários para compreender este subtópico.
-   - 'condicoes_de_contorno' (lista de strings): Descreva todas as premissas matemáticas e suposições fundamentais para a validade do modelo (ex: homocedasticidade, independência dos erros, normalidade). Se não houver, preencha 'N/A'.
-   - 'simulador_interativo_recomendado' (string): Proponha uma simulação interativa baseada em Plotly que auxilie a visualizar este conceito (ex: reta OLS com sliders de tamanho amostral $n$ e ruído $\sigma$). Detalhe as variáveis e os limites dos sliders para o frontend do Streamlit.
-   - 'deducao_formal_passo_a_passo' (lista de strings): Forneça a demonstração matemática completa. Cada string deve representar um único passo ou equação matemática em LaTeX ($$), organizados de forma logicamente contígua e sem saltar passagens algébricas cruciais. Lembre-se que QUALQUER BLOCO DE MULTIPLAS LINHAS DEVE ESTAR ENVOLVIDO POR $$ DUPLO.
-   - 'interpretacao_geometrica_grafica' (string): Explique de forma clara como visualizar esse conceito graficamente ou espacialmente (ex: inclinação da reta, áreas de probabilidade sob curvas, vetores de erro).
-   - 'exemplo_canonico' (objeto EstruturaExemplo):
-     * 'enunciado' (string): Enunciado realista e complexo sobre o mundo real (controle de qualidade, ensaios clínicos, IoT), evitando problemas puramente abstratos.
-     * 'passo_a_passo_solucao' (lista de strings): As passagens e etapas de cálculo detalhadas em LaTeX ($$), mostrando numericamente a substituição de valores nas fórmulas.
-     * 'resultado_final' (string): O resultado aritmético final seguido da respectiva interpretação prática/comercial conclusiva.
+   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \n\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. Adote o tom, linguagem e termos do professor fornecidos no override. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
+   - 'conceito_formal' (string ou null): Apresente o enunciado matemático formal em LaTeX ($$ ou $). Se o subtópico for histórico/qualitativo/conceitual (sem fórmulas próprias), RETORNE ESTRITAMENTE null.
+   - 'propriedades_do_conceito' (lista de strings ou null): Mapeie leis, teoremas e propriedades deduzidas diretamente desse conceito (ou null se for subtópico qualitativo).
+   - 'pre_requisitos_e_auxiliares' (lista de strings ou null): Ferramentas matemáticas necessárias (ou null se não houver).
+   - 'condicoes_de_contorno' (lista de strings ou null): Premissas e suposições fundamentais para a validade do modelo (ou null se não aplicável).
+   - 'simuladores_interativos_recomendados' (lista de strings ou null): Lista contendo uma ou mais propostas de simulações/visualizações interativas com Plotly e controles dinâmicos/sliders (ex: ['Reta OLS com sliders de tamanho amostral n e ruído sigma', 'Gráfico de dispersão de resíduos']). PRIORIZE SEMPRE A INTERATIVIDADE. Se não for necessário gráfico neste subtópico, retorne null.
+   - 'deducao_formal_passo_a_passo' (lista de strings ou null): Demonstração matemática completa em LaTeX ($$), cada string representando um passo contíguo. Se for subtópico conceitual/histórico/qualitativo sem demonstração algébrica, RETORNE ESTRITAMENTE null.
+   - 'interpretacao_geometrica_grafica' (string ou null): Explique como visualizar o conceito espacialmente ou graficamente (ou null se não aplicável).
+   - 'exemplo_canonico' (objeto EstruturaExemplo ou null):
+     * 'enunciado' (string): Problema contextualizado (podendo ser clássico como moedas/dados para intuição ou aplicado à indústria).
+     * 'passo_a_passo_solucao' (lista de strings): Cálculos detalhados em LaTeX ($$).
+     * 'resultado_final' (string): Resultado aritmético seguido de interpretação prática.
 
 3. 'fontes_rag' (lista de FonteRDetalhada):
    Cada item representa uma fonte bibliográfica e deve conter:
    - 'livro_autor' (string): Sobrenome dos autores e título clássico do livro.
    - 'capitulo' (string): Capítulo e seção consultada.
-   - 'paginas_utilizadas' (string): O número exato da página ou intervalo de páginas consultadas (ex: "p. 142" ou "pp. 210-214"). ATENÇÃO: A ausência de páginas exatas é motivo de reprovação pelo Revisor.
+   - 'paginas_utilizadas' (string): O número exato da página ou intervalo de páginas consultadas (ex: "p. 142" ou "pp. 210-214"). Se não houver RAG, preencher com referências padrão consolidadas.
 
 ---
 

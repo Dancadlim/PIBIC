@@ -274,7 +274,7 @@ def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: s
         return aula_sanitizada
 
     # 3. Caso haja anomalias estruturais, aciona o Reparo Cirúrgico Estruturado (Passo 2)
-    print(f" ⚠️ [AVISO] {len(anomalias_encontradas)} anomalia(s) estrutural(is) detectada(s). Acionando Reparo Cirúrgico via {target_model}...")
+    print(f" [AVISO] {len(anomalias_encontradas)} anomalia(s) estrutural(is) detectada(s). Acionando Reparo Cirurgico via {target_model}...")
     if logger:
         logger.log(f"Auditor de Compilação LaTeX: Acionando {target_model} para reparo cirúrgico de {len(anomalias_encontradas)} anomalias...", "warning")
         

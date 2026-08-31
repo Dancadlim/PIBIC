@@ -336,8 +336,12 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
         if not tasks_simuladores:
             for i, pag in enumerate(conteudo_final.get("paginas_conteudo", [])):
                 if isinstance(pag, dict):
-                    rec = pag.get("simulador_interativo_recomendado")
-                    if rec and str(rec).lower() != "none" and str(rec).strip() != "":
+                    rec = pag.get("simulador_interativo_recomendado") or pag.get("simuladores_interativos_recomendados")
+                    if isinstance(rec, list):
+                        for item in rec:
+                            if item and str(item).strip():
+                                tasks_simuladores.append((str(i + 1), str(item)))
+                    elif rec and str(rec).lower() != "none" and str(rec).strip() != "":
                         tasks_simuladores.append((str(i + 1), str(rec)))
 
     executor = ThreadPoolExecutor(max_workers=5)
@@ -377,8 +381,6 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
         conteudo_final["simuladores_da_aula"] = simuladores_resultado
         
     executor.shutdown(wait=False)
-    return conteudo_final
-            
     return conteudo_final
 
 @app.post("/api/editar_aula_bloco")
@@ -448,24 +450,31 @@ def processar_aula_avulsa_background(req: AulaAvulsaRequest):
         topicos = req.aula_manual.descricao
         objetivo = req.aula_manual.descricao
         titulo = req.aula_manual.titulo
-        tema_montado = f"Disciplina: {nome_disciplina}. Aula: {titulo}. Objetivo: {objetivo}. T?picos: {topicos}"
+        tema_montado = f"Disciplina: {nome_disciplina}. Aula: {titulo}. Objetivo: {objetivo}. Tópicos: {topicos}"
         
         diretrizes = f"Foque nestes tópicos: {topicos}. Adapte a profundidade para atingir este objetivo: {objetivo}. Use notação matemática rigorosa e seja didático."
-        if req.aula_manual.texto_base_pdf:
-            diretrizes += f"\nATENÇÃO ESTRITA - MATERIAL DE APOIO DO PROFESSOR: Baseie toda a estrutura desta aula, os exemplos, as explicações e o contexto exclusivamente ou prioritariamente no material a seguir fornecido pelo professor:\n\n{req.aula_manual.texto_base_pdf}\n\n[FIM DO MATERIAL DO PROFESSOR]."
-            
+        
         db.collection("classrooms").document(req.sala_id).update({"status": "gerando_aulas", "detalhe_progresso": f"Aula Avulsa: Agente Escritor (Fase 1/3)..."})
         
         from logger_agentes import AgentLogger
         logger = AgentLogger(db, req.sala_id, req.numero_aula)
         logger.log(f"Iniciando geracao da Aula Avulsa {req.numero_aula}", "info")
         
-        notacoes_raw = req.aula_manual.texto_base_notacoes
+        # Consolida todo o material de apoio, anotações e diretrizes para o Agente 1
+        materiais_professor = []
+        if req.aula_manual.texto_base_pdf:
+            materiais_professor.append(f"[MATERIAL DE APOIO / TEXTO BASE DO PROFESSOR]:\n{req.aula_manual.texto_base_pdf}")
+        if req.aula_manual.texto_base_notacoes:
+            materiais_professor.append(f"[ANOTAÇÕES DE NOTAÇÃO E LINGUAGEM DO PROFESSOR]:\n{req.aula_manual.texto_base_notacoes}")
+        if req.aula_manual.descricao:
+            materiais_professor.append(f"[DIRETRIZES PEDAGÓGICAS E OBJETIVOS DO PROFESSOR]:\n{req.aula_manual.descricao}")
+            
+        texto_consolidado_professor = "\n\n".join(materiais_professor)
         override_prompt_block = ""
-        if notacoes_raw and notacoes_raw.strip():
+        if texto_consolidado_professor.strip():
             import agente_extrator
-            log_debug(req.sala_id, f"Aula Avulsa {req.numero_aula}: Extraindo notações e diretrizes específicas com Agente Extrator...")
-            override_dict = agente_extrator.extrair_regras_override(notacoes_raw, logger=logger)
+            print(f"Aula Avulsa {req.numero_aula}: Extraindo notações, tom e diretrizes com Agente Extrator...")
+            override_dict = agente_extrator.extrair_regras_override(texto_consolidado_professor, logger=logger)
             if override_dict:
                 override_prompt_block = agente_extrator.formatar_override_para_prompt(override_dict)
                 diretrizes = f"{override_prompt_block}\n\n{diretrizes}"

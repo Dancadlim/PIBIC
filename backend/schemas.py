@@ -6,6 +6,10 @@ from typing import List, Dict, Optional, Literal
 # ==========================================
 
 class RegraOverride(BaseModel):
+    tom_e_linguagem_professor: Optional[str] = Field(
+        default=None,
+        description="Perfil pedagógico descritivo e aprofundado (parágrafo rico e detalhado) capturando a voz e identidade do professor: tom didático (ex: instigante, acolhedor, pragmático, formal), nível de diálogo com o aluno, vocabulário e expressões características, tipo de metáforas/analogias preferidas e ritmo de condução das explicações."
+    )
     notacoes_estatisticas_especificas: Optional[Dict[str, str]] = Field(
         default=None,
         description="Mapeamento chave-valor de conceitos estatísticos/matemáticos para a notação exata exigida pelo professor. Ex: {'média populacional': '\\\\mu', 'desvio padrão': '\\\\sigma', 'independência': '\\\\perp'}."
@@ -22,6 +26,21 @@ class RegraOverride(BaseModel):
         default=None,
         description="Anotações gerais e contextuais extraídas do documento."
     )
+
+# ==========================================
+# SCHEMAS DO AGENTE 1 (ROTEIRISTA PEDAGÓGICO)
+# ==========================================
+
+class SubtopicoRoteiro(BaseModel):
+    titulo: str = Field(description="Título conceitual elegante e direto do sub-tópico.")
+    conceitos_chave_rag: List[str] = Field(description="Lista de 3 a 5 termos estatísticos específicos e exatos para guiar a busca vetorial (RAG).")
+
+class RoteiroCompletoAula(BaseModel):
+    nivel_estimado_disciplina: str = Field(
+        description="Contexto e maturidade da disciplina no currículo universitário (ex: 'Graduação - Ciclo Introdutório', 'Graduação - Formação Profissionalizante', 'Graduação - Formação Avançada / Bacharelado')."
+    )
+    topico_principal: str = Field(description="Título principal e contextualizado da aula.")
+    esquema_paginas: List[SubtopicoRoteiro] = Field(description="Sequência lógica e balanceada de subtópicos pedagógicos.")
 
 # ==========================================
 # SUB-OBJETOS AUXILIARES
@@ -70,14 +89,14 @@ class ConteudoSubtopico(BaseModel):
     # ----------------------------------------------------
     conceito_intuitivo: str = Field(description="Explicação profunda do conceito em linguagem natural e fluida, sem formalismo matemático ainda.")
     conceito_formal: Optional[str] = Field(default=None, description="Definição matemática precisa ou enunciado acadêmico formal em LaTeX. Se o subtópico for histórico/qualitativo/conceitual (sem fórmulas próprias), retorne estritamente null.")
-    propriedades_do_conceito: List[str] = Field(description="Lista de regras, teoremas ou leis que este conceito sempre segue.")
-    pre_requisitos_e_auxiliares: List[str] = Field(description="Mapeamento de ferramentas matemáticas ou aulas passadas necessárias aqui.")
-    condicoes_de_contorno: List[str] = Field(description="Suposições obrigatórias para que a teoria seja válida. Se não houver, responda 'N/A'.")
+    propriedades_do_conceito: Optional[List[str]] = Field(default=None, description="Lista de regras, teoremas ou leis que este conceito segue (ou null se qualitativo/histórico).")
+    pre_requisitos_e_auxiliares: Optional[List[str]] = Field(default=None, description="Mapeamento de ferramentas matemáticas ou aulas passadas necessárias aqui (ou null se não houver).")
+    condicoes_de_contorno: Optional[List[str]] = Field(default=None, description="Suposições obrigatórias para que a teoria seja válida (ou null/N/A se não aplicável).")
     
-    # --- O NOVO CAMPO ACIONADOR DE INTERATIVIDADE ---
-    simulador_interativo_recomendado: Optional[str] = Field(
+    # --- CAMPO ACIONADOR DE INTERATIVIDADE E MÚLTIPLOS GRÁFICOS ---
+    simuladores_interativos_recomendados: Optional[List[str]] = Field(
         default=None, 
-        description="Se o subtópico se beneficiar de um gráfico parametrizado por sliders, descreva detalhadamente qual simulação deve ser renderizada aqui (Ex: 'Plotar curva gaussiana bicaudal onde o slider altera alfa'). Se não precisar, deixe None."
+        description="Lista de propostas de simulações/visualizações interativas (priorizando Plotly com sliders/controles reativos) para este subtópico. Pode conter mais de uma proposta ou None se não aplicável."
     )
     
     # ----------------------------------------------------
@@ -85,11 +104,11 @@ class ConteudoSubtopico(BaseModel):
     # ----------------------------------------------------
     deducao_formal_passo_a_passo: Optional[List[str]] = Field(
         default=None,
-        description="O passo a passo detalhado da derivação matemática das fórmulas em LaTeX."
+        description="O passo a passo detalhado da derivação matemática das fórmulas em LaTeX (ou null se for subtópico conceitual/qualitativo/histórico)."
     )
     interpretacao_geometrica_grafica: Optional[str] = Field(
         default=None,
-        description="A descrição de como visualizar esse teorema espacialmente ou em gráficos."
+        description="A descrição de como visualizar esse conceito espacialmente ou em gráficos (ou null se não aplicável)."
     )
     
     # ----------------------------------------------------
@@ -97,7 +116,7 @@ class ConteudoSubtopico(BaseModel):
     # ----------------------------------------------------
     exemplo_canonico: Optional[EstruturaExemplo] = Field(
         default=None,
-        description="O exemplo (clássico ou prático) estruturado ou None."
+        description="O exemplo estruturado ou None."
     )
 
 class SubtopicoValidado(BaseModel):

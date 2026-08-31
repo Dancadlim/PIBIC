@@ -34,8 +34,8 @@ Simulação Solicitada: {nome_simulador}
    - Exiba o valor numérico atual ao lado de cada slider (ex: `<span id="val-n" class="font-bold text-blue-600 font-mono">100</span>`).
    - Conecte o evento `oninput` para atualizar os dados e re-plotar instantaneamente no JS (`Plotly.react` ou `chart.update()`).
 
-4. CARD EXPLICATIVO MATEMÁTICO:
-   - Inclua um card explicativo ao rodapé da página contextualizando os resultados matemáticos de {tema_aula}.
+4. CARD EXPLICATIVO (OPCIONAL):
+   - Se for extremamente necessário, inclua um pequeno card explicativo ao rodapé da página contextualizando os resultados, mas priorize um design limpo apenas com o gráfico e os controles.
 
 [CÓDIGO DE PARTIDA ESPERADO]
 Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE html> e terminando com </html>). É PROIBIDO usar marcadores de markdown (como ```html).

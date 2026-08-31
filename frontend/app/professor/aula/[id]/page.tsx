@@ -671,16 +671,21 @@ export default function ProfessorSemesterViewer() {
                         </div>
 
                         {(() => {
-                          const simuladorInfo = selectedAula.conteudo_json?.simuladores_da_aula?.find(
+                          const simuladores = selectedAula.conteudo_json?.simuladores_da_aula?.filter(
                             (s: any) => String(s.indice_pagina) === String(idx + 1)
                           );
-                          if (simuladorInfo) {
+                          if (simuladores && simuladores.length > 0) {
                             return (
-                              <SimuladorInterativo 
-                                temaAula={`${selectedAula.titulo} - ${titulo}`} 
-                                nomeSimulador={simuladorInfo.nome_simulador} 
-                                htmlCode={simuladorInfo.codigo_html_gerado}
-                              />
+                              <div className="space-y-6 my-6">
+                                {simuladores.map((simuladorInfo: any, sIdx: number) => (
+                                  <SimuladorInterativo 
+                                    key={`sim-prof-${idx}-${sIdx}`}
+                                    temaAula={`${selectedAula.titulo} - ${titulo}`} 
+                                    nomeSimulador={simuladorInfo.nome_simulador} 
+                                    htmlCode={simuladorInfo.codigo_html_gerado}
+                                  />
+                                ))}
+                              </div>
                             );
                           }
                           return null;
