@@ -664,8 +664,8 @@ export default function ProfessorSemesterViewer() {
                       />
 
                       <div className="prose prose-lg prose-blue max-w-none text-slate-700">
-                        <div className="whitespace-pre-wrap leading-relaxed mb-6">
-                          <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                        <div className="leading-relaxed mb-6 space-y-4">
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                             {processLatex(textoProsa)}
                           </ReactMarkdown>
                         </div>
@@ -695,7 +695,7 @@ export default function ProfessorSemesterViewer() {
                           <div className="my-8 p-6 bg-slate-50 rounded-xl  border border-slate-200 text-center">
                             <span className="text-blue-800 font-bold block mb-2 text-sm uppercase tracking-wider">Fórmula / Definição Formal</span>
                             <div className="text-lg text-left inline-block w-full overflow-x-auto overflow-y-hidden">
-                              <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                 {processLatex(latexCode)}
                               </ReactMarkdown>
                             </div>
@@ -710,7 +710,7 @@ export default function ProfessorSemesterViewer() {
                             <div className="p-6 bg-slate-50/50 space-y-4">
                               {deducoes.map((passo: string, pIdx: number) => (
                                 <div key={pIdx} className="text-slate-600 text-sm md:text-base w-full overflow-x-auto overflow-y-hidden">
-                                  <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                     {processLatex(passo)}
                                   </ReactMarkdown>
                                 </div>
@@ -722,13 +722,13 @@ export default function ProfessorSemesterViewer() {
                         {exemplos?.length > 0 && (
                           <div className="mt-8">
                             <h4 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                              <span>💡</span> Exemplos Práticos Interativos
+                              <span>💡</span> Exemplos Práticos
                             </h4>
                             {exemplos.map((exemplo: any, eIdx: number) => (
                               <div key={eIdx} className="bg-blue-50/40 p-6 rounded-xl mb-6 border border-blue-100">
                                 <div className="font-semibold text-slate-800 mb-4 border-b border-blue-200 pb-2">
                                   <div className="flex-1 pr-4 overflow-x-auto overflow-y-hidden">
-                                    <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                       {processLatex(exemplo.contexto_e_enunciado || exemplo.enunciado)}
                                     </ReactMarkdown>
                                   </div>
@@ -740,7 +740,7 @@ export default function ProfessorSemesterViewer() {
                                       <h5 className="font-bold text-slate-700 mb-2 text-sm uppercase">Passo a Passo</h5>
                                       {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao).map((passo: string, pIdx: number) => (
                                         <div key={pIdx} className="text-slate-600 text-sm">
-                                          <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                             {processLatex(passo)}
                                           </ReactMarkdown>
                                         </div>

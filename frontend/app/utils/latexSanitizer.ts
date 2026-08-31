@@ -76,7 +76,7 @@ export function sanitizeLatex(text: string): string {
     } else {
       // É prosa comum (fora de cifrões)
       let prose = part;
-      const symbolsToWrap = /(?<!\$)(?<!\\)\b(\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)\b(?!\$)/g;
+      const symbolsToWrap = /(?<!\$)(?<!\\)(\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|in|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\}))(?!\$)/g;
       prose = prose.replace(symbolsToWrap, ' $$$1$$ ');
       resultParts.push(prose);
     }
@@ -84,19 +84,25 @@ export function sanitizeLatex(text: string): string {
 
   processed = resultParts.join('');
 
-  // 3. Ajusta o espaçamento ao redor de inline math colado em palavras em português
+  // 3. Anexa pontuações isoladas que ficaram soltas após equações ou quebras de linha
+  processed = processed.replace(/(\$\$[\s\S]*?\$\$)\s*\n+\s*([.,;:!?])/g, '$1$2\n\n');
+  processed = processed.replace(/\n+\s*([.,;:!?])\s+(?=[A-Za-z0-9Á-ÿ])/g, '$1 ');
+  processed = processed.replace(/\n+\s*([.,;:!?])\s*\n+/g, '$1\n\n');
+  processed = processed.replace(/\.{2,}/g, '.');
+
+  // 4. Ajusta o espaçamento ao redor de inline math colado em palavras em português
   processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$$2$$');
   processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$$1$$ $2');
 
-  // 4. Remove espaços em branco no início de cada linha (evita bloco <pre> identado no Markdown)
+  // 5. Remove espaços em branco no início de cada linha (evita bloco <pre> identado no Markdown)
   const lines = processed.split('\n');
   const processedLines = lines.map(line => line.replace(/^[ \t]+/, ''));
   processed = processedLines.join('\n');
 
-  // 5. Remove quebras de linha quadruplas
-  processed = processed.replace(/\n{4,}/g, '\n\n\n');
+  // 6. Remove excesso de quebras de linha mantendo no máximo parágrafo duplo
+  processed = processed.replace(/\n{3,}/g, '\n\n');
 
-  // 6. Restaura os símbolos monetários devidamente escapados
+  // 7. Restaura os símbolos monetários devidamente escapados
   processed = processed.replace(/R__DOLLAR__/g, 'R\\$');
   processed = processed.replace(/US__DOLLAR__/g, 'US\\$');
 

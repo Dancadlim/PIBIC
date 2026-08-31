@@ -76,26 +76,32 @@ def sanitize_latex_string(text: str) -> str:
         else:
             # É prosa comum (fora de cifrões)
             prose = part
-            # Símbolos gregos e matemáticos soltos na prosa
-            symbols_to_wrap = r'(?:\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)'
-            prose = re.sub(r'(?<!\$)(?<!\\)\b(' + symbols_to_wrap + r')\b(?!\$)', r' $\1$ ', prose)
+            # Símbolos gregos (minúsculos e maiúsculos) e matemáticos soltos na prosa
+            symbols_to_wrap = r'\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|in|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\})'
+            prose = re.sub(r'(?<!\$)(?<!\\)(' + symbols_to_wrap + r')(?!\$)', r' $\1$ ', prose)
             result_parts.append(prose)
 
     processed = "".join(result_parts)
 
-    # 3. Ajusta o espaçamento ao redor de inline math colado em palavras em português
+    # 3. Anexa pontuações isoladas que ficaram soltas após equações ou quebras de linha
+    processed = re.sub(r'(\$\$[\s\S]*?\$\$)\s*\n+\s*([.,;:!?])', r'\1\2\n\n', processed)
+    processed = re.sub(r'\n+\s*([.,;:!?])\s+(?=[A-Za-z0-9Á-ÿ])', r'\1 ', processed)
+    processed = re.sub(r'\n+\s*([.,;:!?])\s*\n+', r'\1\n\n', processed)
+    processed = re.sub(r'\.{2,}', '.', processed)
+
+    # 4. Ajusta o espaçamento ao redor de inline math colado em palavras em português (preservando hífens como $\sigma$-álgebra)
     processed = re.sub(r'([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$', r'\1 $\2$', processed)
     processed = re.sub(r'\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])', r'$\1$ \2', processed)
 
-    # 4. Remove espaços em branco no início de cada linha para evitar bloco <pre> identado no Markdown
+    # 5. Remove espaços em branco no início de cada linha para evitar bloco <pre> identado no Markdown
     lines = processed.split('\n')
     processed_lines = [line.lstrip(' \t') for line in lines]
     processed = '\n'.join(processed_lines)
 
-    # 5. Remove quebras de linha quadruplas
-    processed = re.sub(r'\n{4,}', '\n\n\n', processed)
+    # 6. Remove excesso de quebras de linha múltiplas mantendo no máximo parágrafo duplo (\n\n)
+    processed = re.sub(r'\n{3,}', '\n\n', processed)
 
-    # 6. Restaura símbolos monetários
+    # 7. Restaura símbolos monetários
     processed = processed.replace('R__DOLLAR__', r'R\$')
     processed = processed.replace('US__DOLLAR__', r'US\$')
 

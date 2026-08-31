@@ -10,32 +10,32 @@ def carregar_chave_api():
 
 PROMPT_ENGENHEIRO_SIMULACAO = """
 Você é um Engenheiro de Frontend Sênior especializado em Data Visualization e interatividade educacional.
-Sua missão é criar uma simulação interativa baseada em tecnologias web nativas (HTML, Tailwind CSS via CDN, Javascript) e bibliotecas de gráficos (Plotly.js ou Chart.js via CDN).
+Sua missão é criar uma simulação interativa baseada em tecnologias web nativas (HTML, Tailwind CSS via CDN, Javascript) e bibliotecas de gráficos (Plotly.js via CDN).
 
 [CONTEXTO DA AULA]
 Tema Geral da Aula: {tema_aula}
 Simulação Solicitada: {nome_simulador}
 
-[DIRETRIZES DE LAYOUT E EVITAÇÃO DE SOBREPOSIÇÃO - CRÍTICO]
-1. TÍTULO HIERÁRQUICO FORA DO GRÁFICO (PROIBIDO SOBREPOSIÇÃO):
-   - O título principal da simulação DEVE ser colocado em HTML puro, ACIMA do container do gráfico (ex: `<div class="text-center mb-4"><h3 class="text-lg font-bold text-slate-800">{nome_simulador}</h3><p class="text-xs text-slate-500">Ajuste os parâmetros abaixo para observar a convergência em tempo real</p></div>`).
-   - NO JS DO PLOTLY / CHART.JS: Mantenha o título interno do gráfico VAZIO (`title: {{ text: '' }}` ou omitido). NUNCA insira texto no `title` do Plotly, pois ele sobrepõe a legenda e o eixo Y.
+[DIRETRIZES DE RENDERIZAÇÃO E LAYOUT - CRÍTICO]
+1. TÍTULO HIERÁRQUICO FORA DO GRÁFICO:
+   - O título principal da simulação DEVE ser colocado em HTML puro, ACIMA do container do gráfico.
+   - NO JS DO PLOTLY: Mantenha o título interno do gráfico VAZIO (`title: {{ text: '' }}` ou omitido) para não colidir com legenda ou eixos.
 
-2. POSICIONAMENTO DA LEGENDA E MARGENS:
-   - A legenda do gráfico DEVE ficar obrigatoriamente ABAIXO da área plotada.
-   - No Plotly.js, configure a legenda com:
-     `legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.25 }}`
-   - Configure margens limpas no Plotly layout:
-     `margin: {{ t: 25, b: 65, l: 60, r: 35 }}`
-   - No Plotly.newPlot, ative a responsividade: `Plotly.newPlot('divId', data, layout, {{ responsive: true, displayModeBar: false }})`.
+2. ALTURA FIXA E VISIBILIDADE DO CONTAINER DO GRÁFICO (MANDATÓRIO):
+   - A div do gráfico DEVE ter estilo inline com largura e altura explícitas para NUNCA ficar invisível ou com altura 0:
+     `<div id="grafico" style="width: 100%; min-height: 420px; height: 450px;"></div>`
+   - No layout do Plotly, use:
+     `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
+   - Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
 
-3. PAINEL DE CONTROLES E SLIDERS INTERATIVOS:
-   - Crie sliders (input type="range") e botões elegantes estilizados com Tailwind CSS.
-   - Exiba o valor numérico atual ao lado de cada slider (ex: `<span id="val-n" class="font-bold text-blue-600 font-mono">100</span>`).
-   - Conecte o evento `oninput` para atualizar os dados e re-plotar instantaneamente no JS (`Plotly.react` ou `chart.update()`).
+3. INICIALIZAÇÃO IMEDIATA E CONTROLES DINÂMICOS:
+   - Crie sliders (`<input type="range">`) e botões com Tailwind CSS.
+   - Mostre o valor numérico atual ao lado de cada slider (`<span id="val-n">100</span>`).
+   - A função de plotagem DEVE ser chamada imediatamente no carregamento da página (`document.addEventListener('DOMContentLoaded', render); render();`).
+   - Conecte o evento `oninput` dos sliders para chamar a função de re-renderização (`Plotly.react('grafico', ...)`).
 
 4. CARD EXPLICATIVO (OPCIONAL):
-   - Se for extremamente necessário, inclua um pequeno card explicativo ao rodapé da página contextualizando os resultados, mas priorize um design limpo apenas com o gráfico e os controles.
+   - Se for extremamente necessário, inclua um pequeno card explicativo ao rodapé da página contextualizando os resultados.
 
 [CÓDIGO DE PARTIDA ESPERADO]
 Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE html> e terminando com </html>). É PROIBIDO usar marcadores de markdown (como ```html).
@@ -53,7 +53,7 @@ Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE ht
       <h2 class="text-xl font-bold text-slate-800 mb-1">{nome_simulador}</h2>
       <p class="text-xs text-slate-500">Laboratório Interativo Virtual | {tema_aula}</p>
     </div>
-    <!-- Seu painel de controle e div do gráfico -->
+    <!-- Painel de controle e div do gráfico com style="width: 100%; min-height: 420px; height: 450px;" -->
   </div>
 </body>
 </html>
