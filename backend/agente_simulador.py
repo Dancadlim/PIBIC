@@ -68,6 +68,13 @@ Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE ht
 </html>
 """
 
+from pydantic import BaseModel, Field
+
+class SimuladorHTMLOutput(BaseModel):
+    codigo_html_completo: str = Field(
+        description="Código HTML5 completo contendo <!DOCTYPE html>, Tailwind CSS, Plotly.js e Javascript interativo em uma única string sem blocos de markdown."
+    )
+
 def sanitizar_layout_grafico(html_code: str) -> str:
     """
     Higieniza o código HTML para garantir que títulos do Plotly/Chart.js não fiquem sobrepostos à legenda.
@@ -81,7 +88,7 @@ def sanitizar_layout_grafico(html_code: str) -> str:
 
 def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> str:
     """
-    Gera um código HTML/JS completo para uma simulação interativa usando Gemini Pro.
+    Gera um código HTML/JS completo para uma simulação interativa usando Gemini Pro com Structured Outputs.
     """
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
@@ -92,7 +99,7 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
         nome_simulador=nome_simulador
     )
     
-    print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini Pro...")
+    print(f"\n[Agente Simulador] Gerando simulação interativa estruturada para '{nome_simulador}' com Gemini Pro...")
     
     from gemini_retry import executar_chamada_com_retry
 
@@ -106,7 +113,8 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
                 model="gemini-2.5-pro",
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    response_mime_type="text/plain"
+                    response_mime_type="application/json",
+                    response_schema=SimuladorHTMLOutput
                 )
             )
 
@@ -118,30 +126,22 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
             descricao=f"geração do simulador '{nome_simulador}'"
         )
         
-        codigo_html = resposta.text.strip()
+        simulador_obj = SimuladorHTMLOutput.model_validate_json(resposta.text)
+        codigo_html = simulador_obj.codigo_html_completo.strip()
         
         import re
-        # Extrai bloco HTML caso o modelo envolva em ```html ... ``` ou ``` ... ```
+        # Caso o LLM tenha encapsulado com crases dentro do campo JSON, limpa
         match = re.search(r"```(?:html)?\s*(<!DOCTYPE[\s\S]*?</html>)\s*```", codigo_html, re.IGNORECASE)
         if not match:
             match = re.search(r"```(?:html)?\s*(<html[\s\S]*?</html>)\s*```", codigo_html, re.IGNORECASE)
-        if not match:
-            match = re.search(r"(<!DOCTYPE[\s\S]*?</html>)", codigo_html, re.IGNORECASE)
-        if not match:
-            match = re.search(r"(<html[\s\S]*?</html>)", codigo_html, re.IGNORECASE)
-            
         if match:
             codigo_html = match.group(1).strip()
-        else:
-            # Fallback genérico para remover crases soltas
-            codigo_html = re.sub(r"^```(?:html)?\s*", "", codigo_html, flags=re.IGNORECASE)
-            codigo_html = re.sub(r"\s*```$", "", codigo_html)
             
         codigo_html = sanitizar_layout_grafico(codigo_html.strip())
         if logger:
             logger.update_agent("simulador", "concluido", resposta=codigo_html)
             logger.log("Agente Simulador: Concluído com sucesso!", "success")
-        print(" [OK] Simulador gerado e higienizado com sucesso!")
+        print(" [OK] Simulador gerado e validado via Structured Outputs!")
         return codigo_html
         
     except Exception as e:
