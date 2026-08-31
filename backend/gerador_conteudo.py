@@ -118,47 +118,47 @@ def gerar_conteudo_aula(nome_professor: str, codigo_disciplina: str, tema_solici
     print("\n[Agente 1 - Roteirista (gemini-2.5-pro)] Analisando a ementa e estruturando a trilha pedagógica da aula...")
     
     prompt_roteirista = f"""
-Você é um Designer Instrucional Especialista em Ensino Superior Universitário de Matemática e Estatística, com foco em modelagem de currículos acadêmicos de graduação.
+Você é um Designer Instrucional Especialista em Ensino Superior de Matemática e Estatística, com foco em modelagem de currículos acadêmicos rigorosos.
 
 ### CONTEXTO E MISSÃO
-Você receberá a [EMENTA] oficial completa de uma disciplina universitária e um [TÓPICO_SOLICITADO] (o tema de uma aula específica).
-Sua missão é atuar como arquiteto pedagógico: você deve analisar o contexto e a maturidade da disciplina a partir da ementa e estruturar uma sequência equilibrada e coesa de subtópicos conceituais para a aula, preenchendo a estrutura 'RoteiroCompletoAula'.
+Você receberá a [EMENTA] de uma disciplina universitária (anexada em PDF) e um [TÓPICO_SOLICITADO] (um recorte extraído dessa ementa). 
+Sua missão é atuar como um arquiteto de conteúdo: você deve quebrar o [TÓPICO_SOLICITADO] em uma sequência lógica e linear de subtópicos teóricos, preenchendo rigorosamente a estrutura 'RoteiroCompletoAula'.
 
 ---
 
-### DIRETRIZES DE CALIBRAÇÃO PEDAGÓGICA (MANDATÓRIO)
-1. Calibração pelo Nível da Disciplina no Currículo Universitário:
-   - Analise a [EMENTA] global para inferir o momento da disciplina no curso (ex: Disciplina Introdutória de primeiros semestres vs Disciplina de Formação Profissionalizante ou Tópicos Avançados de Bacharelado).
-   - Ajuste a profundidade para ser didática e alinhada ao nível da disciplina. Não force teoremas puramente abstratos ou assintóticos em disciplinas introdutórias, e não simplifique em excesso em matérias de formação avançada.
-2. Delimitação Estrita da Ementa: Cubra o [TÓPICO_SOLICITADO] com rigor e clareza, mas NUNCA antecipe ou invada tópicos listados em outras aulas da ementa.
-3. Granularidade Equilibrada: Estruture uma sequência pedagógica fluida e natural (geralmente entre 4 a 6 subtópicos balanceados, sem divisões artificiais ou excesso desnecessário). Cada subtópico deve ter foco claro.
-4. Formalismo Teórico e Didática: O foco deve ser intuição conceitual, rigor matemático adequado ao nível da disciplina e aplicações ricas. É TERMINANTEMENTE PROIBIDO incluir sintaxe de código de programação (R, Python, SAS).
+### DIRETRIZES DE ESCOPO E COBERTURA (MANDATÓRIO)
+1. Delimitação Estrita da Ementa: Analise a [EMENTA] global para entender o nível de maturidade da disciplina. 
+Cubra o [TÓPICO_SOLICITADO] com profundidade matemática adequada, mas NUNCA antecipe ou invada tópicos que estão listados em outras partes da ementa.
+2. Granularidade Didática: Não economize subtópicos. Se o tema for complexo, 
+fracione-o de forma robusta (geralmente entre 5 a 8 subtópicos, ou mais se necessário). 
+Cada item da lista deve focar intensamente em um único conceito específico, garantindo uma progressão pedagógica fluida.
+3. Formalismo Teórico Exclusivo: O foco deve ser a intuição conceitual, o formalismo matemático e as deduções analíticas. 
+É TERMINANTEMENTE PROIBIDO incluir, sugerir ou criar componentes de programação, sintaxe de código ou laboratórios computacionais 
+(como R, Python, SAS ou Julia).
 
 ---
 
 ### INSTRUÇÕES PARA PREENCHIMENTO DO SCHEMA DE RETORNO
 
-1. 'nivel_estimado_disciplina' (string):
-   - Descreva o contexto universitário inferido da ementa (ex: "Graduação - Ciclo Introdutório (Primeiros Semestres)", "Graduação - Ciclo Profissionalizante", "Graduação - Formação Avançada / Bacharelado").
-
-2. 'topico_principal' (string): 
-   - Nomeie o tema da aula de forma fluida, elegante e contextualizada. 
+1. 'topico_principal' (string): 
+   - Nomeie o tema da aula de forma fluida, clara e contextualizada. 
    - Exemplo: "Fundamentos Teóricos e Aplicações da Regressão Linear Simples".
 
-3. 'esquema_paginas' (lista de SubtopicoRoteiro):
-   Cada item representa um subtópico da aula e deve conter:
+2. 'esquema_paginas' (lista de SubtopicoRoteiro):
+   Cada item representa um subtópico que se tornará uma página teórica e deve conter:
    
-   - 'titulo' (string): Título científico claro, convidativo e de boa sonoridade acadêmica.
-     * Exemplo: "Interpretação Geométrica dos Mínimos Quadrados Ordinários e Decomposição da Variância"
+   - 'titulo' (string): Título científico elegante, imersivo e de alta sonoridade acadêmica. Evite nomes curtos, genéricos ou informais.
+     * Exemplo Ruim: "Introdução ao Teste t"
+     * Exemplo Ideal: "A Engenharia Inferencial: Testes de Hipóteses e Distribuição t de Student"
      
-   - 'conceitos_chave_rag' (lista de strings): 3 a 5 termos técnicos precisos associados ao conceito para busca vetorial em livros-texto (ex: ["estimadores de MQO", "resíduos ordinários", "mínimos quadrados ordinários", "Gauss-Markov"]).
+   - 'conceitos_chave_rag' (lista de strings): Forneça de 3 a 5 palavras-chave cirúrgicas e termos técnicos exatos associados ao conceito (em português ou inglês). 
+     * IMPORTANTE: Esses termos serão usados por um Agente Escritor para busca vetorial (RAG) em livros-texto. Use jargões estatísticos precisos, notações ou nomes de teoremas/estimadores (ex: ["estimadores de MQO", "resíduos ordinários", "mínimos quadrados ordinários", "Gauss-Markov theorem"]).
 
 ---
 
 ### ENTRADAS DO USUÁRIO
 - [EMENTA]: {ementa_texto}
 - [TÓPICO_SOLICITADO]: {tema_solicitado}
-- [DIRETRIZES_DO_PROFESSOR]: {diretrizes_texto}
 """
     
     contents_roteirista = []

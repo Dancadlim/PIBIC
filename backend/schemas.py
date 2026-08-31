@@ -36,11 +36,8 @@ class SubtopicoRoteiro(BaseModel):
     conceitos_chave_rag: List[str] = Field(description="Lista de 3 a 5 termos estatísticos específicos e exatos para guiar a busca vetorial (RAG).")
 
 class RoteiroCompletoAula(BaseModel):
-    nivel_estimado_disciplina: str = Field(
-        description="Contexto e maturidade da disciplina no currículo universitário (ex: 'Graduação - Ciclo Introdutório', 'Graduação - Formação Profissionalizante', 'Graduação - Formação Avançada / Bacharelado')."
-    )
     topico_principal: str = Field(description="Título principal e contextualizado da aula.")
-    esquema_paginas: List[SubtopicoRoteiro] = Field(description="Sequência lógica e balanceada de subtópicos pedagógicos.")
+    esquema_paginas: List[SubtopicoRoteiro] = Field(description="Sequência lógica e cronológica de subtópicos pedagógicos.")
 
 # ==========================================
 # SUB-OBJETOS AUXILIARES
