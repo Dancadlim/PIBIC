@@ -9,33 +9,34 @@ def carregar_chave_api():
     api_key = os.environ.get("GEMINI_API_KEY")
 
 PROMPT_ENGENHEIRO_SIMULACAO = """
-Você é um Engenheiro de Frontend Sênior especializado em Data Visualization e interatividade educacional.
+Você é um Engenheiro de Frontend Sênior especializado em Data Visualization e interfaces educacionais altamente responsivas.
 Sua missão é criar uma simulação interativa baseada em tecnologias web nativas (HTML, Tailwind CSS via CDN, Javascript) e bibliotecas de gráficos (Plotly.js via CDN).
 
 [CONTEXTO DA AULA]
 Tema Geral da Aula: {tema_aula}
 Simulação Solicitada: {nome_simulador}
 
-[DIRETRIZES DE RENDERIZAÇÃO E LAYOUT - CRÍTICO]
-1. TÍTULO HIERÁRQUICO FORA DO GRÁFICO:
-   - O título principal da simulação DEVE ser colocado em HTML puro, ACIMA do container do gráfico.
-   - NO JS DO PLOTLY: Mantenha o título interno do gráfico VAZIO (`title: {{ text: '' }}` ou omitido) para não colidir com legenda ou eixos.
+[DIRETRIZES DE ARQUITETURA E LAYOUT VERTICAL - CRÍTICO]
+1. HIERARQUIA DE ELEMENTOS (DISPOSIÇÃO VERTICAL):
+   - A página DEVE ser estruturada de cima para baixo na seguinte ordem:
+     a) CABEÇALHO: Título e subtítulo em HTML no topo (`<h2 class="text-xl font-bold text-slate-800">{nome_simulador}</h2>`).
+     b) PAINEL DE CONTROLES: Sliders (`<input type="range">`) agrupados em um card com Tailwind CSS no topo/centro.
+     c) CONTAINER DO GRÁFICO (LARGURA TOTAL 100%): O gráfico DEVE ficar em seu próprio bloco de largura total (`w-full`), ABAIXO dos controles. É PROIBIDO colocar a div do gráfico dentro de uma coluna de grid ao lado de sliders, pois em dispositivos móveis isso empurra ou oculta o gráfico.
+     d) RODAPÉ / CARD EXPLICATIVO (OPCIONAL): Breve explicação ao final.
 
-2. ALTURA FIXA E VISIBILIDADE DO CONTAINER DO GRÁFICO (MANDATÓRIO):
-   - A div do gráfico DEVE ter estilo inline com largura e altura explícitas para NUNCA ficar invisível ou com altura 0:
-     `<div id="grafico" style="width: 100%; min-height: 420px; height: 450px;"></div>`
-   - No layout do Plotly, use:
+2. ALTURA E VISIBILIDADE DO GRÁFICO (MANDATÓRIO):
+   - A div do gráfico DEVE ter estilo inline com largura e altura explícitas para NUNCA colapsar para 0px:
+     `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>`
+   - NO JS DO PLOTLY: Mantenha o título interno VAZIO (`title: {{ text: '' }}` ou omitido).
+   - Configure margens limpas e legenda horizontal abaixo:
      `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
    - Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
 
-3. INICIALIZAÇÃO IMEDIATA E CONTROLES DINÂMICOS:
-   - Crie sliders (`<input type="range">`) e botões com Tailwind CSS.
-   - Mostre o valor numérico atual ao lado de cada slider (`<span id="val-n">100</span>`).
-   - A função de plotagem DEVE ser chamada imediatamente no carregamento da página (`document.addEventListener('DOMContentLoaded', render); render();`).
-   - Conecte o evento `oninput` dos sliders para chamar a função de re-renderização (`Plotly.react('grafico', ...)`).
-
-4. CARD EXPLICATIVO (OPCIONAL):
-   - Se for extremamente necessário, inclua um pequeno card explicativo ao rodapé da página contextualizando os resultados.
+3. INICIALIZAÇÃO IMEDIATA E NOTIFICAÇÃO DE REDIMENSIONAMENTO:
+   - Conecte o evento `input` dos sliders à função de re-renderização (`Plotly.react('grafico', ...)`).
+   - Ao final do script, execute a função de renderização IMEDIATAMENTE (sem depender apenas de eventos que já possam ter disparado).
+   - Sempre que renderizar ou atualizar o gráfico, envie mensagem de redimensionamento para a página pai:
+     `if (window.parent) {{ window.parent.postMessage({{ type: 'resize', height: document.body.scrollHeight + 40 }}, '*'); }}`
 
 [CÓDIGO DE PARTIDA ESPERADO]
 Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE html> e terminando com </html>). É PROIBIDO usar marcadores de markdown (como ```html).
@@ -44,16 +45,24 @@ Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE ht
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
-<body class="bg-slate-50 p-6 font-sans">
+<body class="bg-slate-50 p-4 md:p-6 font-sans">
   <div class="max-w-4xl mx-auto bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
     <div class="text-center">
       <h2 class="text-xl font-bold text-slate-800 mb-1">{nome_simulador}</h2>
       <p class="text-xs text-slate-500">Laboratório Interativo Virtual | {tema_aula}</p>
     </div>
-    <!-- Painel de controle e div do gráfico com style="width: 100%; min-height: 420px; height: 450px;" -->
+    
+    <!-- Painel de Controles no topo -->
+    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <!-- Sliders aqui -->
+    </div>
+
+    <!-- Div do Gráfico ocupando 100% da largura -->
+    <div id="grafico" class="w-full" style="width: 100%; min-height: 420px; height: 450px;"></div>
   </div>
 </body>
 </html>
