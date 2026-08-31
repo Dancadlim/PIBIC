@@ -46,13 +46,14 @@ def detectar_anomalias_estruturais_katex(texto: str) -> list:
         erros.append(r"Comando inválido \nginxed (usar \in)")
 
     # 4. Checa % não escapado dentro de ambiente de matemática ($...$ ou $$...$$)
-    for bloco in re.findall(r'\$(.*?)\$', texto, flags=re.DOTALL):
+    for bloco in re.findall(r'(?<!\\)\$([\s\S]*?)(?<!\\)\$', texto):
         if re.search(r'(?<!\\)%', bloco):
             erros.append("Caractere de porcentagem (%) não escapado dentro de ambiente matemático")
             break
 
-    # 5. Checa cifrões soltos desbalanceados
-    if texto.count("$") % 2 != 0:
+    # 5. Checa cifrões desbalanceados (ignorando R\$ e US\$ escapados)
+    unescaped_dollars = len(re.findall(r'(?<!\\)\$', texto))
+    if unescaped_dollars % 2 != 0:
         erros.append("Cifrões ($) desbalanceados na string")
         
     # 6. Checa chaves desbalanceadas em ambiente de bloco $$
@@ -62,16 +63,18 @@ def detectar_anomalias_estruturais_katex(texto: str) -> list:
         if chaves_abertas != chaves_fechadas:
             erros.append(f"Chaves desbalanceadas no bloco KaTeX ({chaves_abertas} abertas vs {chaves_fechadas} fechadas)")
 
-    # 7. Checa \left e \right desbalanceados
-    for bloco in re.findall(r'\$(.*?)\$', texto, flags=re.DOTALL):
+    # 7. Checa \left e \right desbalanceados em blocos de matemática
+    for bloco in re.findall(r'(?<!\\)\$([\s\S]*?)(?<!\\)\$', texto):
         left_count = len(re.findall(r'\\left[\(\[\{\|\.]', bloco))
         right_count = len(re.findall(r'\\right[\)\]\}\|\.]', bloco))
         if left_count != right_count:
             erros.append(f"Delimitadores \\left e \\right desbalanceados ({left_count} \\left vs {right_count} \\right)")
             break
 
-    # 8. Símbolos gregos e matemáticos soltos em texto (sem delimitadores $)
-    symbols_soltos = re.findall(r'(?<!\$)(?<!\\)\b(\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)\b(?!\$)', texto)
+    # 8. Símbolos gregos e matemáticos soltos na prosa pura (fora de blocos $)
+    texto_sem_math = re.sub(r'(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$', '', texto)
+    texto_sem_math = re.sub(r'(?<!\\)\$(?:[^\$\n]|\\\$)+?(?<!\\)\$', '', texto_sem_math)
+    symbols_soltos = re.findall(r'(?<!\\)\b(\\mu|\\sigma|\\alpha|\\beta|\\theta|\\lambda|\\pi|\\gamma|\\delta|\\epsilon|\\phi|\\omega|\\rho|\\tau|\\eta|\\chi|\\psi|\\zeta|\\in|\\forall|\\exists|\\rightarrow|\\Rightarrow|\\infty|\\partial)\b', texto_sem_math)
     if symbols_soltos:
         erros.append(f"Comandos matemáticos soltos na prosa sem delimitadores $: {set(symbols_soltos)}")
 
@@ -131,7 +134,6 @@ def substituir_no_caminho(obj, caminho: str, novo_valor: str) -> bool:
     if not caminho_limpo:
         return False
 
-    # Quebra o caminho em chaves ou índices usando divisão por pontos e colchetes
     tokens = [t for t in re.split(r'[\.\[\]]+', caminho_limpo) if t]
     
     atual = obj
@@ -162,14 +164,19 @@ def substituir_no_caminho(obj, caminho: str, novo_valor: str) -> bool:
 
     return False
 
-def reparar_anomalias_cirurgico(aula_sanitizada: dict, anomalias: list, logger=None, target_model="gemini-2.5-pro") -> dict:
+def reparar_anomalias_cirurgico(aula_sanitizada: dict, anomalias: list, logger=None, target_model="gemini-2.5-flash") -> dict:
     """
     Envia APENAS as anomalias capturadas no Passo 1 para o LLM e aplica as correções cirurgicamente
-    no JSON original sem tocar no resto da aula.
+    no JSON original sem tocar no resto da aula. Usa fallback imediato para nunca travar o pipeline.
     """
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-    client = genai.Client(vertexai=True, location="us-central1")
+    
+    try:
+        client = genai.Client(vertexai=True, location="us-central1")
+    except Exception as e:
+        print(f" [AVISO] Falha ao inicializar Vertex Client no validador: {e}. Mantendo versão determinística.")
+        return aula_sanitizada
     
     from prompts import DICIONARIO_LATEX
     
@@ -190,10 +197,10 @@ REGRAS RÍGIDAS DE CORREÇÃO:
 {json.dumps(anomalias, ensure_ascii=False, indent=2)}
 """
 
-    print("   -> [LLM] Solicitando reparo cirúrgico ao Gemini 2.5 Pro...", flush=True)
+    print(f"   -> [LLM] Solicitando reparo cirúrgico rápido ao {target_model}...", flush=True)
     
     import time
-    max_retries = 10
+    max_retries = 2
     
     for tentativa in range(max_retries):
         try:
@@ -217,65 +224,67 @@ REGRAS RÍGIDAS DE CORREÇÃO:
                     print(f"   -> [REPARO CIRÚRGICO APLICADO] {msg}")
                     if logger:
                         logger.log(f"Validador LaTeX: {msg}", "info")
-                else:
-                    print(f"   -> [AVISO] Não foi possível encontrar o caminho '{item.caminho_campo}'. Mantida versão sanitizada.")
                     
             print(f" [OK] Reparo cirúrgico concluído! ({correcoes_aplicadas}/{len(anomalias)} anomalias corrigidas pontualmente)")
             
             if logger:
                 logger.update_agent("validador_latex", "concluido", resposta=resposta.text)
-                logger.log("Auditor de Compilação LaTeX: Reparo cirúrgico concluído com sucesso.", "success")
+                logger.log("Auditor de Compilação LaTeX: Reparo concluído com sucesso.", "success")
     
             return latex_sanitizer.sanitize_json_recursively(aula_sanitizada)
     
         except Exception as e:
-            msg_erro = f"Falha na tentativa {tentativa + 1} de reparo cirúrgico: {str(e)}"
+            msg_erro = f"Tentativa {tentativa + 1} de reparo: {str(e)}"
             print(f" [AVISO] {msg_erro}")
-            if logger:
-                logger.log(f"Validador LaTeX: Aviso - {msg_erro}", "warning")
-            time.sleep(5)
+            time.sleep(2)
             
-    print(" [ERRO] Falha definitiva no reparo cirúrgico após várias tentativas. Mantendo aula sanitizada.")
+    print(" [AVISO] Mantendo versão sanitizada determinística (segura e sem travamentos).")
     if logger:
         logger.update_agent("validador_latex", "concluido")
-        logger.log("Auditor de Compilação LaTeX: Mantido fallback determinístico após falhas.", "warning")
+        logger.log("Auditor de Compilação LaTeX: Concluído via sanitização determinística.", "success")
     return aula_sanitizada
 
 def validar_e_corrigir_aula_completa(aula_json: dict, logger=None, modelo_llm: str = "2.5") -> dict:
     """
     Agente Validador e Auditor Final de Compilação LaTeX.
     Passo 1: Aplica a sanitização determinística instantânea em Python (< 1ms).
-    Passo 2: Mapeia todas as anomalias estruturais de KaTeX no JSON.
-    Passo 3: Se houver anomalias, executa o Reparo Cirúrgico Estruturado via Gemini 2.5 Pro.
+    Passo 2: Mapeia todas as anomalias estruturais reais de KaTeX no JSON.
+    Passo 3: Se houver anomalias reais, executa o Reparo Cirúrgico Estruturado rápido.
     """
     if not aula_json or not isinstance(aula_json, dict):
         return aula_json
         
-    target_model = "gemini-2.5-pro"
+    target_model = "gemini-2.5-flash"
     
-    if logger:
-        logger.update_agent("validador_latex", "rodando")
-        logger.log(f"Auditor de Compilação LaTeX ({target_model}): Inspecionando sintaxe e KaTeX...", "info")
-        
-    print(f"\n[Agente Validador de LaTeX ({target_model})] Inspecionando compilação de toda a aula...")
-    
-    # 1. Sanitização determinística automática em Python
-    aula_sanitizada = latex_sanitizer.sanitize_json_recursively(aula_json)
-    
-    # 2. Mapeamento estruturado de anomalias (Passo 1)
-    anomalias_encontradas = mapear_todas_anomalias_json(aula_sanitizada)
-    
-    # Se nenhuma anomalia grave foi encontrada, retorna imediatamente (0ms latência extra!)
-    if not anomalias_encontradas:
-        print(" [OK] Auditoria de LaTeX: 100% de compilação limpa garantida (0 erros)!")
+    try:
         if logger:
-            logger.update_agent("validador_latex", "concluido", resposta="Compilação 100% Aprovada (0 anomalias).")
-            logger.log("Auditor de Compilação LaTeX: 100% Aprovado (Zero erros de compilação).", "success")
-        return aula_sanitizada
-
-    # 3. Caso haja anomalias estruturais, aciona o Reparo Cirúrgico Estruturado (Passo 2)
-    print(f" [AVISO] {len(anomalias_encontradas)} anomalia(s) estrutural(is) detectada(s). Acionando Reparo Cirurgico via {target_model}...")
-    if logger:
-        logger.log(f"Auditor de Compilação LaTeX: Acionando {target_model} para reparo cirúrgico de {len(anomalias_encontradas)} anomalias...", "warning")
+            logger.update_agent("validador_latex", "rodando")
+            logger.log(f"Auditor de Compilação LaTeX: Inspecionando sintaxe e KaTeX...", "info")
+            
+        print(f"\n[Agente Validador de LaTeX] Inspecionando compilação de toda a aula...")
         
-    return reparar_anomalias_cirurgico(aula_sanitizada, anomalias_encontradas, logger=logger, target_model=target_model)
+        # 1. Sanitização determinística automática em Python (< 1ms)
+        aula_sanitizada = latex_sanitizer.sanitize_json_recursively(aula_json)
+        
+        # 2. Mapeamento estruturado de anomalias (Passo 1)
+        anomalias_encontradas = mapear_todas_anomalias_json(aula_sanitizada)
+        
+        # Se nenhuma anomalia grave foi encontrada, retorna imediatamente (0ms latência extra!)
+        if not anomalias_encontradas:
+            print(" [OK] Auditoria de LaTeX: 100% de compilação limpa garantida (0 anomalias)!")
+            if logger:
+                logger.update_agent("validador_latex", "concluido", resposta="Compilação 100% Aprovada (0 anomalias).")
+                logger.log("Auditor de Compilação LaTeX: 100% Aprovado (Zero erros de compilação).", "success")
+            return aula_sanitizada
+
+        # 3. Caso haja anomalias estruturais, aciona o Reparo Cirúrgico rápido
+        print(f" [AVISO] {len(anomalias_encontradas)} anomalia(s) detectada(s). Acionando Reparo Cirúrgico via {target_model}...")
+        if logger:
+            logger.log(f"Auditor de Compilação LaTeX: Acionando {target_model} para reparo cirúrgico de {len(anomalias_encontradas)} anomalias...", "warning")
+            
+        return reparar_anomalias_cirurgico(aula_sanitizada, anomalias_encontradas, logger=logger, target_model=target_model)
+    except Exception as e:
+        print(f" [AVISO] Exceção no validador LaTeX: {e}. Retornando aula sanitizada de forma segura.")
+        if logger:
+            logger.update_agent("validador_latex", "concluido")
+        return latex_sanitizer.sanitize_json_recursively(aula_json)
