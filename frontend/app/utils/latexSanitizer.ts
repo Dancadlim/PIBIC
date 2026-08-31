@@ -77,7 +77,7 @@ export function sanitizeLatex(text: string): string {
       // É prosa comum (fora de cifrões)
       let prose = part;
       const symbolsToWrap = /(?<!\$)(?<!\\)(\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|in|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\}))(?!\$)/g;
-      prose = prose.replace(symbolsToWrap, ' $$$1$$ ');
+      prose = prose.replace(symbolsToWrap, (_, sym) => ` $${sym}$ `);
       resultParts.push(prose);
     }
   }
@@ -91,8 +91,8 @@ export function sanitizeLatex(text: string): string {
   processed = processed.replace(/\.{2,}/g, '.');
 
   // 4. Ajusta o espaçamento ao redor de inline math colado em palavras em português
-  processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, '$1 $$$2$$');
-  processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, '$$$1$$ $2');
+  processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, (_, w, m) => `${w} $${m}$`);
+  processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, (_, m, w) => `$${m}$ ${w}`);
 
   // 5. Remove espaços em branco no início de cada linha (evita bloco <pre> identado no Markdown)
   const lines = processed.split('\n');

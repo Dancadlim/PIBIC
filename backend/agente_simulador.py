@@ -121,10 +121,21 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
         codigo_html = resposta.text.strip()
         
         import re
-        # Limpar crases de markdown se o modelo desobedecer e extrair apenas o código
-        match = re.search(r"```(?:html)?\s*(.*?)\s*```", codigo_html, re.DOTALL | re.IGNORECASE)
+        # Extrai bloco HTML caso o modelo envolva em ```html ... ``` ou ``` ... ```
+        match = re.search(r"```(?:html)?\s*(<!DOCTYPE[\s\S]*?</html>)\s*```", codigo_html, re.IGNORECASE)
+        if not match:
+            match = re.search(r"```(?:html)?\s*(<html[\s\S]*?</html>)\s*```", codigo_html, re.IGNORECASE)
+        if not match:
+            match = re.search(r"(<!DOCTYPE[\s\S]*?</html>)", codigo_html, re.IGNORECASE)
+        if not match:
+            match = re.search(r"(<html[\s\S]*?</html>)", codigo_html, re.IGNORECASE)
+            
         if match:
-            codigo_html = match.group(1)
+            codigo_html = match.group(1).strip()
+        else:
+            # Fallback genérico para remover crases soltas
+            codigo_html = re.sub(r"^```(?:html)?\s*", "", codigo_html, flags=re.IGNORECASE)
+            codigo_html = re.sub(r"\s*```$", "", codigo_html)
             
         codigo_html = sanitizar_layout_grafico(codigo_html.strip())
         if logger:
