@@ -96,17 +96,21 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
 
   const injectedHtml = html ? (() => {
     const resizeScript = `<script>
+      let lastHeight = 0;
       function notifyParent() {
-        const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, 700);
-        window.parent.postMessage({ type: 'resize', height: h }, '*');
+        const contentDiv = document.querySelector('.max-w-4xl') || document.querySelector('.max-w-5xl') || document.body;
+        const h = Math.max(contentDiv ? contentDiv.scrollHeight + 30 : document.body.scrollHeight, 650);
+        if (Math.abs(h - lastHeight) > 15) {
+          lastHeight = h;
+          window.parent.postMessage({ type: 'resize', height: h }, '*');
+        }
       }
       window.addEventListener('load', notifyParent);
-      window.addEventListener('resize', notifyParent);
       if (document.readyState === 'complete' || document.readyState === 'interactive') {
         notifyParent();
       }
-      setTimeout(notifyParent, 500);
-      setTimeout(notifyParent, 1500);
+      setTimeout(notifyParent, 400);
+      setTimeout(notifyParent, 1200);
     </script>`;
     if (html.includes('</body>')) {
       return html.replace('</body>', `${resizeScript}</body>`);
@@ -126,10 +130,10 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
       </div>
       <iframe 
         srcDoc={injectedHtml!}
-        style={{ height: `${Math.max(iframeHeight, 700)}px`, minHeight: '650px' }}
-        className="w-full border-none bg-white transition-all duration-300"
+        style={{ height: `${iframeHeight}px` }}
+        className="w-full border-none bg-white"
         sandbox="allow-scripts allow-same-origin"
-        scrolling="auto"
+        scrolling="no"
         title="Simulador Interativo"
       />
     </div>
