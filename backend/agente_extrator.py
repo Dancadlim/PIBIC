@@ -37,6 +37,8 @@ def extrair_regras_override(texto_documento: str, logger=None) -> Optional[Dict]
     if not texto_documento or not texto_documento.strip():
         return None
         
+    from gemini_retry import executar_chamada_com_retry
+
     try:
         os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
         client = genai.Client(vertexai=True, location="us-central1")
@@ -47,13 +49,22 @@ def extrair_regras_override(texto_documento: str, logger=None) -> Optional[Dict]
             logger.update_agent("extrator", "rodando", prompt=prompt)
             logger.log("Agente Extrator: Lendo notações, tom e diretrizes específicas...", "info")
             
-        resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=RegraOverride
+        def chamar_extrator():
+            return client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=RegraOverride
+                )
             )
+
+        resposta = executar_chamada_com_retry(
+            chamar_extrator,
+            max_retries=5,
+            logger=logger,
+            nome_agente="Extrator",
+            descricao="extração de notações e diretrizes"
         )
         
         if resposta.text:

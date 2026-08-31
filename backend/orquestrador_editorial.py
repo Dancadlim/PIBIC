@@ -57,15 +57,26 @@ def lapidar_conteudo_global(payload_bruto: dict, logger=None):
         response_schema=AulaUnificadaELapidada
     )
 
+    from gemini_retry import executar_chamada_com_retry
+
     try:
         if logger:
             logger.update_agent("orquestrador", "rodando", prompt=prompt_editorial)
-            logger.log("Orquestrador Editorial: Revisando coer?ncia de ponta a ponta...", "info")
+            logger.log("Orquestrador Editorial: Revisando coerência de ponta a ponta...", "info")
             
-        resposta = client.models.generate_content(
-            model="gemini-2.5-pro",
-            contents=[dados_entrada_str, prompt_editorial],
-            config=config_editorial
+        def chamar_orquestrador():
+            return client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=[dados_entrada_str, prompt_editorial],
+                config=config_editorial
+            )
+
+        resposta = executar_chamada_com_retry(
+            chamar_orquestrador,
+            max_retries=5,
+            logger=logger,
+            nome_agente="Orquestrador",
+            descricao="lapidação global da aula"
         )
         
         if logger:

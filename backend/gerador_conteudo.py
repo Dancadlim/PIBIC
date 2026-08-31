@@ -166,14 +166,25 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         contents_roteirista.append(f"Esta é a ementa oficial:\n{ementa_texto}")
     contents_roteirista.append(prompt_roteirista)
 
+    from gemini_retry import executar_chamada_com_retry
+
     try:
-        resposta_roteiro = client.models.generate_content(
-            model=modelo_roteirista,
-            contents=contents_roteirista,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=RoteiroCompletoAula
+        def chamar_roteirista():
+            return client.models.generate_content(
+                model=modelo_roteirista,
+                contents=contents_roteirista,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=RoteiroCompletoAula
+                )
             )
+        
+        resposta_roteiro = executar_chamada_com_retry(
+            chamar_roteirista,
+            max_retries=5,
+            logger=logger,
+            nome_agente="Roteirista",
+            descricao="elaboração do macro roteiro da aula"
         )
         
         # O Pydantic realiza o parsing nativo garantindo o objeto tipado
@@ -196,6 +207,8 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
     t_inicio_escrita = time.time()
     print("\n[Agente 2 + 2.5] Iniciando laço de escrita com loop de revisão ativa EM PARALELO...")
     
+    from gemini_retry import executar_chamada_com_retry
+
     # Função isolada para processar um único subtópico
     def processar_subtopico(idx, sub):
         t_inicio_sub = time.time()
@@ -206,15 +219,12 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         
         tentativa = 0
         bloco_aprovado = False
-        comentario_feedback_llm = "Nenhum. Esta é a primeira tentativa de escrita do bloco."
         subtopico_atual_dados = None
         dados_escritor_dict = None
+        laudo_revisao = None
         
         feedbacks = []
-        erros_429 = 0
-        erros_503 = 0
-        erros_outros = 0
-        MAX_TENTATIVAS_REVISAO = 2
+        MAX_TENTATIVAS_REVISAO = 4
 
         while tentativa < MAX_TENTATIVAS_REVISAO and not bloco_aprovado:
             tentativa += 1
@@ -238,7 +248,9 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
                 tools_config = None
 
             from prompts import REGRAS_MESTRE_ESCRITOR
-            prompt_escritor = f"""
+
+            if tentativa == 1 or not dados_escritor_dict or not laudo_revisao:
+                prompt_escritor = f"""
 Você é um Professor Titular de Estatística e co-autor de livros didáticos clássicos e rigorosos de nível universitário.
 
 ### CONTEXTO E MISSÃO
@@ -263,7 +275,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 
 2. 'conteudo' (objeto ConteudoSubtopico):
    - 'tipo_bloco' (string): Deve ser preenchido estritamente como 'teorico'.
-   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \n\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. Adote o tom, linguagem e termos do professor fornecidos no override. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
+   - 'conceito_intuitivo' (string): Texto longo e aprofundado, de no mínimo 3 a 4 parágrafos densos (separe-os obrigatoriamente com DUAS quebras de linha \\n\\n). Explique a motivação histórica, o problema prático que impulsionou o conceito e analogias do mundo real. Adote o tom, linguagem e termos do professor fornecidos no override. ATENÇÃO: Proibido inserir qualquer notação LaTeX matemática ($ ou $$) neste campo. Mantenha o foco puramente na prosa qualitativa.
    - 'conceito_formal' (string ou null): Apresente o enunciado matemático formal em LaTeX ($$ ou $). Se o subtópico for histórico/qualitativo/conceitual (sem fórmulas próprias), RETORNE ESTRITAMENTE null.
    - 'propriedades_do_conceito' (lista de strings ou null): Mapeie leis, teoremas e propriedades deduzidas diretamente desse conceito (ou null se for subtópico qualitativo).
    - 'pre_requisitos_e_auxiliares' (lista de strings ou null): Ferramentas matemáticas necessárias (ou null se não houver).
@@ -289,8 +301,37 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
 - [SUBTÓPICO_ALVO]: {sub.titulo}
 - [DIRETRIZES_DE_ESTILO]:
 {diretrizes_texto}
-- [FEEDBACKS_REVISAO]: {comentario_feedback_llm}
 """
+                contents_envio = [query_rag, prompt_escritor]
+            else:
+                # PROMPT DE REPARO CIRÚRGICO BASEADO NO LAUDO DO REVISOR
+                rascunho_anterior_str = json.dumps(dados_escritor_dict, ensure_ascii=False, indent=2)
+                prompt_escritor = f"""
+Você é um Professor Titular de Estatística revisando um capítulo após auditoria rigorosa do Revisor Científico.
+
+### CONTEXTO E MISSÃO DE REPARO CIRÚRGICO
+O Revisor Científico auditou o seu rascunho anterior e apontou correções específicas (cálculos numéricos, matrizes, determinantes ou notações no 'exemplo_canonico').
+
+Sua missão é APROVEITAR 100% da riqueza teórica do rascunho anterior e APLICAR CIRURGICAMENTE as correções apontadas pelo Revisor, substituindo os valores errados pelos valores e fórmulas exatas do laudo.
+
+---
+
+### LAUDO DO REVISOR CIENTÍFICO COM AS CORREÇÕES OBRIGATÓRIAS (SIGA CADA PONTO):
+{laudo_revisao.comentario_correcao}
+
+---
+
+### RASCUNHO ANTERIOR GERADO:
+{rascunho_anterior_str}
+
+---
+
+### DIRETRIZES DE REPARO CIRÚRGICO (MANDATÓRIO):
+1. Mantenha intactos todos os parágrafos de introdução, motivação, intuição teórica e formalismo que já foram elogiados ou aprovados pelo revisor.
+2. Corrija cirurgicamente as passagens e cálculos indicados no laudo (ex: produtos de matrizes, determinantes, coeficientes, valores ajustados, resíduos e conclusões no 'exemplo_canonico').
+3. Preencha rigorosamente a estrutura 'SubtopicoValidado' completa.
+"""
+                contents_envio = [prompt_escritor]
 
             config_escritor = types.GenerateContentConfig(
                 tools=tools_config,
@@ -302,17 +343,25 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                 if logger:
                     logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", prompt=prompt_escritor)
                     logger.log(f"Gerador de Conteúdo: Redigindo tópico {idx+1} (Tentativa {tentativa})...", "info")
-                resposta_escritor = client.models.generate_content(
-                    model=modelo_escritor,
-                    contents=[query_rag, prompt_escritor],
-                    config=config_escritor
+                
+                def chamar_escritor():
+                    return client.models.generate_content(
+                        model=modelo_escritor,
+                        contents=contents_envio,
+                        config=config_escritor
+                    )
+
+                resposta_escritor = executar_chamada_com_retry(
+                    chamar_escritor,
+                    max_retries=5,
+                    logger=logger,
+                    nome_agente=f"Escritor_{idx+1}",
+                    descricao=f"redação do subtópico {idx+1} (tentativa {tentativa})"
                 )
+                
                 if logger:
                     logger.update_agent(f"gerador_bruto_{idx+1}", "rodando", resposta=resposta_escritor.text)
-                if logger:
                     logger.log(f"gerador_{idx+1}_{tentativa} terminou", "info")
-                
-                
                 
                 dados_escritor_dict = json.loads(resposta_escritor.text)
                 dados_escritor_dict = latex_sanitizer.sanitize_json_recursively(dados_escritor_dict)
@@ -343,7 +392,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                                     fontes_capturadas.append(
                                         FonteRDetalhada(
                                             livro_autor=title,
-                                            capitulo="N/A (Grounding)",
+                                             capitulo="N/A (Grounding)",
                                             paginas_utilizadas=f"p. {page}" if page != "S/N" else "p. não especificada"
                                         )
                                     )
@@ -359,24 +408,12 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
                 else:
                     print(f"      [REPROVADO] Bloco {idx+1} REPROVADO! Motivo: {laudo_revisao.comentario_correcao}")
                     if logger:
-                        logger.log(f"Revisor (Crítico): Tópico {idx+1} reprovado. Devolvendo ao gerador...", "warning")
-                    comentario_feedback_llm = f"ALERTA DE ERRO NA TENTATIVA ANTERIOR: Seu bloco foi reprovado pelo revisor com o seguinte comentário: {laudo_revisao.comentario_correcao}. Por favor, refaça o trabalho corrigindo este problema."
+                        logger.log(f"Revisor (Crítico): Tópico {idx+1} reprovado. Devolvendo ao gerador com rascunho e laudo...", "warning")
                     feedbacks.append(laudo_revisao.comentario_correcao)
                     
             except Exception as e:
-                erro_str = str(e)
-                if "429" in erro_str or "RESOURCE_EXHAUSTED" in erro_str:
-                    erros_429 += 1
-                    print(f"      [AVISO 429] Limite de cota excedido no tópico {idx+1}. Propagando erro para gerenciador de pool...")
-                    raise Exception("429_TOO_MANY_REQUESTS")
-                elif "503" in erro_str or "UNAVAILABLE" in erro_str:
-                    erros_503 += 1
-                    print(f"      [AVISO 503] Servidor ocupado no tópico {idx+1}. Retentando rapidamente em 2s...")
-                    time.sleep(2)
-                else:
-                    erros_outros += 1
-                    print(f"      [ERRO] Falha genérica no tópico {idx+1}. Retentando em 5s... Erro: {e}")
-                    time.sleep(5)
+                print(f"      [ERRO] Falha no subtópico {idx+1}: {e}")
+                time.sleep(3)
                 
         if not subtopico_atual_dados and dados_escritor_dict:
             subtopico_atual_dados = SubtopicoValidado(**dados_escritor_dict)
@@ -394,11 +431,6 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
             "tentativas": tentativa,
             "reprovacoes": len(feedbacks),
             "feedbacks": feedbacks,
-            "erros_api": {
-                "429": erros_429,
-                "503": erros_503,
-                "outros": erros_outros
-            },
             "tempo_segundos": round(t_fim_sub - t_inicio_sub, 2),
             "aprovado": bloco_aprovado
         }

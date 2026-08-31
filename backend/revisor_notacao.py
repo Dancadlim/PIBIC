@@ -87,17 +87,24 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logge
         response_schema=DecisaoRevisao
     )
 
-    if logger:
-        if sub_idx: logger.update_agent(f"revisor_{sub_idx}", "rodando", prompt=prompt_revisor)
-        else: logger.update_agent("revisor", "rodando", prompt=prompt_revisor)
-        logger.log("Revisor (Crítico): Analisando conteúdo gerado...", "info")
+    from gemini_retry import executar_chamada_com_retry
 
     try:
-        resposta = client.models.generate_content(
-            model="gemini-2.5-pro",
-            contents=[bloco_bruto_str, prompt_revisor],
-            config=config_revisor
+        def chamar_revisor():
+            return client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=[bloco_bruto_str, prompt_revisor],
+                config=config_revisor
+            )
+
+        resposta = executar_chamada_com_retry(
+            chamar_revisor,
+            max_retries=5,
+            logger=logger,
+            nome_agente=f"Revisor_{sub_idx}" if sub_idx else "Revisor",
+            descricao=f"auditoria do subtópico {sub_idx}" if sub_idx else "auditoria do subtópico"
         )
+
         if logger:
             if sub_idx:
                 logger.update_agent(f"revisor_{sub_idx}", "rodando", resposta=resposta.text)
@@ -105,6 +112,6 @@ def auditar_subtopico_local(bloco_bruto_dict: dict, diretrizes_texto: str, logge
                 logger.update_agent("revisor", "rodando", resposta=resposta.text)
         return DecisaoRevisao.model_validate_json(resposta.text)
     except Exception as e:
-        # Em caso de pane na chamada do revisor, força aprovação preventiva para não quebrar o script de lote
-        print(f"      [ALERTA] Falha operacional no motor do Revisor: {e}")
+        # Em caso de esgotamento das tentativas, força aprovação preventiva com os dados já existentes
+        print(f"      [ALERTA] Falha operacional no motor do Revisor após retentativas: {e}")
         return DecisaoRevisao(aprovado=True, conteudo_corrigido=SubtopicoValidado(**bloco_bruto_dict))

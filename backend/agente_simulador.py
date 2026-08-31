@@ -81,70 +81,65 @@ def sanitizar_layout_grafico(html_code: str) -> str:
 
 def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> str:
     """
-    Gera um código HTML/JS completo para uma simulação interativa usando Gemini Flash/Pro.
+    Gera um código HTML/JS completo para uma simulação interativa usando Gemini Pro.
     """
     carregar_chave_api()
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", "vertex-key.json")
-    
-    try:
-        client = genai.Client(vertexai=True, location="us-central1")
-    except Exception as e:
-        print(f" [ERRO] Falha ao inicializar Vertex Client no simulador: {e}")
-        return f"<div class='p-4 text-red-500'>Erro ao inicializar conexão com a IA: {str(e)}</div>"
+    client = genai.Client(vertexai=True, location="us-central1")
     
     prompt = PROMPT_ENGENHEIRO_SIMULACAO.format(
         tema_aula=tema_aula,
         nome_simulador=nome_simulador
     )
     
-    print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini...")
+    print(f"\n[Agente Simulador] Gerando simulação interativa para '{nome_simulador}' com Gemini Pro...")
     
-    import time
-    modelos = ["gemini-2.5-flash", "gemini-2.5-pro"]
-    
-    for modelo_alvo in modelos:
-        for tentativa in range(2):
-            try:
-                if logger and tentativa == 0 and modelo_alvo == modelos[0]:
-                    logger.update_agent("simulador", "rodando", prompt=prompt)
-                    logger.log("Agente Simulador: Programando a interface...", "info")
-                
-                resposta = client.models.generate_content(
-                    model=modelo_alvo,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="text/plain"
-                    )
+    from gemini_retry import executar_chamada_com_retry
+
+    try:
+        if logger:
+            logger.update_agent("simulador", "rodando", prompt=prompt)
+            logger.log("Agente Simulador: Programando a interface...", "info")
+        
+        def chamar_simulador():
+            return client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="text/plain"
                 )
-                
-                codigo_html = resposta.text.strip()
-                
-                import re
-                
-                # Limpar crases de markdown se o modelo desobedecer e extrair apenas o código
-                match = re.search(r"```(?:html)?\s*(.*?)\s*```", codigo_html, re.DOTALL | re.IGNORECASE)
-                if match:
-                    codigo_html = match.group(1)
-                    
-                codigo_html = sanitizar_layout_grafico(codigo_html.strip())
-                if logger:
-                    logger.update_agent("simulador", "concluido", resposta=codigo_html)
-                    logger.log("Agente Simulador: Concluído com sucesso!", "success")
-                print(" [OK] Simulador gerado e higienizado com sucesso!")
-                return codigo_html
-                
-            except Exception as e:
-                msg_erro = f"Falha na tentativa {tentativa + 1} com {modelo_alvo}: {str(e)}"
-                print(f" [AVISO] {msg_erro}")
-                if logger:
-                    logger.log(f"Agente Simulador: Aviso - {msg_erro}", "warning")
-                time.sleep(2)
+            )
+
+        resposta = executar_chamada_com_retry(
+            chamar_simulador,
+            max_retries=5,
+            logger=logger,
+            nome_agente="Simulador",
+            descricao=f"geração do simulador '{nome_simulador}'"
+        )
+        
+        codigo_html = resposta.text.strip()
+        
+        import re
+        # Limpar crases de markdown se o modelo desobedecer e extrair apenas o código
+        match = re.search(r"```(?:html)?\s*(.*?)\s*```", codigo_html, re.DOTALL | re.IGNORECASE)
+        if match:
+            codigo_html = match.group(1)
             
-    # Se esgotar as tentativas
-    if logger:
-        logger.update_agent("simulador", "erro")
-        logger.log("Agente Simulador: Falha definitiva após várias tentativas.", "error")
-    return f"<div class='p-4 text-red-500'>Erro ao gerar a simulação após várias tentativas.</div>"
+        codigo_html = sanitizar_layout_grafico(codigo_html.strip())
+        if logger:
+            logger.update_agent("simulador", "concluido", resposta=codigo_html)
+            logger.log("Agente Simulador: Concluído com sucesso!", "success")
+        print(" [OK] Simulador gerado e higienizado com sucesso!")
+        return codigo_html
+        
+    except Exception as e:
+        msg_erro = f"Falha definitiva de gerar simulador '{nome_simulador}': {str(e)}"
+        print(f" [ERRO] {msg_erro}")
+        if logger:
+            logger.update_agent("simulador", "erro")
+            logger.log(f"Agente Simulador: Falha - {msg_erro}", "error")
+        return f"<div class='p-4 text-red-500'>Erro ao gerar a simulação após várias tentativas.</div>"
 
 
 if __name__ == "__main__":
