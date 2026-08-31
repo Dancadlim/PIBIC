@@ -214,7 +214,7 @@ Cada item da lista deve focar intensamente em um único conceito específico, ga
         erros_429 = 0
         erros_503 = 0
         erros_outros = 0
-        MAX_TENTATIVAS_REVISAO = 3
+        MAX_TENTATIVAS_REVISAO = 2
 
         while tentativa < MAX_TENTATIVAS_REVISAO and not bloco_aprovado:
             tentativa += 1
@@ -414,7 +414,7 @@ Sua missão é atuar como o produtor científico principal do conteúdo teórico
     log_subtopicos = [None] * len(roteiro_pedagogico.esquema_paginas)
     
     tarefas_pendentes = list(enumerate(roteiro_pedagogico.esquema_paginas))
-    max_workers_atuais = 5
+    max_workers_atuais = 3
     cooldowns_executados = 0
     MAX_COOLDOWNS = 3
     
