@@ -62,6 +62,20 @@ export function sanitizeLatex(text: string): string {
   processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
   processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
+  // 1.1 Corrige cifrões desbalanceados por parágrafo (evita que texto em português vire math itálico)
+  const paragraphs = processed.split('\n\n');
+  const balancedParagraphs = paragraphs.map(p => {
+    const tempP = p.replace(/\$\$/g, '');
+    const matches = tempP.match(/(?<!\\)\$/g);
+    const singleDollars = matches ? matches.length : 0;
+    if (singleDollars % 2 !== 0) {
+      // Há um cifrão ímpar/órfão aberto no parágrafo: fecha no final da linha antes da pontuação/quebra
+      return p.replace(/(\$[^$\n]+?)([\.\,\;\:\?\!]|(?=\n)|$)/, '$1$$2');
+    }
+    return p;
+  });
+  processed = balancedParagraphs.join('\n\n');
+
   // 2. Se a string inteira for um bloco com \begin{aligned} ou \begin{...} sem $$, envolve em $$
   if (!processed.includes('$$') && processed.includes('\\begin{')) {
     processed = processed.replace(/(\\begin\{[a-zA-Z*]+\}[\s\S]*?\\end\{[a-zA-Z*]+\})/g, '\n$$\n$1\n$$\n');
@@ -87,6 +101,9 @@ export function sanitizeLatex(text: string): string {
       // Prosa comum (fora de cifrões)
       let prose = part;
       
+      // Auto-wrap para binom solto na prosa (\binom{n}{k} -> $\binom{n}{k}$)
+      prose = prose.replace(/(?<!\$)(?<!\\)(\\(?:d?binom|tbinom)\{[^}]+\}\{[^}]+\})(?!\$)/g, ' $$1 ');
+
       // Símbolos gregos e matemáticos isolados soltos na prosa
       const symbolsToWrap = /(?<!\$)(?<!\\)(\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|varepsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\}))(?!\$)/g;
       prose = prose.replace(symbolsToWrap, (_, sym) => ` $${sym}$ `);

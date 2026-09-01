@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -101,6 +102,21 @@ Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE ht
     <!-- Div do Gráfico ocupando 100% da largura -->
     <div id="grafico" class="w-full" style="width: 100%; min-height: 420px; height: 450px;"></div>
   </div>
+
+  <script>
+    // Todo o código JavaScript DEVE ficar OBRIGATORIAMENTE dentro desta tag <script>
+    function initSimulation() {
+      if (typeof Plotly === 'undefined') {
+        setTimeout(initSimulation, 50);
+        return;
+      }
+      // Configuração de eventos e primeiro render
+      updateChart();
+    }
+    window.addEventListener('load', initSimulation);
+    document.addEventListener('DOMContentLoaded', initSimulation);
+    initSimulation();
+  </script>
 </body>
 </html>
 """
@@ -155,13 +171,10 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
         simulador_obj = SimuladorHTMLOutput.model_validate_json(resposta.text)
         codigo_html = simulador_obj.codigo_html_completo.strip()
         
-        import re
-        # Caso o LLM tenha encapsulado com crases dentro do campo JSON, limpa
-        match = re.search(r"```(?:html)?\s*(<!DOCTYPE[\s\S]*?</html>)\s*```", codigo_html, re.IGNORECASE)
-        if not match:
-            match = re.search(r"```(?:html)?\s*(<html[\s\S]*?</html>)\s*```", codigo_html, re.IGNORECASE)
-        if match:
-            codigo_html = match.group(1).strip()
+        # Garante que nada fora de <!DOCTYPE...</html> ou <html...</html> permaneça
+        match_html = re.search(r"(<!DOCTYPE[\s\S]*?</html>|<html[\s\S]*?</html>)", codigo_html, re.IGNORECASE)
+        if match_html:
+            codigo_html = match_html.group(1).strip()
             
         codigo_html = codigo_html.strip()
         if logger:

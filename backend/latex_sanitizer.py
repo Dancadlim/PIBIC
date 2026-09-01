@@ -58,6 +58,19 @@ def sanitize_latex_string(text: str) -> str:
     processed = processed.replace(r'\[', '\n$$\n').replace(r'\]', '\n$$\n')
     processed = processed.replace(r'\(', '$').replace(r'\)', '$')
 
+    # 1.1 Corrige cifrões desbalanceados por parágrafo (evita que texto em português vire math itálico)
+    paragraphs = processed.split('\n\n')
+    balanced_paragraphs = []
+    for p in paragraphs:
+        # Conta cifrões não-escapados (excluindo display math $$)
+        temp_p = p.replace('$$', '')
+        single_dollars = len(re.findall(r'(?<!\\)\$', temp_p))
+        if single_dollars % 2 != 0:
+            # Há um cifrão ímpar/órfão aberto no parágrafo: fecha no final da linha antes da pontuação/quebra
+            p = re.sub(r'(\$[^$\n]+?)([\.\,\;\:\?\!]|(?=\n)|$)', r'\1$\2', p, count=1)
+        balanced_paragraphs.append(p)
+    processed = '\n\n'.join(balanced_paragraphs)
+
     # 2. Se a string contiver \begin{aligned} ou \begin{...} sem $$, envolve em $$
     if '$$' not in processed and r'\begin{' in processed:
         processed = re.sub(r'(\\begin\{[a-zA-Z*]+\}[\s\S]*?\\end\{[a-zA-Z*]+\})', r'\n$$\n\1\n$$\n', processed)
@@ -82,6 +95,10 @@ def sanitize_latex_string(text: str) -> str:
         else:
             # Prosa comum (fora de cifrões)
             prose = part
+            # Auto-wrap para binom solto na prosa (\binom{n}{k} -> $\binom{n}{k}$)
+            prose = re.sub(r'(?<!\$)(?<!\\)(\\(?:d?binom|tbinom)\{[^}]+\}\{[^}]+\})(?!\$)', r' $\1$ ', prose)
+            
+            # Símbolos gregos e matemáticos isolados soltos na prosa
             symbols_to_wrap = r'\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|varepsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\})'
             prose = re.sub(r'(?<!\$)(?<!\\)(' + symbols_to_wrap + r')(?!\$)', r' $\1$ ', prose)
             result_parts.append(prose)

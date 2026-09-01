@@ -25,25 +25,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Adiciona quebra de linha suave e scroll horizontal somente em blocos matemáticos que realmente precisam */
+/* Adiciona quebra de linha suave no texto em prosa */
 .markdown-body {
   overflow-wrap: break-word;
   word-break: break-word;
-}
-
-/* Inline math KaTeX quebra linha normalmente junto com o texto */
-.katex {
-  white-space: normal !important;
-}
-
-.katex-html {
-  white-space: normal !important;
-}
-
-.katex .base {
-  white-space: normal !important;
-  display: inline-block;
-  max-width: 100%;
 }
 
 /* Display math ($$) tem scroll horizontal apenas se a fórmula for maior que a tela */
@@ -52,11 +37,6 @@ body {
   overflow-y: hidden;
   padding-bottom: 0.5rem;
   max-width: 100%;
-}
-
-.katex-display > .katex {
-  white-space: nowrap !important;
-  text-align: center;
 }
 
 .markdown-body table, .markdown-body pre {

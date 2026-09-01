@@ -14,7 +14,8 @@ REGRAS ESTABELECIDAS PARA A FORMATAÇÃO MATEMÁTICA E LATEX (SIGA ESTRITAMENTE)
 7. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
 8. DELIMITADORES OBRIGATÓRIOS PARA COMANDOS LATEX: É TERMINANTEMENTE PROIBIDO usar comandos LaTeX (como `\\text{...}`, `\\times`, `\\frac{...}{...}`, `\\hat{...}`, `\\sum`) soltos na prosa sem estar dentro de `$` ou `$$`. Toda expressão de cálculo como `P(\\text{vence}) \\times \\text{Total} = 48.000` DEVE estar completamente envolvida em `$ $` (ex: `$P(\\text{vence}) \\times \\text{Total} = \\text{R\\$} 48.000$`).
 9. DEMONSTRAÇÕES E EXPLICAÇÕES (DEDUÇÕES PASSO A PASSO): Em passos explicativos e deduções, escreva o texto em português normal com as variáveis e expressões em inline math `$ ... $` (ex: `Em AAS, cada unidade amostral $y_i$ assume...`). É ESTRITAMENTE PROIBIDO envolver frases explicativas inteiras em `$$ \\text{Frase explicativa inteira...} $$`, pois isso impede a quebra de linha natural no navegador.
-10. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa pura não devem conter comandos LaTeX sem cifrão.
+10. COMBINAÇÕES E COEFICIENTES BINOMIAIS: Para combinações e coeficientes binomiais/multinomiais, use SEMPRE `\\binom{n}{k}` dentro de cifrões `$ \\binom{n}{k} $` ou em display math `$$ \\binom{n}{k} $$`. NUNCA use `\\binom` solto no texto sem `$`.
+11. BALANCEAMENTO DE CIFRÕES ($): Todo cifrão `$` aberto em uma fórmula inline DEVE ser OBRIGATORIAMENTE fechado logo após a expressão matemática na MESMA linha (ex: `$(x_1 + x_2 + \\dots + x_k)^n$`). NUNCA deixe um `$` aberto sem fechamento, pois isso corrompe o texto em português seguinte.
 """
 
 # ==============================================================================
