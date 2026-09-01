@@ -16,15 +16,12 @@ function sanitizeDisplayMath(content: string): string {
   c = c.replace(/\\+boldsymbol\\+\{([^}]+)\}/g, '\\boldsymbol{$1}');
   c = c.replace(/\\+boldsymbol\\+\{/g, '\\boldsymbol{');
   c = c.replace(/\\+mathbf\\+\{/g, '\\mathbf{');
-  c = c.replace(/(\t|\\+)hicksim/g, '\\sim');
-  c = c.replace(/\\+nginxed/g, '\\in');
+  
+  // Corrige separadores de linha em aligned (\ e \ -> \\)
+  c = c.replace(/(?<!\\)\\\s*(?=&|\\end)/g, '\\\\ ');
 
   // 3. Escapa porcentagem solta dentro do math
   c = c.replace(/(?<!\\)%/g, '\\%');
-
-  // 4. Trunca falhas em \right
-  c = c.replace(/[\s\r\n\t]+ight([\)\}\]|\\])/g, ' \\right$1');
-  c = c.replace(/[\s\r\n\t]+ight/g, ' \\right');
 
   return c.trim();
 }
@@ -35,11 +32,8 @@ function sanitizeInlineMath(content: string): string {
   c = c.replace(/\\bold\{/g, '\\mathbf{');
   c = c.replace(/\\+boldsymbol\\+\{([^}]+)\}/g, '\\boldsymbol{$1}');
   c = c.replace(/\\+boldsymbol\\+\{/g, '\\boldsymbol{');
-  c = c.replace(/\\+nginxed/g, '\\in');
+  c = c.replace(/\\+mathbf\\+\{/g, '\\mathbf{');
   c = c.replace(/(?<!\\)%/g, '\\%');
-  
-  // Resolve artefatos onde o LLM insere múltiplas barras antes de comandos gregos, ex: \\\\mu -> \\mu
-  c = c.replace(/\\\\+/g, '\\');
   
   return c.trim();
 }
@@ -48,16 +42,24 @@ export function sanitizeLatex(text: string): string {
   if (!text) return "";
   let processed = text;
 
-  // Protege valores monetários (R$ e US$) substituindo temporariamente para que o tokenizador não os engula
+  // Protege valores monetários (R$ e US$)
   processed = processed.replace(/R\$(?!\$)/g, 'R__DOLLAR__');
   processed = processed.replace(/US\$(?!\$)/g, 'US__DOLLAR__');
+
+  // 0. Auto-envelopa blocos \begin{aligned}...\end{aligned} que foram gerados sem $$
+  processed = processed.replace(/(?<!\$\$)(?<!\$)\\begin\{aligned\}([\s\S]*?)\\end\{aligned\}(?!\$\$)(?!\$)/g, '\n$$\n\\begin{aligned}$1\\end{aligned}\n$$\n');
+  processed = processed.replace(/(?<!\$\$)(?<!\$)\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}(?!\$\$)(?!\$)/g, '\n$$\n\\begin{aligned}$1\\end{aligned}\n$$\n');
 
   // 1. Normaliza delimitadores clássicos LaTeX
   processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
   processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
+  // Se uma string inteira não contém nenhum $ ou $$ mas começa com comandos matemáticos (ex: \lim, \frac, \sum, \int), envelopa a string toda em $$
+  if (!processed.includes('$') && /^\s*\\(?:lim|frac|sum|prod|int|sqrt|begin|mathbf|boldsymbol|infty|alpha|beta|theta|mu|sigma)/.test(processed)) {
+    processed = `\n$$\n${processed.trim()}\n$$\n`;
+  }
+
   // 2. Divide a string em tokens de Display Math ($$...$$), Inline Math ($...$) e Prosa
-  // O lookbehind (?<!\\) impede que um \$ (cifrão escapado) inicie ou termine um bloco matemático.
   const pattern = /(?<!\\)(\$\$[\s\S]*?(?<!\\)\$\$|(?<!\\)\$(?:[^\$\n]|\\\$)+?(?<!\\)\$)/g;
   const parts = processed.split(pattern);
 
@@ -77,14 +79,11 @@ export function sanitizeLatex(text: string): string {
       // É prosa comum (fora de cifrões)
       let prose = part;
       
-      // Auto-envelopa expressões matemáticas óbvias soltas na prosa (ex: P(A \text{ vence}) \times ... = R$ 48.000 ou \beta_1 = 3.5)
-      // Identifica linhas ou segmentos contendo comandos como \times, \frac, \text, \sum, \hat, \sqrt sem $
+      // Auto-envelopa linhas ou segmentos matemáticos soltos contendo operadores de cálculo
       const mathLinePattern = /(?:(?:[A-Z]\([^\)]+\)|\\(?:text|times|frac|sum|prod|int|hat|bar|sqrt|boldsymbol|mathbf|pm|approx|leq|geq|neq|sim|cdot))[^$\n]*?(?:=|\+|-|\*|\/|\\times|\approx)[^$\n]*)/g;
       
       prose = prose.replace(mathLinePattern, (match) => {
-        // Se já tiver $, não mexe
         if (match.includes('$')) return match;
-        // Limpa espaços extras nas pontas e envelopa em $
         const trimmed = match.trim();
         if (trimmed.length > 3) {
           return ` $${trimmed}$ `;
@@ -101,7 +100,7 @@ export function sanitizeLatex(text: string): string {
 
   processed = resultParts.join('');
 
-  // 3. Corrige cifrões duplicados ou aninhados criados acidentalmente ($ $...$ $)
+  // Corrige cifrões duplicados ($ $...$ $)
   processed = processed.replace(/\$\s*\$([^\$]+?)\$\s*\$/g, '$$$1$$');
 
   // 3. Anexa pontuações isoladas que ficaram soltas após equações ou quebras de linha
@@ -114,12 +113,12 @@ export function sanitizeLatex(text: string): string {
   processed = processed.replace(/([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])\$([^$\n]+?)\$/g, (_, w, m) => `${w} $${m}$`);
   processed = processed.replace(/\$([^$\n]+?)\$([a-zA-Z0-9áàâãéèêíóòôõúçÁÀÂÃÉÈÊÍÓÒÔÕÚÇ])/g, (_, m, w) => `$${m}$ ${w}`);
 
-  // 5. Remove espaços em branco no início de cada linha (evita bloco <pre> identado no Markdown)
+  // 5. Remove espaços em branco no início de cada linha
   const lines = processed.split('\n');
   const processedLines = lines.map(line => line.replace(/^[ \t]+/, ''));
   processed = processedLines.join('\n');
 
-  // 6. Remove excesso de quebras de linha mantendo no máximo parágrafo duplo
+  // 6. Remove excesso de quebras de linha
   processed = processed.replace(/\n{3,}/g, '\n\n');
 
   // 7. Restaura os símbolos monetários devidamente escapados
