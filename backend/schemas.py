@@ -165,9 +165,10 @@ class PaginaLapidada(BaseModel):
         description="A derivação matemática completa dividida linha por linha em LaTeX ($$). Se o assunto for conceitual/histórico e não exigir demonstração algébrica, retorne estritamente null."
     )
     
-    # Transformado em lista obrigatória para garantir volume de conteúdo prático
-    exemplos_praticos_ricos: List[ExemploResolvidoRico] = Field(
-        description="Lista contendo obrigatoriamente de 2 a 3 exemplos práticos e resolvidos de alta complexidade sobre o subtópico."
+    # Exemplos práticos: ricos quando o tópico demandar cálculo, ou lista vazia [] em páginas puramente conceituais/históricas
+    exemplos_praticos_ricos: Optional[List[ExemploResolvidoRico]] = Field(
+        default_factory=list,
+        description="Lista contendo exemplos práticos e resolvidos sobre o subtópico (ou lista vazia [] se o subtópico for puramente qualitativo/histórico)."
     )
 
 class MapeamentoSimulador(BaseModel):

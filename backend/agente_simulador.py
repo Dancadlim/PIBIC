@@ -16,6 +16,9 @@ Sua missão é criar uma simulação interativa baseada em tecnologias web nativ
 Tema Geral da Aula: {tema_aula}
 Simulação Solicitada: {nome_simulador}
 
+[DIRETRIZ DE SIMPLICIDADE E INTUIÇÃO VISUAL]
+O objetivo central do simulador é proporcionar uma experiência visual interativa, intuitiva e agradável (focando em sliders reativos e no gráfico do Plotly atualizando em tempo real). Não é necessário sobrecarregar a tela com fórmulas matemáticas complexas ou cálculos extensos — priorize a intuição visual do fenômeno estudado.
+
 [DIRETRIZES DE ARQUITETURA E LAYOUT VERTICAL - CRÍTICO]
 1. HIERARQUIA DE ELEMENTOS (DISPOSIÇÃO VERTICAL):
    - A página DEVE ser estruturada de cima para baixo na seguinte ordem:
