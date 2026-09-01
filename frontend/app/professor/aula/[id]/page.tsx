@@ -889,9 +889,9 @@ export default function ProfessorSemesterViewer() {
                                 <div className="text-indigo-600 font-bold inline-flex items-center gap-1">
                                   <span>Solução Passo a Passo:</span>
                                 </div>
-                                <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg overflow-x-auto overflow-y-hidden space-y-4">
+                                <div className="mt-4 p-4 sm:p-6 bg-white border border-slate-200 rounded-lg space-y-4">
                                   {q.gabarito_passo_a_passo.map((passo: string, pIdx: number) => (
-                                    <div key={pIdx} className="text-slate-600">
+                                    <div key={pIdx} className="text-slate-600 text-sm sm:text-base">
                                       <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                         {processLatex(passo)}
                                       </ReactMarkdown>
