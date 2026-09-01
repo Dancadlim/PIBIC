@@ -17,31 +17,31 @@ Tema Geral da Aula: {tema_aula}
 Simulação Solicitada: {nome_simulador}
 
 [DIRETRIZ DE SIMPLICIDADE E INTUIÇÃO VISUAL]
-O objetivo central do simulador é proporcionar uma experiência visual interativa, intuitiva e agradável (focando em sliders reativos e no gráfico do Plotly atualizando em tempo real). Não é necessário sobrecarregar a tela com fórmulas matemáticas complexas ou cálculos extensos — priorize a intuição visual do fenômeno estudado.
+O objetivo central do simulador é proporcionar uma experiência visual interativa, intuitiva e agradável (focando em sliders reativos, gráficos do Plotly ou cards de visualização dinâmica atualizando em tempo real). Não é necessário sobrecarregar a tela com fórmulas matemáticas complexas ou cálculos extensos — priorize a intuição visual do fenômeno estudado.
 
 [DIRETRIZES DE ARQUITETURA E LAYOUT VERTICAL - CRÍTICO]
 1. HIERARQUIA DE ELEMENTOS (DISPOSIÇÃO VERTICAL):
    - A página DEVE ser estruturada de cima para baixo na seguinte ordem:
      a) CABEÇALHO: Título e subtítulo em HTML no topo (`<h2 class="text-xl font-bold text-slate-800">{nome_simulador}</h2>`).
      b) PAINEL DE CONTROLES: Sliders (`<input type="range">`) agrupados em um card com Tailwind CSS no topo/centro.
-     c) CONTAINER DO GRÁFICO (LARGURA TOTAL 100%): O gráfico DEVE ter uma div explícita `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>` ABAIXO dos controles. É PROIBIDO omitir ou esquecer de inserir a tag `<div id="grafico">`.
-     d) RODAPÉ / CARD EXPLICATIVO (OPCIONAL): Breve explicação ao final com as conclusões da simulação.
+     c) ÁREA DE VISUALIZAÇÃO / GRÁFICO (LARGURA TOTAL 100%): 
+        * Se a simulação for um GRÁFICO (Plotly/curvas/barras/dispersão): use uma div explícita `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>` ABAIXO dos controles.
+        * Se a simulação for uma CALCULADORA / DASHBOARD VISUAL (ex: Calculadora Bayesiana com barras de probabilidade e cartões comparativos de falso-positivo): crie um card visual rico, espaçado e dinâmico ocupando a área central.
+     d) RODAPÉ / CARD EXPLICATIVO: Breve explicação/conclusão dinâmica ao final.
 
-2. ALTURA E VISIBILIDADE DO GRÁFICO (MANDATÓRIO):
-   - A div do gráfico DEVE ter estilo inline com largura e altura explícitas para NUNCA colapsar para 0px:
-     `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>`
-   - NO JS DO PLOTLY:
-     * O container alvo do Plotly DEVE ser exatamente o id `grafico` (`document.getElementById('grafico')` ou `'grafico'`).
-     * Mantenha o título interno VAZIO (`title: {{ text: '' }}` ou omitido).
-     * Configure margens limpas e legenda horizontal abaixo:
-       `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
-     * Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
+2. ALTURA E VISIBILIDADE DO CONTEÚDO (MANDATÓRIO):
+   - Se utilizar Plotly:
+     * A div do gráfico DEVE ter estilo inline: `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>`.
+     * O container alvo do Plotly DEVE ser exatamente o id `grafico`.
+     * Mantenha o título interno VAZIO (`title: {{ text: '' }}`).
+     * Margens limpas: `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`.
+     * Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`.
 
 3. INICIALIZAÇÃO IMEDIATA E NOTIFICAÇÃO DE REDIMENSIONAMENTO:
-   - Conecte o evento `input` dos sliders à função de re-renderização (`Plotly.react('grafico', ...)`).
-   - Ao final do script, execute a função de renderização IMEDIATAMENTE (chamando `updateChart()` logo após a definição).
-   - Adicione também um listener `window.addEventListener('load', updateChart);` e `document.addEventListener('DOMContentLoaded', updateChart);` para garantir inicialização mesmo em iframes assíncronos.
-   - Sempre que renderizar ou atualizar o gráfico, envie mensagem de redimensionamento para a página pai:
+   - Conecte o evento `input` dos sliders à função de atualização/re-renderização (`updateUI()` ou `updateChart()`).
+   - Execute a função de atualização IMEDIATAMENTE ao carregar o script.
+   - Adicione também listeners `window.addEventListener('load', updateUI);` e `document.addEventListener('DOMContentLoaded', updateUI);`.
+   - Sempre que atualizar a simulação, envie mensagem de redimensionamento para a página pai:
      `if (window.parent) {{ window.parent.postMessage({{ type: 'resize', height: document.body.scrollHeight + 40 }}, '*'); }}`
 
 [CÓDIGO DE PARTIDA ESPERADO]

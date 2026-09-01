@@ -88,31 +88,27 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   }
 
   const injectedHtml = html ? (() => {
-    const resizeScript = `<script type="text/javascript">
-      (function() {
-        let lastHeight = 0;
-        function notifyParent() {
-          try {
-            const contentDiv = document.querySelector('.max-w-4xl') || document.querySelector('.max-w-5xl') || document.body;
-            const h = Math.max(contentDiv ? contentDiv.scrollHeight + 30 : (document.body ? document.body.scrollHeight : 650), 650);
-            if (Math.abs(h - lastHeight) > 15) {
-              lastHeight = h;
-              window.parent.postMessage({ type: 'resize', height: h }, '*');
-            }
-          } catch (e) {}
+    const resizeScript = `<script>
+      let lastHeight = 0;
+      function notifyParent() {
+        const contentDiv = document.querySelector('.max-w-4xl') || document.querySelector('.max-w-5xl') || document.body;
+        const h = Math.max(contentDiv ? contentDiv.scrollHeight + 30 : document.body.scrollHeight, 650);
+        if (Math.abs(h - lastHeight) > 15) {
+          lastHeight = h;
+          window.parent.postMessage({ type: 'resize', height: h }, '*');
         }
-        window.addEventListener('load', notifyParent);
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          notifyParent();
-        }
-        setTimeout(notifyParent, 400);
-        setTimeout(notifyParent, 1200);
-      })();
+      }
+      window.addEventListener('load', notifyParent);
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        notifyParent();
+      }
+      setTimeout(notifyParent, 400);
+      setTimeout(notifyParent, 1200);
     </script>`;
-    if (html.toLowerCase().includes('</body>')) {
-      return html.replace(/<\/body>/i, `${resizeScript}</body>`);
+    if (html.includes('</body>')) {
+      return html.replace('</body>', `${resizeScript}</body>`);
     }
-    return `${html}\n${resizeScript}`;
+    return html + resizeScript;
   })() : null;
 
   return (

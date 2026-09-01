@@ -77,8 +77,11 @@ def sanitize_latex_string(text: str) -> str:
             # É prosa comum (fora de cifrões)
             prose = part
             
-            # Auto-envelopa expressões matemáticas óbvias soltas na prosa (ex: P(A \text{ vence}) \times ... = R$ 48.000 ou \beta_1 = 3.5)
-            mathLinePattern = r'(?:(?:[A-Z]\([^\)]+\)|\\(?:text|times|frac|sum|prod|int|hat|bar|sqrt|boldsymbol|mathbf|pm|approx|leq|geq|neq|sim|cdot))[^$\n]*?(?:=|\+|-|\*|\/|\\times|\approx)[^$\n]*)'
+            # Auto-envelopa blocos com \begin{aligned} ou \begin{...} soltos na prosa
+            prose = re.sub(r'(\\begin\{[a-zA-Z*]+\}[\s\S]*?\\end\{[a-zA-Z*]+\})', lambda m: f"\n$$\n{sanitize_display_math(m.group(1))}\n$$\n", prose)
+
+            # Auto-envelopa expressões matemáticas óbvias soltas na prosa (ex: \lim_{n \to \infty} ..., P(A) = ..., \frac{...}{...})
+            mathLinePattern = r'(?:(?:[A-Z]\([^\)]+\)|\\(?:text|times|frac|sum|prod|int|lim|hat|bar|sqrt|boldsymbol|mathbf|pm|approx|leq|geq|neq|sim|cdot|infty|le|ge))[^$\n]*?(?:=|\+|-|\*|\/|\\times|\\approx|\\le|\\ge)[^$\n]*)'
             
             def wrap_math_line(match):
                 m_str = match.group(0)
@@ -92,11 +95,18 @@ def sanitize_latex_string(text: str) -> str:
             prose = re.sub(mathLinePattern, wrap_math_line, prose)
 
             # Símbolos gregos (minúsculos e maiúsculos) e matemáticos soltos na prosa
-            symbols_to_wrap = r'\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|in|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\})'
+            symbols_to_wrap = r'\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|varepsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|in|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\})'
             prose = re.sub(r'(?<!\$)(?<!\\)(' + symbols_to_wrap + r')(?!\$)', r' $\1$ ', prose)
             result_parts.append(prose)
 
     processed = "".join(result_parts)
+
+    # 3. Limpa falhas conhecidas de KaTeX após tokenização
+    processed = re.sub(r'\\in\s+fty', r'\\infty', processed)
+    processed = re.sub(r'\\in\s+t_\{', r'\\int_{', processed)
+    processed = re.sub(r'\\in\s+t\^', r'\\int^', processed)
+    processed = re.sub(r'∈\s*t_\{', r'\\int_{', processed)
+    processed = re.sub(r'∈\s*t\^', r'\\int^', processed)
 
     # Corrige cifrões duplicados ou aninhados criados acidentalmente ($ $...$ $)
     processed = re.sub(r'\$\s*\$([^\$]+?)\$\s*\$', r'$\1$', processed)
