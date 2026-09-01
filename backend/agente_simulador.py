@@ -105,14 +105,14 @@ Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE ht
 
   <script>
     // Todo o código JavaScript DEVE ficar OBRIGATORIAMENTE dentro desta tag <script>
-    function initSimulation() {
-      if (typeof Plotly === 'undefined') {
+    function initSimulation() {{
+      if (typeof Plotly === 'undefined') {{
         setTimeout(initSimulation, 50);
         return;
-      }
+      }}
       // Configuração de eventos e primeiro render
       updateChart();
-    }
+    }}
     window.addEventListener('load', initSimulation);
     document.addEventListener('DOMContentLoaded', initSimulation);
     initSimulation();
