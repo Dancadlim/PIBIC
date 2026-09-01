@@ -13,7 +13,8 @@ REGRAS ESTABELECIDAS PARA A FORMATAÇÃO MATEMÁTICA E LATEX (SIGA ESTRITAMENTE)
 6. ESPAÇAMENTO OBRIGATÓRIO EM INLINE MATH: É MANDATÓRIO colocar UM ESPAÇO em branco ANTES do `$` de abertura e DEPOIS do `$` de fechamento (ex: escreva "o espaço $\\Omega$ possui" e NUNCA "o$\\Omega$possui" ou "o $\\Omega$possui"). Símbolos e letras gregas nunca devem colar nas palavras em português.
 7. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
 8. DELIMITADORES OBRIGATÓRIOS PARA COMANDOS LATEX: É TERMINANTEMENTE PROIBIDO usar comandos LaTeX (como `\\text{...}`, `\\times`, `\\frac{...}{...}`, `\\hat{...}`, `\\sum`) soltos na prosa sem estar dentro de `$` ou `$$`. Toda expressão de cálculo como `P(\\text{vence}) \\times \\text{Total} = 48.000` DEVE estar completamente envolvida em `$ $` (ex: `$P(\\text{vence}) \\times \\text{Total} = \\text{R\\$} 48.000$`).
-9. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa pura não devem conter comandos LaTeX sem cifrão.
+9. DEMONSTRAÇÕES E EXPLICAÇÕES (DEDUÇÕES PASSO A PASSO): Em passos explicativos e deduções, escreva o texto em português normal com as variáveis e expressões em inline math `$ ... $` (ex: `Em AAS, cada unidade amostral $y_i$ assume...`). É ESTRITAMENTE PROIBIDO envolver frases explicativas inteiras em `$$ \\text{Frase explicativa inteira...} $$`, pois isso impede a quebra de linha natural no navegador.
+10. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa pura não devem conter comandos LaTeX sem cifrão.
 """
 
 # ==============================================================================

@@ -30,11 +30,14 @@ O objetivo central do simulador é proporcionar uma experiência visual interati
 2. ALTURA E VISIBILIDADE DO GRÁFICO (MANDATÓRIO):
    - A div do gráfico DEVE ter estilo inline com largura e altura explícitas:
      `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>`
-   - NO JS DO PLOTLY:
+   - NO JS DO PLOTLY (LAYOUT COMPLETO COM TÍTULO E EIXOS):
      * O container alvo do Plotly DEVE ser exatamente o id `grafico` (`Plotly.newPlot('grafico', ...)`).
-     * Mantenha o título interno VAZIO (`title: {{ text: '' }}` ou omitido).
+     * Defina o título formal do gráfico dentro do Plotly:
+       `title: {{ text: '{nome_simulador}', font: {{ size: 16, color: '#1e293b' }} }}`
+     * Configure títulos descritivos para os eixos:
+       `xaxis: {{ title: {{ text: 'Nome da Variável X' }} }}, yaxis: {{ title: {{ text: 'Nome da Variável Y' }} }}`
      * Configure margens limpas e legenda horizontal abaixo:
-       `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
+       `margin: {{ t: 50, b: 60, l: 60, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
      * Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
 
 3. INICIALIZAÇÃO BLINDADA COM POLLING DO PLOTLY (CRÍTICO - EVITA TELA BRANCA):
@@ -109,17 +112,6 @@ class SimuladorHTMLOutput(BaseModel):
         description="Código HTML5 completo contendo <!DOCTYPE html>, Tailwind CSS, Plotly.js e Javascript interativo em uma única string sem blocos de markdown."
     )
 
-def sanitizar_layout_grafico(html_code: str) -> str:
-    """
-    Higieniza o código HTML para garantir que títulos do Plotly/Chart.js não fiquem sobrepostos à legenda.
-    """
-    import re
-    if "Plotly.newPlot" in html_code or "Plotly.react" in html_code:
-        # Garante que title.text no Plotly fique vazio para evitar colisão visual
-        html_code = re.sub(r'title\s*:\s*\{[^}]*text\s*:\s*["\'][^"\']+["\'][^}]*\}', 'title: { text: "" }', html_code)
-        html_code = re.sub(r'title\s*:\s*["\'][^"\']+["\']', 'title: ""', html_code)
-    return html_code
-
 def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> str:
     """
     Gera um código HTML/JS completo para uma simulação interativa usando Gemini Pro com Structured Outputs.
@@ -171,7 +163,7 @@ def gerar_simulador_html(tema_aula: str, nome_simulador: str, logger=None) -> st
         if match:
             codigo_html = match.group(1).strip()
             
-        codigo_html = sanitizar_layout_grafico(codigo_html.strip())
+        codigo_html = codigo_html.strip()
         if logger:
             logger.update_agent("simulador", "concluido", resposta=codigo_html)
             logger.log("Agente Simulador: Concluído com sucesso!", "success")

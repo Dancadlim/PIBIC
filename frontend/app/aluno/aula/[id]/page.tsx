@@ -396,9 +396,9 @@ export default function SemesterViewer() {
                         })()}
 
                         {latexCode && latexCode !== "null" && (
-                          <div className="my-8 p-6 bg-slate-50 rounded-xl  border border-slate-200 text-center">
+                          <div className="my-8 p-6 bg-slate-50 rounded-xl border border-slate-200 text-center">
                             <span className="text-blue-800 font-bold block mb-2 text-sm uppercase tracking-wider">Fórmula / Definição Formal</span>
-                            <div className="text-lg text-left inline-block w-full overflow-x-auto overflow-y-hidden">
+                            <div className="text-lg text-left inline-block w-full break-words">
                               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                 {processLatex(latexCode)}
                               </ReactMarkdown>
@@ -413,7 +413,7 @@ export default function SemesterViewer() {
                             </div>
                             <div className="p-6 bg-slate-50/50 space-y-4">
                               {deducoes.map((passo: string, pIdx: number) => (
-                                <div key={pIdx} className="text-slate-600 text-sm md:text-base w-full overflow-x-auto overflow-y-hidden">
+                                <div key={pIdx} className="text-slate-700 text-sm md:text-base leading-relaxed break-words">
                                   <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                     {processLatex(passo)}
                                   </ReactMarkdown>
