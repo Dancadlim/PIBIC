@@ -76,6 +76,23 @@ export function sanitizeLatex(text: string): string {
     } else {
       // É prosa comum (fora de cifrões)
       let prose = part;
+      
+      // Auto-envelopa expressões matemáticas óbvias soltas na prosa (ex: P(A \text{ vence}) \times ... = R$ 48.000 ou \beta_1 = 3.5)
+      // Identifica linhas ou segmentos contendo comandos como \times, \frac, \text, \sum, \hat, \sqrt sem $
+      const mathLinePattern = /(?:(?:[A-Z]\([^\)]+\)|\\(?:text|times|frac|sum|prod|int|hat|bar|sqrt|boldsymbol|mathbf|pm|approx|leq|geq|neq|sim|cdot))[^$\n]*?(?:=|\+|-|\*|\/|\\times|\approx)[^$\n]*)/g;
+      
+      prose = prose.replace(mathLinePattern, (match) => {
+        // Se já tiver $, não mexe
+        if (match.includes('$')) return match;
+        // Limpa espaços extras nas pontas e envelopa em $
+        const trimmed = match.trim();
+        if (trimmed.length > 3) {
+          return ` $${trimmed}$ `;
+        }
+        return match;
+      });
+
+      // Símbolos gregos e matemáticos isolados soltos na prosa
       const symbolsToWrap = /(?<!\$)(?<!\\)(\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|in|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\}))(?!\$)/g;
       prose = prose.replace(symbolsToWrap, (_, sym) => ` $${sym}$ `);
       resultParts.push(prose);
@@ -83,6 +100,9 @@ export function sanitizeLatex(text: string): string {
   }
 
   processed = resultParts.join('');
+
+  // 3. Corrige cifrões duplicados ou aninhados criados acidentalmente ($ $...$ $)
+  processed = processed.replace(/\$\s*\$([^\$]+?)\$\s*\$/g, '$$$1$$');
 
   // 3. Anexa pontuações isoladas que ficaram soltas após equações ou quebras de linha
   processed = processed.replace(/(\$\$[\s\S]*?\$\$)\s*\n+\s*([.,;:!?])/g, '$1$2\n\n');

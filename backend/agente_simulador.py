@@ -21,20 +21,23 @@ Simulação Solicitada: {nome_simulador}
    - A página DEVE ser estruturada de cima para baixo na seguinte ordem:
      a) CABEÇALHO: Título e subtítulo em HTML no topo (`<h2 class="text-xl font-bold text-slate-800">{nome_simulador}</h2>`).
      b) PAINEL DE CONTROLES: Sliders (`<input type="range">`) agrupados em um card com Tailwind CSS no topo/centro.
-     c) CONTAINER DO GRÁFICO (LARGURA TOTAL 100%): O gráfico DEVE ficar em seu próprio bloco de largura total (`w-full`), ABAIXO dos controles. É PROIBIDO colocar a div do gráfico dentro de uma coluna de grid ao lado de sliders, pois em dispositivos móveis isso empurra ou oculta o gráfico.
-     d) RODAPÉ / CARD EXPLICATIVO (OPCIONAL): Breve explicação ao final.
+     c) CONTAINER DO GRÁFICO (LARGURA TOTAL 100%): O gráfico DEVE ter uma div explícita `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>` ABAIXO dos controles. É PROIBIDO omitir ou esquecer de inserir a tag `<div id="grafico">`.
+     d) RODAPÉ / CARD EXPLICATIVO (OPCIONAL): Breve explicação ao final com as conclusões da simulação.
 
 2. ALTURA E VISIBILIDADE DO GRÁFICO (MANDATÓRIO):
    - A div do gráfico DEVE ter estilo inline com largura e altura explícitas para NUNCA colapsar para 0px:
      `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>`
-   - NO JS DO PLOTLY: Mantenha o título interno VAZIO (`title: {{ text: '' }}` ou omitido).
-   - Configure margens limpas e legenda horizontal abaixo:
-     `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
-   - Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
+   - NO JS DO PLOTLY:
+     * O container alvo do Plotly DEVE ser exatamente o id `grafico` (`document.getElementById('grafico')` ou `'grafico'`).
+     * Mantenha o título interno VAZIO (`title: {{ text: '' }}` ou omitido).
+     * Configure margens limpas e legenda horizontal abaixo:
+       `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
+     * Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
 
 3. INICIALIZAÇÃO IMEDIATA E NOTIFICAÇÃO DE REDIMENSIONAMENTO:
    - Conecte o evento `input` dos sliders à função de re-renderização (`Plotly.react('grafico', ...)`).
-   - Ao final do script, execute a função de renderização IMEDIATAMENTE (sem depender apenas de eventos que já possam ter disparado).
+   - Ao final do script, execute a função de renderização IMEDIATAMENTE (chamando `updateChart()` logo após a definição).
+   - Adicione também um listener `window.addEventListener('load', updateChart);` e `document.addEventListener('DOMContentLoaded', updateChart);` para garantir inicialização mesmo em iframes assíncronos.
    - Sempre que renderizar ou atualizar o gráfico, envie mensagem de redimensionamento para a página pai:
      `if (window.parent) {{ window.parent.postMessage({{ type: 'resize', height: document.body.scrollHeight + 40 }}, '*'); }}`
 

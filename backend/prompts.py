@@ -12,7 +12,8 @@ REGRAS ESTABELECIDAS PARA A FORMATAÇÃO MATEMÁTICA E LATEX (SIGA ESTRITAMENTE)
 5. SUBSCRITOS E SOBRECRITOS: Sempre use chaves em subscritos ou sobrescritos de múltiplos caracteres (ex: `$X_{i1}$`, `$Y_{ij}$`, `$\\sigma^2_X$`).
 6. ESPAÇAMENTO OBRIGATÓRIO EM INLINE MATH: É MANDATÓRIO colocar UM ESPAÇO em branco ANTES do `$` de abertura e DEPOIS do `$` de fechamento (ex: escreva "o espaço $\\Omega$ possui" e NUNCA "o$\\Omega$possui" ou "o $\\Omega$possui"). Símbolos e letras gregas nunca devem colar nas palavras em português.
 7. MATRIZES E AMBIENTES: Nunca use `\\begin{...}` solto no texto. Sempre encapsule as matrizes, arrays e equações grandes dentro do bloco de display math `$$`. Ex: `$$ \\begin{pmatrix} ... \\end{pmatrix} $$`.
-8. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa não devem ficar dentro de delimitadores matemáticos, e símbolos matemáticos devem sempre estar dentro de `$`.
+8. DELIMITADORES OBRIGATÓRIOS PARA COMANDOS LATEX: É TERMINANTEMENTE PROIBIDO usar comandos LaTeX (como `\\text{...}`, `\\times`, `\\frac{...}{...}`, `\\hat{...}`, `\\sum`) soltos na prosa sem estar dentro de `$` ou `$$`. Toda expressão de cálculo como `P(\\text{vence}) \\times \\text{Total} = 48.000` DEVE estar completamente envolvida em `$ $` (ex: `$P(\\text{vence}) \\times \\text{Total} = \\text{R\\$} 48.000$`).
+9. VARIÁVEIS E TEXTOS DENTRO DO MATH: Textos em prosa pura não devem conter comandos LaTeX sem cifrão.
 """
 
 # ==============================================================================

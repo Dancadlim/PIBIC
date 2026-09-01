@@ -76,12 +76,30 @@ def sanitize_latex_string(text: str) -> str:
         else:
             # É prosa comum (fora de cifrões)
             prose = part
+            
+            # Auto-envelopa expressões matemáticas óbvias soltas na prosa (ex: P(A \text{ vence}) \times ... = R$ 48.000 ou \beta_1 = 3.5)
+            mathLinePattern = r'(?:(?:[A-Z]\([^\)]+\)|\\(?:text|times|frac|sum|prod|int|hat|bar|sqrt|boldsymbol|mathbf|pm|approx|leq|geq|neq|sim|cdot))[^$\n]*?(?:=|\+|-|\*|\/|\\times|\approx)[^$\n]*)'
+            
+            def wrap_math_line(match):
+                m_str = match.group(0)
+                if '$' in m_str:
+                    return m_str
+                trimmed = m_str.strip()
+                if len(trimmed) > 3:
+                    return f" ${trimmed}$ "
+                return m_str
+
+            prose = re.sub(mathLinePattern, wrap_math_line, prose)
+
             # Símbolos gregos (minúsculos e maiúsculos) e matemáticos soltos na prosa
             symbols_to_wrap = r'\\(?:mu|sigma|alpha|beta|theta|lambda|pi|gamma|delta|epsilon|phi|omega|rho|tau|eta|chi|psi|zeta|Omega|Sigma|Delta|Theta|Gamma|Phi|Psi|Lambda|in|forall|exists|rightarrow|Rightarrow|infty|partial|mathcal\{[A-Za-z]\})'
             prose = re.sub(r'(?<!\$)(?<!\\)(' + symbols_to_wrap + r')(?!\$)', r' $\1$ ', prose)
             result_parts.append(prose)
 
     processed = "".join(result_parts)
+
+    # Corrige cifrões duplicados ou aninhados criados acidentalmente ($ $...$ $)
+    processed = re.sub(r'\$\s*\$([^\$]+?)\$\s*\$', r'$\1$', processed)
 
     # 3. Anexa pontuações isoladas que ficaram soltas após equações ou quebras de linha
     processed = re.sub(r'(\$\$[\s\S]*?\$\$)\s*\n+\s*([.,;:!?])', r'\1\2\n\n', processed)
