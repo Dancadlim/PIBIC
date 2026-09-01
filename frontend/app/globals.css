@@ -31,28 +31,33 @@ body {
   word-break: break-word;
 }
 
-/* Display math ($$) tem scroll horizontal apenas se a fórmula for maior que a tela */
+/* Quebra de linha suave em parágrafos e spans matemáticos inline */
+.prose, .markdown-body, p, li, div {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+/* Display math ($$) tem quebra suave ou rolagem invisível sem barras cinzas */
 .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
   max-width: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE e Edge */
 }
 
 .katex-display::-webkit-scrollbar {
-  height: 4px;
-}
-
-.katex-display::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.8);
-  border-radius: 4px;
+  display: none; /* Chrome, Safari e Opera */
 }
 
 .markdown-body table, .markdown-body pre {
   max-width: 100%;
   overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.markdown-body table::-webkit-scrollbar, .markdown-body pre::-webkit-scrollbar {
+  display: none;
 }
