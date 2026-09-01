@@ -103,6 +103,8 @@ def mapear_todas_anomalias_json(aula_json: dict) -> list:
                 anomalia_counter += 1
         elif isinstance(obj, dict):
             for k, v in obj.items():
+                if k == "codigo_html_gerado":
+                    continue
                 auditar_recursivo(v, f"{caminho}.{k}")
         elif isinstance(obj, list):
             for i, elem in enumerate(obj):

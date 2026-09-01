@@ -20,6 +20,15 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   const [iframeHeight, setIframeHeight] = useState(800);
 
   useEffect(() => {
+    if (htmlCode) {
+      setHtml(htmlCode);
+    } else if (!html && !loading && !error) {
+      // Dispara automaticamente a geração em tempo real se ainda não foi gerado
+      carregarSimulador();
+    }
+  }, [htmlCode]);
+
+  useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'resize' && event.data.height) {
          setIframeHeight(event.data.height + 50);
@@ -50,25 +59,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   };
 
   if (!html && !loading && !error) {
-    return (
-      <div className="my-8 bg-indigo-50 border border-indigo-100 rounded-xl p-8 text-center shadow-sm">
-        <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Play className="text-indigo-600" size={32} />
-        </div>
-        <h4 className="text-xl font-bold text-indigo-900 mb-2">Simulador: {nomeSimulador}</h4>
-        <p className="text-indigo-700 mb-6 max-w-md mx-auto">
-          Acesse uma experiência visual interativa gerada por Inteligência Artificial em tempo real para consolidar este conceito.
-        </p>
-        <button 
-          onClick={carregarSimulador}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all flex items-center gap-2 mx-auto"
-        >
-          <span>✨</span> Gerar e Abrir Simulador
-        </button>
-      
-      
-    </div>
-    );
+    return null;
   }
 
   if (loading) {
@@ -380,46 +371,61 @@ export default function ProfessorSemesterViewer() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <header className="bg-blue-900 text-white p-4 shadow-md flex justify-between items-center z-10 shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="bg-blue-900 text-white p-3 sm:p-4 shadow-md flex justify-between items-center z-20 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-blue-800 rounded-lg transition"
+            className="p-2 hover:bg-blue-800 rounded-lg transition shrink-0"
             title={isSidebarOpen ? "Esconder cronograma" : "Mostrar cronograma"}
           >
-            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
-          <div>
-            <h1 className="text-xl font-bold">{classroom?.id_disciplina} - {classroom?.nome_disciplina}</h1>
-            <p className="text-xs text-blue-200">Sala: {classroom?.code} | Status: {status}</p>
+          <div className="truncate">
+            <h1 className="text-base sm:text-xl font-bold truncate">{classroom?.id_disciplina} - {classroom?.nome_disciplina}</h1>
+            <p className="text-[10px] sm:text-xs text-blue-200 truncate">Sala: {classroom?.code} | Status: {status}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => router.push("/professor/dashboard")} className="text-sm bg-blue-800 px-4 py-2 rounded hover:bg-blue-700 transition">
-            Voltar ao Dashboard
+        <div className="flex gap-2 shrink-0">
+          <button onClick={() => router.push("/professor/dashboard")} className="text-xs sm:text-sm bg-blue-800 px-3 py-1.5 sm:px-4 sm:py-2 rounded hover:bg-blue-700 transition">
+            Voltar
           </button>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar: Cronograma (Menu de Aulas) */}
-        <aside className={`bg-white border-r border-slate-200 overflow-y-auto flex flex-col shrink-0 transition-all duration-300 ${isSidebarOpen ? 'w-80' : 'w-0 hidden'}`}>
-          <div className="p-4 border-b border-slate-100 bg-slate-50">
+        {/* Backdrop escuro no Mobile quando a Sidebar está aberta */}
+        {isSidebarOpen && (
+          <div 
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-slate-900/40 z-30 md:hidden transition-opacity"
+          />
+        )}
+
+        {/* Sidebar: Cronograma (Menu de Aulas - Gaveta no Mobile) */}
+        <aside className={`
+          bg-white border-r border-slate-200 overflow-y-auto flex flex-col shrink-0 transition-all duration-300 z-40
+          fixed inset-y-0 left-0 top-[57px] sm:top-[65px] md:static md:top-auto
+          ${isSidebarOpen ? 'w-80 shadow-2xl md:shadow-none' : '-translate-x-full md:translate-x-0 md:w-0 md:hidden'}
+        `}>
+          <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
             <h2 className="font-bold text-slate-800">Plano de Ensino</h2>
-            {(isGenerating || status.startsWith("erro")) && (
-                <div className={`mt-2 text-xs p-3 rounded-lg border shadow-sm flex flex-col gap-2 ${status.startsWith("erro") ? "bg-red-50 border-red-200 text-red-600" : "bg-blue-50 border-blue-200 text-blue-600"}`}>
-                  <div className={`flex items-center gap-2 font-semibold ${!status.startsWith("erro") && "animate-pulse"}`}>
-                    <span>??</span> {status.startsWith("erro") ? "Erro ao gerar aulas" : `IA gerando aulas (${classroom?.aulas_geradas || 0} de ${classroom?.total_aulas || '?'})`}
-                  </div>
-                  <button 
-                    onClick={() => setDebuggerState({salaId: params.id as string, aulaNum: (classroom?.aulas_geradas || 0) + 1})}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded shadow-sm transition"
-                  >
-                    Acompanhar Agentes
-                  </button>
-                </div>
-              )}
+            <button onClick={() => setIsSidebarOpen(false)} className="p-1 rounded-md text-slate-400 hover:text-slate-600 md:hidden">
+              <X size={18} />
+            </button>
           </div>
+          {(isGenerating || status.startsWith("erro")) && (
+              <div className={`mx-4 mt-3 text-xs p-3 rounded-lg border shadow-sm flex flex-col gap-2 ${status.startsWith("erro") ? "bg-red-50 border-red-200 text-red-600" : "bg-blue-50 border-blue-200 text-blue-600"}`}>
+                <div className={`flex items-center gap-2 font-semibold ${!status.startsWith("erro") && "animate-pulse"}`}>
+                  <span>🤖</span> {status.startsWith("erro") ? "Erro ao gerar aulas" : `IA gerando aulas (${classroom?.aulas_geradas || 0} de ${classroom?.total_aulas || '?'})`}
+                </div>
+                <button 
+                  onClick={() => setDebuggerState({salaId: params.id as string, aulaNum: (classroom?.aulas_geradas || 0) + 1})}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded shadow-sm transition"
+                >
+                  Acompanhar Agentes
+                </button>
+              </div>
+            )}
           
           <div className="p-4 space-y-2">
             {classroom?.cronograma_oficial ? (
@@ -437,6 +443,9 @@ export default function ProfessorSemesterViewer() {
                       if (aulaCompleta) {
                         setSelectedAula(aulaCompleta);
                         setActiveTab('teoria');
+                        if (window.innerWidth < 768) {
+                          setIsSidebarOpen(false);
+                        }
                       }
                     }}
                     className={`p-3 rounded-lg border text-sm transition-all ${
@@ -566,72 +575,72 @@ export default function ProfessorSemesterViewer() {
         )}
 
         {/* Main Content: Visualizador da Aula Selecionada */}
-        <main className="flex-1 bg-slate-50 overflow-y-auto p-8">
+        <main className="flex-1 bg-slate-50 overflow-y-auto p-4 sm:p-6 md:p-8">
           {!selectedAula ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400">
-              <div className="text-6xl mb-4">📖</div>
-              <p className="text-lg">Selecione uma aula no cronograma lateral para estudar.</p>
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 py-16">
+              <div className="text-5xl sm:text-6xl mb-4">📖</div>
+              <p className="text-base sm:text-lg text-center px-4">Selecione uma aula no cronograma lateral para estudar.</p>
             </div>
           ) : (
             <div className="max-w-4xl mx-auto pb-20">
-              <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-slate-200">
-                <h2 className="text-3xl font-bold text-blue-900 flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-2 border-b-2 border-slate-200">
+                <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 flex flex-wrap items-center gap-2">
                   <span>Aula {selectedAula.numero_aula}:</span>
                   <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>
                     {processLatex(selectedAula.titulo)}
                   </ReactMarkdown>
                 </h2>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <button
                     onClick={() => handleExcluirAula(selectedAula)}
-                    className="px-4 py-2 rounded-full font-bold shadow-sm transition-colors flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full font-bold shadow-sm transition-colors flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
                   >
-                    🗑️ Excluir Aula
+                    🗑️ Excluir
                   </button>
                   <button
                     onClick={() => togglePublish(selectedAula)}
-                  className={`px-4 py-2 rounded-full font-bold shadow-sm transition-colors flex items-center gap-2 ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full font-bold shadow-sm transition-colors flex items-center gap-1.5 ${
                     selectedAula.publicada 
                       ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300' 
                       : 'bg-slate-200 text-slate-600 hover:bg-slate-300 border border-slate-300'
                   }`}
                 >
-                  {selectedAula.publicada ? "👁️ Visível p/ Alunos" : "🙈 Oculta p/ Alunos"}
+                  {selectedAula.publicada ? "👁️ Visível" : "🙈 Oculta"}
                 </button>
                 </div>
               </div>
 
-              {/* TABS NAVIGATION */}
-              <div className="flex gap-2 mb-8 bg-slate-200/50 p-1.5 rounded-lg w-fit border border-slate-200">
+              {/* TABS NAVIGATION (Scroll horizontal suave no Mobile) */}
+              <div className="flex gap-2 mb-8 bg-slate-200/50 p-1.5 rounded-lg w-full sm:w-fit overflow-x-auto border border-slate-200">
                 <button
                   onClick={() => setActiveTab('teoria')}
-                  className={`px-6 py-2.5 rounded-md font-semibold text-sm transition-all ${
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-semibold text-xs sm:text-sm whitespace-nowrap transition-all ${
                     activeTab === 'teoria' 
                       ? 'bg-white text-blue-900 shadow-sm border border-slate-200/60' 
                       : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <span className="mr-2">📖</span> Teoria e Simuladores
+                  <span className="mr-1.5 sm:mr-2">📖</span> Teoria e Simuladores
                 </button>
                 <button
                   onClick={() => setActiveTab('exercicios')}
-                  className={`px-6 py-2.5 rounded-md font-semibold text-sm transition-all ${
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-semibold text-xs sm:text-sm whitespace-nowrap transition-all ${
                     activeTab === 'exercicios' 
                       ? 'bg-white text-blue-900 shadow-sm border border-slate-200/60' 
                       : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <span className="mr-2">📝</span> Caderno de Exercícios
+                  <span className="mr-1.5 sm:mr-2">📝</span> Caderno de Exercícios
                 </button>
                 <button
                   onClick={() => setActiveTab('referencias')}
-                  className={`px-6 py-2.5 rounded-md font-semibold text-sm transition-all ${
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-semibold text-xs sm:text-sm whitespace-nowrap transition-all ${
                     activeTab === 'referencias' 
                       ? 'bg-white text-blue-900 shadow-sm border border-slate-200/60' 
                       : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <span className="mr-2">📚</span> Referências
+                  <span className="mr-1.5 sm:mr-2">📚</span> Referências
                 </button>
               </div>
 
@@ -639,11 +648,11 @@ export default function ProfessorSemesterViewer() {
               <div className={activeTab === 'teoria' ? 'block' : 'hidden'}>
                 {/* Resumo Executivo / TOC */}
               {selectedAula.conteudo_json?.resumo_executivo_aula && (
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-xl mb-10 shadow-sm">
-                  <h3 className="text-lg font-bold text-blue-900 mb-2 flex items-center gap-2">
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 sm:p-6 rounded-r-xl mb-8 sm:mb-10 shadow-sm">
+                  <h3 className="text-base sm:text-lg font-bold text-blue-900 mb-2 flex items-center gap-2">
                     <span>🎯</span> Resumo da Aula
                   </h3>
-                  <p className="text-blue-800 leading-relaxed">
+                  <p className="text-blue-800 text-sm sm:text-base leading-relaxed">
                     {selectedAula.conteudo_json.resumo_executivo_aula}
                   </p>
                   <div className="mt-4">
@@ -677,8 +686,8 @@ export default function ProfessorSemesterViewer() {
                     : (pagina.conteudo?.exemplo_canonico ? [pagina.conteudo.exemplo_canonico] : []);
 
                   return (
-                    <section key={idx} className="mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                      <h3 className="text-2xl font-bold text-slate-800 mb-6 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <section key={idx} className="mb-8 sm:mb-12 bg-white p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200">
+                      <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 pb-2 border-b border-slate-100 flex items-center gap-2">
                         <span>{idx + 1}.</span>
                         <span><ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]} components={{p: "span"}}>{processLatex(titulo)}</ReactMarkdown></span>
                       </h3>
@@ -691,8 +700,8 @@ export default function ProfessorSemesterViewer() {
                         onSaved={() => {}}
                       />
 
-                      <div className="prose prose-lg prose-blue max-w-none text-slate-700">
-                        <div className="leading-relaxed mb-6 space-y-4">
+                      <div className="prose prose-base sm:prose-lg prose-blue max-w-none text-slate-700">
+                        <div className="leading-relaxed mb-6 space-y-4 text-sm sm:text-base">
                           <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                             {processLatex(textoProsa)}
                           </ReactMarkdown>
@@ -720,9 +729,9 @@ export default function ProfessorSemesterViewer() {
                         })()}
 
                         {latexCode && latexCode !== "null" && (
-                          <div className="my-8 p-6 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                            <span className="text-blue-800 font-bold block mb-2 text-sm uppercase tracking-wider">Fórmula / Definição Formal</span>
-                            <div className="text-lg text-left inline-block w-full break-words">
+                          <div className="my-6 sm:my-8 p-4 sm:p-6 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                            <span className="text-blue-800 font-bold block mb-2 text-xs sm:text-sm uppercase tracking-wider">Fórmula / Definição Formal</span>
+                            <div className="text-base sm:text-lg text-left inline-block w-full break-words">
                               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                 {processLatex(latexCode)}
                               </ReactMarkdown>
@@ -731,11 +740,11 @@ export default function ProfessorSemesterViewer() {
                         )}
 
                         {deducoes?.length > 0 && deducoes[0] !== "null" && (
-                          <div className="mb-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                            <div className="p-4 bg-slate-50 font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200">
+                          <div className="mb-6 sm:mb-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="p-3 sm:p-4 bg-slate-50 font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200 text-sm sm:text-base">
                                 <span>🔍</span> Demonstração Passo a Passo
                             </div>
-                            <div className="p-6 bg-slate-50/50 space-y-4">
+                            <div className="p-4 sm:p-6 bg-slate-50/50 space-y-4">
                               {deducoes.map((passo: string, pIdx: number) => (
                                 <div key={pIdx} className="text-slate-700 text-sm md:text-base leading-relaxed break-words">
                                   <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
@@ -748,26 +757,26 @@ export default function ProfessorSemesterViewer() {
                         )}
 
                         {exemplos?.length > 0 && (
-                          <div className="mt-8">
-                            <h4 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                          <div className="mt-6 sm:mt-8">
+                            <h4 className="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                               <span>💡</span> Exemplos Práticos
                             </h4>
                             {exemplos.map((exemplo: any, eIdx: number) => (
-                              <div key={eIdx} className="bg-blue-50/40 p-6 rounded-xl mb-6 border border-blue-100">
-                                <div className="font-semibold text-slate-800 mb-4 border-b border-blue-200 pb-2">
-                                  <div className="flex-1 pr-4 overflow-x-auto overflow-y-hidden">
+                              <div key={eIdx} className="bg-blue-50/40 p-4 sm:p-6 rounded-xl mb-6 border border-blue-100">
+                                <div className="font-semibold text-slate-800 mb-4 border-b border-blue-200 pb-2 text-sm sm:text-base">
+                                  <div className="flex-1">
                                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                       {processLatex(exemplo.contexto_e_enunciado || exemplo.enunciado)}
                                     </ReactMarkdown>
                                   </div>
                                 </div>
                                 
-                                <div className="mt-6">
+                                <div className="mt-4 sm:mt-6">
                                   {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao) && (
-                                    <div className="bg-white p-4 rounded-lg mb-4 border border-slate-200 shadow-sm overflow-x-auto overflow-y-hidden space-y-2">
-                                      <h5 className="font-bold text-slate-700 mb-2 text-sm uppercase">Passo a Passo</h5>
+                                    <div className="bg-white p-3 sm:p-4 rounded-lg mb-4 border border-slate-200 shadow-sm space-y-2">
+                                      <h5 className="font-bold text-slate-700 mb-2 text-xs sm:text-sm uppercase">Passo a Passo</h5>
                                       {(exemplo.desenvolvimento_aritmético_passo_a_passo || exemplo.passo_a_passo_solucao).map((passo: string, pIdx: number) => (
-                                        <div key={pIdx} className="text-slate-600 text-sm">
+                                        <div key={pIdx} className="text-slate-600 text-xs sm:text-sm">
                                           <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                             {processLatex(passo)}
                                           </ReactMarkdown>
@@ -776,7 +785,7 @@ export default function ProfessorSemesterViewer() {
                                     </div>
                                   )}
 
-                                  <div className="bg-green-50 p-4 rounded-lg mt-4 border border-green-200">
+                                  <div className="bg-green-50 p-3 sm:p-4 rounded-lg mt-4 border border-green-200 text-xs sm:text-sm">
                                     <strong className="text-green-800 block mb-1">Conclusão:</strong>
                                     <div className="text-green-900">
                                       <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
@@ -800,16 +809,16 @@ export default function ProfessorSemesterViewer() {
               <div className={activeTab === 'exercicios' ? 'block' : 'hidden'}>
 
               {selectedAula.conteudo_json?.exercicios_da_aula && (
-                <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mt-12">
-                  <h3 className="text-2xl font-bold text-slate-800 mb-8 pb-4 border-b-2 border-slate-100 flex items-center gap-3">
+                <section className="bg-white p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 mt-8 sm:mt-12">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-6 sm:mb-8 pb-3 sm:pb-4 border-b-2 border-slate-100 flex items-center gap-2 sm:gap-3">
                     <span>📝</span> Caderno de Exercícios
                   </h3>
 
-                  <div className="space-y-12">
+                  <div className="space-y-8 sm:space-y-12">
                     {/* Múltipla Escolha */}
                     {selectedAula.conteudo_json.exercicios_da_aula.questoes_multipla_escolha?.length > 0 && (
                       <div>
-                        <h4 className="text-xl font-bold text-indigo-900 mb-6 flex items-center gap-2">
+                        <h4 className="text-lg sm:text-xl font-bold text-indigo-900 mb-4 sm:mb-6 flex items-center gap-2">
                           <span className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm">A</span>
                           Múltipla Escolha
                         </h4>

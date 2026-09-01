@@ -37,9 +37,22 @@ body {
   overflow-y: hidden;
   padding-bottom: 0.5rem;
   max-width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+}
+
+.katex-display::-webkit-scrollbar {
+  height: 4px;
+}
+
+.katex-display::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.8);
+  border-radius: 4px;
 }
 
 .markdown-body table, .markdown-body pre {
   max-width: 100%;
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
 }

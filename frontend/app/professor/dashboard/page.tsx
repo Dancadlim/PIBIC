@@ -102,27 +102,27 @@ export default function ProfessorDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <nav className="bg-blue-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <div>
-          <h1 className="text-xl font-bold">Painel do Professor</h1>
-          <p className="text-xs text-blue-200">{professorName} | {professorDept}</p>
+      <nav className="bg-blue-900 text-white px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shadow-md">
+        <div className="truncate pr-2">
+          <h1 className="text-lg sm:text-xl font-bold truncate">Painel do Professor</h1>
+          <p className="text-[10px] sm:text-xs text-blue-200 truncate">{professorName} | {professorDept}</p>
         </div>
-        <button onClick={handleLogout} className="text-sm bg-blue-800 px-4 py-2 rounded hover:bg-blue-700 transition">Sair</button>
+        <button onClick={handleLogout} className="text-xs sm:text-sm bg-blue-800 px-3 py-1.5 sm:px-4 sm:py-2 rounded hover:bg-blue-700 transition shrink-0">Sair</button>
       </nav>
 
-      <main className="max-w-5xl mx-auto mt-8 p-6">
+      <main className="max-w-5xl mx-auto mt-4 sm:mt-8 p-4 sm:p-6">
         
         {/* Hub de Navegação */}
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto pb-2">
           <button 
             onClick={() => { setView("list"); }}
-            className={`px-6 py-2 rounded-full font-medium transition ${view === "list" ? "bg-blue-600 text-white" : "bg-white text-slate-600 border border-slate-300"}`}
+            className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm whitespace-nowrap font-medium transition ${view === "list" ? "bg-blue-600 text-white" : "bg-white text-slate-600 border border-slate-300"}`}
           >
             📚 Minhas Turmas Ativas
           </button>
           <button 
             onClick={() => setView("create")}
-            className={`px-6 py-2 rounded-full font-medium transition ${view === "create" ? "bg-blue-600 text-white" : "bg-white text-slate-600 border border-slate-300"}`}
+            className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm whitespace-nowrap font-medium transition ${view === "create" ? "bg-blue-600 text-white" : "bg-white text-slate-600 border border-slate-300"}`}
           >
             ✨ Gerar Novo Semestre
           </button>
@@ -130,8 +130,8 @@ export default function ProfessorDashboard() {
 
         {/* View: Lista de Turmas */}
         {view === "list" && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">Salas e Semestres Gerenciados</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 md:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-6">Salas e Semestres Gerenciados</h2>
             
             {minhasSalas.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-300">

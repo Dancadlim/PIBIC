@@ -344,6 +344,11 @@ def rodar_agentes_paralelos(conteudo_final, titulo_aula, modelo_llm="2.5", diret
                     elif rec and str(rec).lower() != "none" and str(rec).strip() != "":
                         tasks_simuladores.append((str(i + 1), str(rec)))
 
+        # 3. Fallback Final Garantido: Se ainda não tiver simulador e flag_simulador for True, cria para a página 1
+        if not tasks_simuladores and conteudo_final.get("paginas_conteudo"):
+            primeiro_subtopico = conteudo_final["paginas_conteudo"][0].get("titulo_subtopico", titulo_aula)
+            tasks_simuladores.append(("1", f"Laboratório Visual: {primeiro_subtopico}"))
+
     executor = ThreadPoolExecutor(max_workers=5)
     future_exercicios = executor.submit(task_exercicios) if flag_exercicios else None
     futures_sim = [executor.submit(task_simulador, idx, rec) for idx, rec in tasks_simuladores]
