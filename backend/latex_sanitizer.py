@@ -58,6 +58,21 @@ def sanitize_latex_string(text: str) -> str:
     processed = processed.replace(r'\[', '\n$$\n').replace(r'\]', '\n$$\n')
     processed = processed.replace(r'\(', '$').replace(r'\)', '$')
 
+    # 1.0 Desembrulha \text{...} solto ou frases explicativas dentro de $$ para quebrar linha normalmente
+    processed = re.sub(r'^\s*\\text\{([^}]+)\}\s*$', r'\1', processed, flags=re.MULTILINE)
+    def desembrulhar_display_text(m):
+        conteudo = m.group(1).strip()
+        # Se for $$\text{Explicação...} Equação$$
+        sub_m = re.match(r'^\\text\{([^}]+)\}\s*([=:\-\+].*|$)', conteudo, flags=re.DOTALL)
+        if sub_m:
+            txt = sub_m.group(1).strip()
+            resto = sub_m.group(2).strip()
+            if resto:
+                return f"{txt}\n\n$${resto}$$\n\n"
+            return f"{txt}\n\n"
+        return m.group(0)
+    processed = re.sub(r'\$\$([\s\S]*?)\$\$', desembrulhar_display_text, processed)
+
     # 1.1 Corrige cifrões desbalanceados por parágrafo (evita que texto em português vire math itálico)
     paragraphs = processed.split('\n\n')
     balanced_paragraphs = []

@@ -419,14 +419,14 @@ export default function SemesterViewer() {
                         )}
 
                         {deducoes?.length > 0 && deducoes[0] !== "null" && (
-                          <div className="mb-6 sm:mb-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                            <div className="p-3 sm:p-4 bg-slate-50 font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200 text-sm sm:text-base">
-                                <span>🔍</span> Demonstração Passo a Passo
-                            </div>
-                            <div className="p-4 sm:p-6 bg-slate-50/50 space-y-4">
+                          <div className="mb-6 sm:mb-8 bg-slate-50/60 p-4 sm:p-6 rounded-xl border border-slate-200">
+                            <h5 className="font-bold text-slate-800 mb-3 text-sm sm:text-base flex items-center gap-2">
+                              <span>🔍</span> Demonstração Passo a Passo
+                            </h5>
+                            <div className="bg-white p-3 sm:p-4 rounded-lg border border-slate-200 shadow-sm space-y-3">
                               {deducoes.map((passo: string, pIdx: number) => (
-                                <div key={pIdx} className="text-slate-700 text-sm md:text-base leading-relaxed break-words">
-                                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
+                                <div key={pIdx} className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                                  <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[[rehypeKatex, {strict: false}]]}>
                                     {processLatex(passo)}
                                   </ReactMarkdown>
                                 </div>

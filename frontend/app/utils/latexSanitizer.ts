@@ -62,6 +62,22 @@ export function sanitizeLatex(text: string): string {
   processed = processed.replace(/\\\[/g, '\n$$\n').replace(/\\\]/g, '\n$$\n');
   processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
 
+  // 1.0 Desembrulha \text{...} solto ou frases explicativas dentro de $$ para quebrar linha normalmente
+  processed = processed.replace(/^\s*\\text\{([^}]+)\}\s*$/gm, '$1');
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, conteudo) => {
+    const trimmed = conteudo.trim();
+    const subM = trimmed.match(/^\\text\{([^}]+)\}\s*([=:\-\+][\s\S]*|$)/);
+    if (subM) {
+      const txt = subM[1].trim();
+      const resto = subM[2].trim();
+      if (resto) {
+        return `${txt}\n\n$$${resto}$$\n\n`;
+      }
+      return `${txt}\n\n`;
+    }
+    return match;
+  });
+
   // 1.1 Corrige cifrões desbalanceados por parágrafo (evita que texto em português vire math itálico)
   const paragraphs = processed.split('\n\n');
   const balancedParagraphs = paragraphs.map(p => {
