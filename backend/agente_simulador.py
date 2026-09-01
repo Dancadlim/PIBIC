@@ -37,12 +37,40 @@ O objetivo central do simulador é proporcionar uma experiência visual interati
        `margin: {{ t: 20, b: 60, l: 50, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
      * Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
 
-3. INICIALIZAÇÃO IMEDIATA E NOTIFICAÇÃO DE REDIMENSIONAMENTO:
-   - Conecte o evento `input` dos sliders à função de re-renderização (`Plotly.react('grafico', ...)`).
-   - Ao final do script, execute a função de renderização IMEDIATAMENTE (chamando `updateChart()` logo após a definição).
-   - Adicione listeners `window.addEventListener('load', updateChart);` e `document.addEventListener('DOMContentLoaded', updateChart);` para garantir inicialização em iframes.
-   - Sempre que renderizar ou atualizar o gráfico, envie mensagem de redimensionamento para a página pai:
-     `if (window.parent) {{ window.parent.postMessage({{ type: 'resize', height: document.body.scrollHeight + 40 }}, '*'); }}`
+3. INICIALIZAÇÃO BLINDADA COM POLLING DO PLOTLY (CRÍTICO - EVITA TELA BRANCA):
+   - Como o Plotly é carregado via CDN assíncrono, você DEVE OBRIGATORIAMENTE usar a função de polling antes de chamar `Plotly.newPlot`:
+     ```javascript
+     function initSimulation() {{
+       if (typeof Plotly === 'undefined') {{
+         setTimeout(initSimulation, 50);
+         return;
+       }}
+       
+       // Configura listeners nos sliders
+       const sliders = document.querySelectorAll('input[type="range"]');
+       sliders.forEach(s => s.addEventListener('input', updateChart));
+       
+       // Executa a primeira renderização do gráfico
+       updateChart();
+     }}
+
+     function updateChart() {{
+       // 1. Lê valores dos sliders
+       // 2. Calcula dados / arrays
+       // 3. Renderiza no Plotly
+       Plotly.react('grafico', traces, layout, config);
+       
+       // Notifica o iframe pai para ajuste de altura
+       if (window.parent) {{
+         window.parent.postMessage({{ type: 'resize', height: document.body.scrollHeight + 40 }}, '*');
+       }}
+     }}
+
+     // Dispara a inicialização em qualquer estado do DOM
+     window.addEventListener('load', initSimulation);
+     document.addEventListener('DOMContentLoaded', initSimulation);
+     initSimulation();
+     ```
 
 [CÓDIGO DE PARTIDA ESPERADO]
 Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE html> e terminando com </html>). É PROIBIDO usar marcadores de markdown (como ```html).

@@ -95,27 +95,43 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   }
 
   const injectedHtml = html ? (() => {
-    const resizeScript = `<script>
-      let lastHeight = 0;
-      function notifyParent() {
-        const contentDiv = document.querySelector('.max-w-4xl') || document.querySelector('.max-w-5xl') || document.body;
-        const h = Math.max(contentDiv ? contentDiv.scrollHeight + 30 : document.body.scrollHeight, 650);
-        if (Math.abs(h - lastHeight) > 15) {
-          lastHeight = h;
-          window.parent.postMessage({ type: 'resize', height: h }, '*');
+    const fallbackAndResizeScript = `<script>
+      (function() {
+        let lastHeight = 0;
+        function notifyParent() {
+          const contentDiv = document.querySelector('.max-w-4xl') || document.querySelector('.max-w-5xl') || document.body;
+          const h = Math.max(contentDiv ? contentDiv.scrollHeight + 30 : document.body.scrollHeight, 650);
+          if (Math.abs(h - lastHeight) > 15) {
+            lastHeight = h;
+            window.parent.postMessage({ type: 'resize', height: h }, '*');
+          }
         }
-      }
-      window.addEventListener('load', notifyParent);
-      if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        notifyParent();
-      }
-      setTimeout(notifyParent, 400);
-      setTimeout(notifyParent, 1200);
+        window.addEventListener('load', notifyParent);
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          notifyParent();
+        }
+        setTimeout(notifyParent, 400);
+        setTimeout(notifyParent, 1200);
+
+        // Fallback: garante que se os sliders dispararem ou se o Plotly demorou a carregar, o gráfico renderize
+        function ensurePlotRendered() {
+          if (typeof Plotly !== 'undefined') {
+            const sliders = document.querySelectorAll('input[type="range"]');
+            if (sliders.length > 0) {
+              sliders[0].dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          } else {
+            setTimeout(ensurePlotRendered, 150);
+          }
+        }
+        setTimeout(ensurePlotRendered, 300);
+        setTimeout(ensurePlotRendered, 1000);
+      })();
     </script>`;
     if (html.includes('</body>')) {
-      return html.replace('</body>', `${resizeScript}</body>`);
+      return html.replace('</body>', `${fallbackAndResizeScript}</body>`);
     }
-    return html + resizeScript;
+    return html + fallbackAndResizeScript;
   })() : null;
 
   return (
