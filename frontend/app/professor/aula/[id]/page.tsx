@@ -17,7 +17,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   const [html, setHtml] = useState<string | null>(htmlCode || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [iframeHeight, setIframeHeight] = useState(800);
+  const [iframeHeight, setIframeHeight] = useState(900);
 
   useEffect(() => {
     if (htmlCode) {
@@ -31,7 +31,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'resize' && event.data.height) {
-         setIframeHeight(event.data.height + 50);
+         setIframeHeight(Math.max(event.data.height + 80, 850));
       }
     };
     window.addEventListener('message', handleMessage);
@@ -68,9 +68,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         <RefreshCw className="animate-spin text-indigo-500 mx-auto mb-4" size={32} />
         <p className="text-slate-600 font-medium animate-pulse">Engenheiro de IA programando o simulador...</p>
         <p className="text-slate-400 text-sm mt-2">Isso pode levar até 20 segundos (código sendo escrito do zero)</p>
-      
-      
-    </div>
+      </div>
     );
   }
 
@@ -79,9 +77,7 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
       <div className="my-8 bg-red-50 text-red-600 p-6 rounded-xl border border-red-200 text-center">
         <p>Ocorreu um erro ao gerar a simulação.</p>
         <button onClick={carregarSimulador} className="mt-4 underline text-red-800">Tentar Novamente</button>
-      
-      
-    </div>
+      </div>
     );
   }
 
@@ -91,8 +87,8 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         let lastHeight = 0;
         function notifyParent() {
           const contentDiv = document.querySelector('.max-w-4xl') || document.querySelector('.max-w-5xl') || document.body;
-          const h = Math.max(contentDiv ? contentDiv.scrollHeight + 30 : document.body.scrollHeight, 650);
-          if (Math.abs(h - lastHeight) > 15) {
+          const h = Math.max(contentDiv ? contentDiv.scrollHeight + 60 : document.body.scrollHeight + 40, 750);
+          if (Math.abs(h - lastHeight) > 10) {
             lastHeight = h;
             window.parent.postMessage({ type: 'resize', height: h }, '*');
           }
@@ -101,8 +97,10 @@ function SimuladorInterativo({ temaAula, nomeSimulador, htmlCode }: { temaAula: 
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
           notifyParent();
         }
-        setTimeout(notifyParent, 400);
-        setTimeout(notifyParent, 1200);
+        setTimeout(notifyParent, 300);
+        setTimeout(notifyParent, 800);
+        setTimeout(notifyParent, 2000);
+        setInterval(notifyParent, 2500);
 
         // Fallback: garante que se os sliders dispararem ou se o Plotly demorou a carregar, o gráfico renderize
         function ensurePlotRendered() {

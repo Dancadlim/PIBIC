@@ -28,17 +28,18 @@ O objetivo central do simulador é proporcionar uma experiência visual interati
      c) CONTAINER DO GRÁFICO (LARGURA TOTAL 100%): O gráfico DEVE ter SEMPRE uma div explícita `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>` ABAIXO dos controles. TODA simulação DEVE renderizar um gráfico Plotly na div `grafico`.
      d) RODAPÉ / CARD EXPLICATIVO (OPCIONAL): Breve explicação das conclusões da simulação.
 
-2. ALTURA E VISIBILIDADE DO GRÁFICO (MANDATÓRIO):
+2. ALTURA, EIXOS E LEGENDA DO GRÁFICO (MANDATÓRIO):
    - A div do gráfico DEVE ter estilo inline com largura e altura explícitas:
-     `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 450px;"></div>`
-   - NO JS DO PLOTLY (LAYOUT COMPLETO COM TÍTULO E EIXOS):
+     `<div id="grafico" class="w-full my-4" style="width: 100%; min-height: 420px; height: 460px;"></div>`
+   - NO JS DO PLOTLY (LAYOUT COMPLETO COM TÍTULO, EIXOS E LEGENDA TOTALMENTE DESCOLADOS):
      * O container alvo do Plotly DEVE ser exatamente o id `grafico` (`Plotly.newPlot('grafico', ...)`).
      * Defina o título formal do gráfico dentro do Plotly:
        `title: {{ text: '{nome_simulador}', font: {{ size: 16, color: '#1e293b' }} }}`
      * Configure títulos descritivos para os eixos:
-       `xaxis: {{ title: {{ text: 'Nome da Variável X' }} }}, yaxis: {{ title: {{ text: 'Nome da Variável Y' }} }}`
-     * Configure margens limpas e legenda horizontal abaixo:
-       `margin: {{ t: 50, b: 60, l: 60, r: 30 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }}`
+       `xaxis: {{ title: {{ text: 'Nome da Variável X', standoff: 15 }} }}, yaxis: {{ title: {{ text: 'Nome da Variável Y', standoff: 15 }} }}`
+     * LEGENDA E MARGENS (CRÍTICO - EVITE SOBREPOSIÇÃO):
+       Coloque margem inferior suficiente (`b: 80`) e posicione a legenda no topo superior direito ou abaixo do gráfico sem encavalar no título do eixo X:
+       `margin: {{ t: 60, b: 80, l: 65, r: 35 }}, autosize: true, legend: {{ orientation: 'h', x: 0.5, xanchor: 'center', y: 1.15 }}` (legenda no topo acima do gráfico) ou `{{ orientation: 'h', x: 0.5, xanchor: 'center', y: -0.3 }}` (legenda bem abaixo do título do eixo X).
      * Ative responsividade: `Plotly.newPlot('grafico', data, layout, {{ responsive: true, displayModeBar: false }});`
 
 3. INICIALIZAÇÃO BLINDADA COM POLLING DO PLOTLY (CRÍTICO - EVITA TELA BRANCA):
@@ -66,7 +67,7 @@ O objetivo central do simulador é proporcionar uma experiência visual interati
        
        // Notifica o iframe pai para ajuste de altura
        if (window.parent) {{
-         window.parent.postMessage({{ type: 'resize', height: document.body.scrollHeight + 40 }}, '*');
+         window.parent.postMessage({{ type: 'resize', height: document.body.scrollHeight + 60 }}, '*');
        }}
      }}
 
@@ -100,7 +101,15 @@ Retorne APENAS um documento HTML completo e válido (começando com <!DOCTYPE ht
     </div>
 
     <!-- Div do Gráfico ocupando 100% da largura -->
-    <div id="grafico" class="w-full" style="width: 100%; min-height: 420px; height: 450px;"></div>
+    <div id="grafico" class="w-full" style="width: 100%; min-height: 420px; height: 460px;"></div>
+
+    <!-- Card Explicativo / Interpretação Didática com espaçamento inferior generoso -->
+    <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-4 text-slate-700 text-sm mb-4">
+      <h4 class="font-bold text-blue-900 mb-1 flex items-center gap-1">💡 Como interpretar este gráfico?</h4>
+      <p id="explicacao_dinamica" class="leading-relaxed">
+        Interaja com os controles acima para visualizar a dinâmica do modelo em tempo real.
+      </p>
+    </div>
   </div>
 
   <script>
